@@ -1,0 +1,852 @@
+openapi: 3.0.3
+info:
+  title: CreatorBridge Payout Service API
+  description: |
+    API for managing creator payments, earnings, and tax compliance.
+
+    ## Features
+    - Creator balance and earnings tracking
+    - Payout request processing
+    - Multiple payout methods (Stripe Connect, PayPal, Bank Transfer)
+    - Tax document management (W-9, W-8, 1099)
+    - Payout scheduling and preferences
+  version: 1.0.0
+  contact:
+    name: CreatorBridge API Support
+    email: api@creatorbridge.com
+
+servers:
+  - url: https://api.creatorbridge.com/v1
+    description: Production
+  - url: https://staging-api.creatorbridge.com/v1
+    description: Staging
+
+tags:
+  - name: Balance
+    description: Balance and earnings operations
+  - name: Payouts
+    description: Payout request management
+  - name: Accounts
+    description: Payout account configuration
+  - name: Tax
+    description: Tax document management
+
+paths:
+  /payouts/balance:
+    get:
+      tags: [Balance]
+      summary: Get creator balance
+      description: Retrieves the current balance and available payout amount
+      operationId: getBalance
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Balance retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /payouts/earnings:
+    get:
+      tags: [Balance]
+      summary: Get earnings history
+      description: Retrieves detailed earnings history
+      operationId: getEarnings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter earnings from this date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Filter earnings until this date
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by campaign
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, cleared, paid]
+          description: Filter by status
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Earnings retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarningsResponse'
+
+  /payouts/request:
+    post:
+      tags: [Payouts]
+      summary: Request payout
+      description: Requests a payout to the creator's connected payout method
+      operationId: requestPayout
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRequest'
+      responses:
+        '201':
+          description: Payout request submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutResponse'
+        '400':
+          description: Invalid request (amount below minimum or exceeds balance)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Payout method not configured or account not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payouts/history:
+    get:
+      tags: [Payouts]
+      summary: Get payout history
+      description: Retrieves history of all payout requests
+      operationId: getPayoutHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [processing, completed, failed, cancelled]
+          description: Filter by status
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Payout history retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutHistoryResponse'
+
+  /payouts/account:
+    get:
+      tags: [Accounts]
+      summary: Get payout account
+      description: Retrieves the creator's payout account configuration
+      operationId: getPayoutAccount
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Account configuration retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayoutAccountResponse'
+
+  /payouts/account/connect:
+    post:
+      tags: [Accounts]
+      summary: Connect payout method
+      description: Initiates the connection flow for a new payout method
+      operationId: connectPayoutMethod
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectAccountRequest'
+      responses:
+        '200':
+          description: Connection flow initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectAccountResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /payouts/preferences:
+    patch:
+      tags: [Accounts]
+      summary: Update payout preferences
+      description: Updates payout schedule and preferences
+      operationId: updatePreferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePreferencesRequest'
+      responses:
+        '200':
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreferencesResponse'
+
+  /payouts/tax-documents:
+    get:
+      tags: [Tax]
+      summary: Get tax documents
+      description: Retrieves submitted tax documents and their status
+      operationId: getTaxDocuments
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Tax documents retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxDocumentsResponse'
+
+    post:
+      tags: [Tax]
+      summary: Submit tax document
+      description: Submits tax documentation (W-9/W-8) for payout compliance
+      operationId: submitTaxDocument
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaxDocumentSubmission'
+      responses:
+        '201':
+          description: Tax document submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxDocumentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /payouts/tax-documents/1099/{taxYear}:
+    get:
+      tags: [Tax]
+      summary: Download 1099 form
+      description: Downloads the 1099 tax form for a specific year
+      operationId: download1099
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: taxYear
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2099
+          description: Tax year
+      responses:
+        '200':
+          description: Download URL generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Form1099Response'
+        '404':
+          description: 1099 not available for this year
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    BalanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            creatorId:
+              type: string
+              format: uuid
+            balances:
+              type: object
+              properties:
+                available:
+                  type: number
+                  format: double
+                pending:
+                  type: number
+                  format: double
+                lifetime:
+                  type: number
+                  format: double
+                currency:
+                  type: string
+            minimumPayout:
+              type: number
+              format: double
+            nextPayoutDate:
+              type: string
+              format: date-time
+            payoutSchedule:
+              type: string
+              enum: [weekly, bi_weekly, monthly, manual]
+            lastPayout:
+              type: object
+              properties:
+                amount:
+                  type: number
+                  format: double
+                date:
+                  type: string
+                  format: date-time
+                status:
+                  type: string
+
+    EarningsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            earnings:
+              type: array
+              items:
+                $ref: '#/components/schemas/Earning'
+            summary:
+              type: object
+              properties:
+                totalGross:
+                  type: number
+                  format: double
+                totalFees:
+                  type: number
+                  format: double
+                totalNet:
+                  type: number
+                  format: double
+                currency:
+                  type: string
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Earning:
+      type: object
+      properties:
+        earningId:
+          type: string
+          format: uuid
+        contentId:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        campaign:
+          type: object
+          properties:
+            name:
+              type: string
+            brand:
+              type: string
+        amount:
+          type: object
+          properties:
+            gross:
+              type: number
+              format: double
+            platformFee:
+              type: number
+              format: double
+            net:
+              type: number
+              format: double
+            currency:
+              type: string
+        feePercentage:
+          type: number
+        status:
+          type: string
+          enum: [pending, cleared, paid]
+        clearedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    PayoutRequest:
+      type: object
+      required:
+        - amount
+        - method
+      properties:
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+        method:
+          type: string
+          enum: [stripe_connect, paypal, bank_transfer]
+        currency:
+          type: string
+          default: USD
+        note:
+          type: string
+
+    PayoutResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            payoutId:
+              type: string
+              format: uuid
+            amount:
+              type: number
+              format: double
+            currency:
+              type: string
+            method:
+              type: string
+            status:
+              type: string
+              enum: [processing, completed, failed]
+            estimatedArrival:
+              type: string
+              format: date-time
+            createdAt:
+              type: string
+              format: date-time
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+
+    PayoutHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              payoutId:
+                type: string
+                format: uuid
+              amount:
+                type: number
+                format: double
+              currency:
+                type: string
+              method:
+                type: string
+              status:
+                type: string
+              fee:
+                type: number
+                format: double
+              netAmount:
+                type: number
+                format: double
+              reference:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              completedAt:
+                type: string
+                format: date-time
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    PayoutAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accounts:
+              type: array
+              items:
+                $ref: '#/components/schemas/PayoutAccount'
+            taxStatus:
+              type: object
+              properties:
+                w9Submitted:
+                  type: boolean
+                w8Submitted:
+                  type: boolean
+                taxFormStatus:
+                  type: string
+                  enum: [pending, verified, rejected]
+
+    PayoutAccount:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [stripe_connect, paypal, bank_transfer]
+        status:
+          type: string
+          enum: [pending_setup, pending_verification, verified, suspended]
+        isDefault:
+          type: boolean
+        details:
+          type: object
+          properties:
+            accountId:
+              type: string
+            email:
+              type: string
+            country:
+              type: string
+            currency:
+              type: string
+            payoutsEnabled:
+              type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ConnectAccountRequest:
+      type: object
+      required:
+        - type
+        - returnUrl
+      properties:
+        type:
+          type: string
+          enum: [stripe_connect, paypal, bank_transfer]
+        returnUrl:
+          type: string
+          format: uri
+        country:
+          type: string
+
+    ConnectAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            connectUrl:
+              type: string
+              format: uri
+            expiresAt:
+              type: string
+              format: date-time
+            state:
+              type: string
+
+    UpdatePreferencesRequest:
+      type: object
+      properties:
+        schedule:
+          type: string
+          enum: [weekly, bi_weekly, monthly, manual]
+        minimumPayout:
+          type: number
+          format: double
+        defaultMethod:
+          type: string
+          format: uuid
+        holdPayouts:
+          type: boolean
+        notifications:
+          type: object
+          properties:
+            onEarning:
+              type: boolean
+            onPayout:
+              type: boolean
+            onTaxForm:
+              type: boolean
+
+    PreferencesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            schedule:
+              type: string
+            minimumPayout:
+              type: number
+              format: double
+            defaultMethod:
+              type: string
+              format: uuid
+            nextScheduledPayout:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+
+    TaxDocumentSubmission:
+      type: object
+      required:
+        - documentType
+        - file
+        - name
+        - signature
+        - signatureDate
+      properties:
+        documentType:
+          type: string
+          enum: [w9, w8ben, w8ben_e]
+        file:
+          type: string
+          format: binary
+        taxId:
+          type: string
+        name:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            state:
+              type: string
+            zip:
+              type: string
+            country:
+              type: string
+        signature:
+          type: string
+        signatureDate:
+          type: string
+          format: date
+
+    TaxDocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            documentId:
+              type: string
+              format: uuid
+            type:
+              type: string
+            status:
+              type: string
+              enum: [pending_review, verified, rejected]
+            submittedAt:
+              type: string
+              format: date-time
+            estimatedReviewTime:
+              type: string
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+
+    TaxDocumentsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            documents:
+              type: array
+              items:
+                type: object
+                properties:
+                  documentId:
+                    type: string
+                    format: uuid
+                  type:
+                    type: string
+                  status:
+                    type: string
+                  taxYear:
+                    type: integer
+                  submittedAt:
+                    type: string
+                    format: date-time
+                  verifiedAt:
+                    type: string
+                    format: date-time
+                  expiresAt:
+                    type: string
+                    format: date-time
+            forms1099:
+              type: array
+              items:
+                type: object
+                properties:
+                  formId:
+                    type: string
+                  taxYear:
+                    type: integer
+                  totalEarnings:
+                    type: number
+                    format: double
+                  status:
+                    type: string
+                  downloadUrl:
+                    type: string
+                    format: uri
+                  generatedAt:
+                    type: string
+                    format: date-time
+
+    Form1099Response:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            downloadUrl:
+              type: string
+              format: uri
+            expiresAt:
+              type: string
+              format: date-time
+            taxYear:
+              type: integer
+            totalEarnings:
+              type: number
+              format: double
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

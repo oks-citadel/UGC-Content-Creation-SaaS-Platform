@@ -1,0 +1,95 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+flowchart TD
+    subgraph "Content Upload Phase"
+        CREATOR[Creator Uploads Content]
+        PRESIGN[Asset Service<br/>Generate Presigned URL]
+        UPLOAD[Direct Upload to<br/>Azure Blob Storage]
+        METADATA[Store Metadata<br/>Content Service]
+    end
+
+    subgraph "Processing Queue"
+        QUEUE[Azure Service Bus<br/>Processing Queue]
+        WORKER[Video Processor Worker]
+    end
+
+    subgraph "AI Moderation Phase"
+        MODERATOR[Azure Content Moderator]
+        BRAND_SAFETY{Brand Safety<br/>Score}
+        NSFW{NSFW<br/>Check}
+        MANUAL_QUEUE[Manual Review Queue]
+    end
+
+    subgraph "Transcoding Phase"
+        MEDIA[Azure Media Services]
+        THUMB[Generate Thumbnails]
+        PREVIEW[Generate Preview]
+        VARIANTS[Generate Quality Variants<br/>720p, 1080p, 4K]
+    end
+
+    subgraph "Storage & CDN"
+        BLOB_FINAL[(Azure Blob Storage<br/>Final Assets)]
+        CDN[Azure CDN<br/>Global Distribution]
+        DB[(PostgreSQL<br/>Asset Metadata)]
+    end
+
+    subgraph "Brand Review Phase"
+        BRAND_NOTIFY[Notify Brand<br/>Content Ready for Review]
+        BRAND_REVIEW{Brand Review}
+        APPROVE[Approved]
+        REJECT[Rejected]
+        REVISION[Request Revision]
+    end
+
+    subgraph "Post-Approval"
+        RIGHTS_SIGN[Rights Service<br/>License Agreement]
+        EARNINGS[Payout Service<br/>Record Earnings]
+        LIBRARY[Add to Brand<br/>Asset Library]
+        LIVE[Content Live<br/>on CDN]
+    end
+
+    %% Upload flow
+    CREATOR --> PRESIGN
+    PRESIGN --> UPLOAD
+    UPLOAD --> METADATA
+    METADATA --> QUEUE
+
+    %% Processing flow
+    QUEUE --> WORKER
+    WORKER --> MODERATOR
+
+    %% Moderation decision
+    MODERATOR --> BRAND_SAFETY
+    MODERATOR --> NSFW
+    BRAND_SAFETY -->|Pass| MEDIA
+    BRAND_SAFETY -->|Flag| MANUAL_QUEUE
+    NSFW -->|Pass| MEDIA
+    NSFW -->|Fail| REJECT
+    MANUAL_QUEUE -->|Approve| MEDIA
+    MANUAL_QUEUE -->|Reject| REJECT
+
+    %% Transcoding flow
+    MEDIA --> THUMB
+    MEDIA --> PREVIEW
+    MEDIA --> VARIANTS
+    THUMB --> BLOB_FINAL
+    PREVIEW --> BLOB_FINAL
+    VARIANTS --> BLOB_FINAL
+    BLOB_FINAL --> CDN
+    BLOB_FINAL --> DB
+
+    %% Brand review
+    DB --> BRAND_NOTIFY
+    BRAND_NOTIFY --> BRAND_REVIEW
+    BRAND_REVIEW -->|Approve| APPROVE
+    BRAND_REVIEW -->|Reject| REJECT
+    BRAND_REVIEW -->|Revision| REVISION
+
+    %% Post-approval
+    APPROVE --> RIGHTS_SIGN
+    RIGHTS_SIGN --> EARNINGS
+    RIGHTS_SIGN --> LIBRARY
+    LIBRARY --> LIVE
+
+    %% Rejection flow
+    REJECT --> CREATOR
+    REVISION --> CREATOR

@@ -1,0 +1,26 @@
+# Environment files with secrets
+.env
+.env.*
+!.env.example
+
+# Generated manifests
+*.generated.yaml
+/tmp/
+
+# Kubernetes secrets (never commit actual secrets)
+**/secrets.yaml
+!base/secrets.yaml
+
+# Local development
+.DS_Store
+.vscode/
+.idea/
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+*.tmp
+*.swp
+*~

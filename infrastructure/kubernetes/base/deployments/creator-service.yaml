@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: creator-service
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: creator-service
+    app.kubernetes.io/part-of: nexus-platform
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: creator-service
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: creator-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: creator-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: creator-service
+        app.kubernetes.io/component: service
+        app.kubernetes.io/part-of: nexus-platform
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: creator-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: creator-service
+        image: nexus/creator-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3003
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "3003"
+        - name: SERVICE_NAME
+          value: "creator-service"
+        envFrom:
+        - configMapRef:
+            name: nexus-config
+        - secretRef:
+            name: nexus-secrets
+        resources:
+          requests:
+            cpu: 200m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/.cache
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: creator-service
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: creator-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: metrics
+    protocol: TCP
+    name: metrics
+  selector:
+    app.kubernetes.io/name: creator-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: creator-service
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: creator-service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: creator-service
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: creator-service
+  namespace: nexus
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: creator-service

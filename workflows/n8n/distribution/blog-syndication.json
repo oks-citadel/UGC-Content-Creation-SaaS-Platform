@@ -1,0 +1,98 @@
+{
+  "name": "Blog Syndication - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "blog-published", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "New Blog Post Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "blog-syndication",
+      "notes": "Triggered when new blog post is published"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {"role": "system", "content": "Extract key quotes and create social media snippets from blog content."},
+            {"role": "user", "content": "Blog title: {{ $json.title }}\\n\\nContent: {{ $json.content.substring(0, 2000) }}\\n\\nCreate 3 engaging social snippets with different angles. Return as JSON array."}
+          ]
+        }
+      },
+      "id": "generate-snippets",
+      "name": "Generate Social Snippets (AI)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {"openAiApi": {"id": "7", "name": "OpenAI"}},
+      "notes": "AI generates social-optimized snippets from blog content"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twitter.com/2/tweets",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ text: $json.snippet + '\\n\\n' + $json.blogUrl }) }}"
+      },
+      "id": "tweet",
+      "name": "Tweet Snippet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 250],
+      "notes": "Posts snippet to Twitter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ author: `urn:li:person:${$env.LINKEDIN_PERSON_ID}`, specificContent: { 'com.linkedin.ugc.ShareContent': { shareCommentary: { text: $json.snippet }, shareMediaCategory: 'ARTICLE', media: [{ status: 'READY', originalUrl: $json.blogUrl }] }}, visibility: { 'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC' } }) }}"
+      },
+      "id": "linkedin-post",
+      "name": "LinkedIn Article Share",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 350],
+      "notes": "Shares blog to LinkedIn"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/newsletter/queue",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ blogId: $json.blogId, title: $json.title, excerpt: $json.excerpt, url: $json.blogUrl, scheduledFor: $now.plus({ days: 7 }).toISO() }) }}"
+      },
+      "id": "queue-newsletter",
+      "name": "Queue for Newsletter",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 450],
+      "notes": "Adds blog to next newsletter edition"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, syndicated: ['twitter', 'linkedin', 'newsletter'] }) }}"
+      },
+      "id": "respond",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 350]
+    }
+  ],
+  "connections": {
+    "New Blog Post Webhook": {"main": [[{"node": "Generate Social Snippets (AI)", "type": "main", "index": 0}]]},
+    "Generate Social Snippets (AI)": {"main": [[{"node": "Tweet Snippet", "type": "main", "index": 0}, {"node": "LinkedIn Article Share", "type": "main", "index": 0}, {"node": "Queue for Newsletter", "type": "main", "index": 0}]]},
+    "Tweet Snippet": {"main": [[{"node": "Respond Success", "type": "main", "index": 0}]]},
+    "LinkedIn Article Share": {"main": [[{"node": "Respond Success", "type": "main", "index": 0}]]},
+    "Queue for Newsletter": {"main": [[{"node": "Respond Success", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "4", "name": "Distribution"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

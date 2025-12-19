@@ -1,0 +1,143 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nexus-services
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: nexus-services-monitor
+    app.kubernetes.io/part-of: nexus-platform
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: nexus-platform
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nexus-workers
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: nexus-workers-monitor
+    app.kubernetes.io/part-of: nexus-platform
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+      app.kubernetes.io/part-of: nexus-platform
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: prometheus-rules
+    app.kubernetes.io/part-of: nexus-platform
+data:
+  nexus-alerts.yaml: |
+    groups:
+    - name: nexus-alerts
+      interval: 30s
+      rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          (sum(rate(container_cpu_usage_seconds_total{namespace="nexus"}[5m])) by (pod)
+          / sum(container_spec_cpu_quota{namespace="nexus"}/container_spec_cpu_period{namespace="nexus"}) by (pod)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of CPU"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (sum(container_memory_working_set_bytes{namespace="nexus"}) by (pod)
+          / sum(container_spec_memory_limit_bytes{namespace="nexus"}) by (pod)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.pod }}"
+          description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of memory"
+
+      # Pod Restart Rate
+      - alert: PodRestartingTooOften
+        expr: rate(kube_pod_container_status_restarts_total{namespace="nexus"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} is restarting frequently"
+          description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"
+
+      # Service Down
+      - alert: ServiceDown
+        expr: up{namespace="nexus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 2 minutes"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{namespace="nexus",status=~"5.."}[5m])) by (service)
+          / sum(rate(http_requests_total{namespace="nexus"}[5m])) by (service)) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Service {{ $labels.service }} has {{ $value | humanizePercentage }} error rate"
+
+      # Database Connection Pool
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          (sum(pg_pool_active_connections) by (service)
+          / sum(pg_pool_max_connections) by (service)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool near exhaustion for {{ $labels.service }}"
+          description: "{{ $labels.service }} is using {{ $value | humanizePercentage }} of database connections"
+
+      # Queue Depth
+      - alert: HighQueueDepth
+        expr: rabbitmq_queue_messages{namespace="nexus"} > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High queue depth on {{ $labels.queue }}"
+          description: "Queue {{ $labels.queue }} has {{ $value }} messages pending"
+
+      # Slow Response Time
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{namespace="nexus"}[5m])) by (le, service)
+          ) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow response time on {{ $labels.service }}"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.service }}"

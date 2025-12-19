@@ -1,0 +1,293 @@
+# =============================================================================
+# Backend CI Pipeline
+# =============================================================================
+
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - 'workers/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - 'workers/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.packages }}
+      services: ${{ steps.filter.outputs.services }}
+      workers: ${{ steps.filter.outputs.workers }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            packages:
+              - 'packages/**'
+            services:
+              - 'services/**'
+            workers:
+              - 'workers/**'
+
+  build-packages:
+    name: Build Packages
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      - name: Type check
+        run: pnpm turbo run type-check --filter='./packages/*'
+
+      - name: Lint
+        run: pnpm turbo run lint --filter='./packages/*'
+
+      - name: Test
+        run: pnpm turbo run test --filter='./packages/*'
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-dist
+          path: packages/*/dist
+          retention-days: 1
+
+  build-services:
+    name: Build Services
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-packages]
+    if: always() && needs.detect-changes.outputs.services == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - billing-service
+          - notification-service
+          - campaign-service
+          - creator-service
+          - content-service
+          - asset-service
+          - rights-service
+          - analytics-service
+          - payout-service
+          - marketplace-service
+          - commerce-service
+          - compliance-service
+          - integration-service
+          - workflow-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-dist
+          path: packages
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build service
+        run: pnpm turbo run build --filter='./services/${{ matrix.service }}'
+
+      - name: Type check
+        run: pnpm turbo run type-check --filter='./services/${{ matrix.service }}'
+
+      - name: Lint
+        run: pnpm turbo run lint --filter='./services/${{ matrix.service }}'
+
+      - name: Test
+        run: pnpm turbo run test --filter='./services/${{ matrix.service }}'
+
+  build-workers:
+    name: Build Workers
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-packages]
+    if: always() && needs.detect-changes.outputs.workers == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        worker:
+          - video-processor
+          - social-publisher
+          - analytics-aggregator
+          - notification-dispatcher
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-dist
+          path: packages
+        continue-on-error: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build worker
+        run: pnpm turbo run build --filter='./workers/${{ matrix.worker }}'
+
+      - name: Test
+        run: pnpm turbo run test --filter='./workers/${{ matrix.worker }}'
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [build-services, build-workers]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api-gateway
+            path: services/api-gateway
+          - name: auth-service
+            path: services/auth-service
+          - name: user-service
+            path: services/user-service
+          - name: billing-service
+            path: services/billing-service
+          - name: notification-service
+            path: services/notification-service
+          - name: campaign-service
+            path: services/campaign-service
+          - name: creator-service
+            path: services/creator-service
+          - name: content-service
+            path: services/content-service
+          - name: asset-service
+            path: services/asset-service
+          - name: rights-service
+            path: services/rights-service
+          - name: analytics-service
+            path: services/analytics-service
+          - name: payout-service
+            path: services/payout-service
+          - name: marketplace-service
+            path: services/marketplace-service
+          - name: commerce-service
+            path: services/commerce-service
+          - name: compliance-service
+            path: services/compliance-service
+          - name: integration-service
+            path: services/integration-service
+          - name: workflow-service
+            path: services/workflow-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.path }}/Dockerfile
+          push: false
+          tags: ${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [build-packages, build-services, build-workers, security-scan, docker-build]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ needs.build-packages.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-services.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-workers.result }}" == "failure" ]]; then
+            echo "CI failed"
+            exit 1
+          fi
+          echo "CI passed"

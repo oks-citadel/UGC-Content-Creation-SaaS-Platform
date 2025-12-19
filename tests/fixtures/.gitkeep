@@ -1,0 +1,21 @@
+# Test Fixtures Directory
+
+This directory contains test fixtures for E2E tests.
+
+Required files:
+- sample-image-1.jpg
+- sample-image-2.jpg
+- profile-photo.jpg
+- campaign-content.jpg
+- campaign-video.mp4
+- video-thumbnail.jpg
+- campaign-brief.pdf
+- portfolio-video.mp4
+- sample-id.jpg
+- utility-bill.pdf
+- updated-content.jpg
+- clean-content.jpg
+- brand-safe-content.jpg
+
+Note: Actual test files should be added but not committed to version control.
+Use `git lfs` for large media files if needed.

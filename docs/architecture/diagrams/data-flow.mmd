@@ -1,0 +1,88 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+sequenceDiagram
+    autonumber
+    participant Creator
+    participant Brand
+    participant WebApp
+    participant APIGateway
+    participant CampaignService
+    participant CreatorService
+    participant ContentService
+    participant AssetService
+    participant RightsService
+    participant PayoutService
+    participant Queue
+    participant Worker
+    participant BlobStorage
+    participant CDN
+
+    Note over Brand,CampaignService: Campaign Creation Flow
+    Brand->>WebApp: Create Campaign with Brief
+    WebApp->>APIGateway: POST /api/v1/campaigns
+    APIGateway->>APIGateway: Validate JWT & Rate Limit
+    APIGateway->>CampaignService: Forward Request
+    CampaignService->>CampaignService: Validate Entitlements
+    CampaignService->>Queue: Publish "campaign.created"
+    CampaignService-->>WebApp: Campaign Created (201)
+
+    Queue-->>CreatorService: Find Matching Creators
+    CreatorService->>CreatorService: AI-based Matching
+    CreatorService->>Queue: Notify Matching Creators
+
+    Note over Creator,ContentService: Content Submission Flow
+    Creator->>WebApp: Apply to Campaign
+    WebApp->>APIGateway: POST /api/v1/campaigns/{id}/applications
+    APIGateway->>CampaignService: Process Application
+    CampaignService-->>WebApp: Application Accepted
+
+    Creator->>WebApp: Upload Content
+    WebApp->>APIGateway: POST /api/v1/assets/upload-url
+    APIGateway->>AssetService: Generate Presigned URL
+    AssetService-->>WebApp: Presigned Upload URL
+
+    Creator->>BlobStorage: Direct Upload (via presigned URL)
+    BlobStorage-->>WebApp: Upload Complete
+
+    WebApp->>APIGateway: POST /api/v1/campaigns/{id}/content
+    APIGateway->>ContentService: Create Content Record
+    ContentService->>Queue: Enqueue Processing Job
+    ContentService-->>WebApp: Content Submitted (202)
+
+    Note over Worker,CDN: Content Processing Flow
+    Queue-->>Worker: Process Content Job
+    Worker->>Worker: AI Content Moderation
+    Worker->>Worker: Transcode Video
+    Worker->>BlobStorage: Store Variants
+    Worker->>CDN: Purge Cache
+    Worker->>ContentService: Update Status
+    Worker->>Queue: Publish "content.ready"
+
+    Note over Brand,RightsService: Review & Approval Flow
+    Queue-->>Brand: Notify Content Ready
+    Brand->>WebApp: Review Content
+    WebApp->>APIGateway: GET /api/v1/content/{id}
+    APIGateway->>ContentService: Fetch Content + CDN URLs
+    ContentService-->>WebApp: Content Details
+
+    Brand->>WebApp: Approve Content
+    WebApp->>APIGateway: POST /api/v1/content/{id}/review
+    APIGateway->>ContentService: Update Status
+    ContentService->>RightsService: Generate License
+    RightsService-->>ContentService: License Created
+
+    ContentService->>Queue: Publish "content.approved"
+
+    Note over Creator,PayoutService: Payout Flow
+    Queue-->>PayoutService: Record Earning
+    PayoutService->>PayoutService: Calculate Net Amount
+    PayoutService->>Queue: Notify Creator
+
+    Creator->>WebApp: View Earnings
+    WebApp->>APIGateway: GET /api/v1/payouts/earnings
+    APIGateway->>PayoutService: Fetch Earnings
+    PayoutService-->>WebApp: Earnings History
+
+    Creator->>WebApp: Request Payout
+    WebApp->>APIGateway: POST /api/v1/payouts/request
+    APIGateway->>PayoutService: Process Payout Request
+    PayoutService-->>WebApp: Payout Scheduled

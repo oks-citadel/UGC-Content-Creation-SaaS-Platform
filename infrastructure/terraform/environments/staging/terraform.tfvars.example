@@ -1,0 +1,10 @@
+# =============================================================================
+# Staging Environment Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in the values
+# DO NOT commit terraform.tfvars to version control!
+# =============================================================================
+
+location          = "eastus"
+db_admin_username = "cbadmin"
+db_admin_password = "YourSecurePassword123!"

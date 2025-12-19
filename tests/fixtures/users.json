@@ -1,0 +1,71 @@
+{
+  "brandUser": {
+    "id": "brand-user-123",
+    "email": "brand@example.com",
+    "passwordHash": "$2b$10$hashedpassword",
+    "firstName": "Brand",
+    "lastName": "Manager",
+    "role": "BRAND_ADMIN",
+    "status": "ACTIVE",
+    "emailVerified": true,
+    "mfaEnabled": false,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "creatorUser": {
+    "id": "creator-user-456",
+    "email": "creator@example.com",
+    "passwordHash": "$2b$10$hashedpassword",
+    "firstName": "Content",
+    "lastName": "Creator",
+    "role": "CREATOR",
+    "status": "ACTIVE",
+    "emailVerified": true,
+    "mfaEnabled": false,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "adminUser": {
+    "id": "admin-user-789",
+    "email": "admin@nexus.com",
+    "passwordHash": "$2b$10$hashedpassword",
+    "firstName": "System",
+    "lastName": "Admin",
+    "role": "ADMIN",
+    "status": "ACTIVE",
+    "emailVerified": true,
+    "mfaEnabled": true,
+    "mfaSecret": "SECRET123",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  "testUsers": [
+    {
+      "id": "test-user-1",
+      "email": "test1@example.com",
+      "firstName": "Test",
+      "lastName": "User 1",
+      "role": "USER",
+      "status": "ACTIVE",
+      "emailVerified": true
+    },
+    {
+      "id": "test-user-2",
+      "email": "test2@example.com",
+      "firstName": "Test",
+      "lastName": "User 2",
+      "role": "USER",
+      "status": "PENDING",
+      "emailVerified": false
+    },
+    {
+      "id": "test-user-3",
+      "email": "test3@example.com",
+      "firstName": "Test",
+      "lastName": "User 3",
+      "role": "USER",
+      "status": "SUSPENDED",
+      "emailVerified": true
+    }
+  ]
+}

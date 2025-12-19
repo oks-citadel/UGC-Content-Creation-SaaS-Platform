@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  displayName       String?   @map("display_name")
+  avatarUrl         String?   @map("avatar_url")
+  bio               String?
+  phoneNumber       String?   @map("phone_number")
+  timezone          String    @default("UTC")
+  locale            String    @default("en")
+  status            UserStatus @default(ACTIVE)
+  role              UserRole   @default(USER)
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  profile           UserProfile?
+  organizations     OrganizationMember[]
+  preferences       UserPreferences?
+  notifications     NotificationSettings?
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model UserProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @map("user_id") @db.Uuid
+  company         String?
+  jobTitle        String?  @map("job_title")
+  industry        String?
+  website         String?
+  linkedinUrl     String?  @map("linkedin_url")
+  twitterHandle   String?  @map("twitter_handle")
+  location        String?
+  country         String?
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Organization {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  slug            String   @unique
+  description     String?
+  logoUrl         String?  @map("logo_url")
+  website         String?
+  industry        String?
+  size            OrganizationSize?
+  billingEmail    String?  @map("billing_email")
+  status          OrganizationStatus @default(ACTIVE)
+  plan            SubscriptionPlan   @default(FREE)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  members         OrganizationMember[]
+  invitations     OrganizationInvitation[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  role            MemberRole @default(MEMBER)
+  joinedAt        DateTime @default(now()) @map("joined_at")
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model OrganizationInvitation {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  email           String
+  role            MemberRole @default(MEMBER)
+  token           String   @unique
+  expiresAt       DateTime @map("expires_at")
+  acceptedAt      DateTime? @map("accepted_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([token])
+  @@map("organization_invitations")
+}
+
+model UserPreferences {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @map("user_id") @db.Uuid
+  theme             String   @default("system")
+  language          String   @default("en")
+  dateFormat        String   @default("MM/DD/YYYY") @map("date_format")
+  timeFormat        String   @default("12h") @map("time_format")
+  weekStartsOn      Int      @default(0) @map("week_starts_on")
+  compactMode       Boolean  @default(false) @map("compact_mode")
+  sidebarCollapsed  Boolean  @default(false) @map("sidebar_collapsed")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model NotificationSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  emailMarketing        Boolean  @default(true) @map("email_marketing")
+  emailProductUpdates   Boolean  @default(true) @map("email_product_updates")
+  emailCampaignUpdates  Boolean  @default(true) @map("email_campaign_updates")
+  emailCreatorMessages  Boolean  @default(true) @map("email_creator_messages")
+  pushNotifications     Boolean  @default(true) @map("push_notifications")
+  smsNotifications      Boolean  @default(false) @map("sms_notifications")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum UserRole {
+  USER
+  CREATOR
+  MARKETER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum OrganizationSize {
+  SOLO
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PROFESSIONAL
+  BUSINESS
+  ENTERPRISE
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}

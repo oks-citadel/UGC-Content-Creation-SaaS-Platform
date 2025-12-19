@@ -1,0 +1,188 @@
+{
+  "name": "Omnichannel Publishing - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "publish-omnichannel",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook",
+      "name": "Publish Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400],
+      "webhookId": "omnichannel-publish",
+      "notes": "Receives content to publish across all connected platforms"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.IG_ACCOUNT_ID }}/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "image_url", "value": "={{ $json.imageUrl }}"},
+            {"name": "caption", "value": "={{ $json.caption }}\\n\\n{{ $json.hashtags.join(' ') }}"},
+            {"name": "access_token", "value": "={{ $env.IG_ACCESS_TOKEN }}"}
+          ]
+        }
+      },
+      "id": "publish-instagram",
+      "name": "Publish to Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200],
+      "notes": "Publishes content to Instagram"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.FB_PAGE_ID }}/photos",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "url", "value": "={{ $json.imageUrl }}"},
+            {"name": "message", "value": "={{ $json.caption }}"},
+            {"name": "access_token", "value": "={{ $env.FB_ACCESS_TOKEN }}"}
+          ]
+        }
+      },
+      "id": "publish-facebook",
+      "name": "Publish to Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Publishes content to Facebook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.twitter.com/2/tweets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: $json.caption.substring(0, 250) + '... ' + $json.hashtags.slice(0, 3).join(' ')\n}) }}"
+      },
+      "id": "publish-twitter",
+      "name": "Publish to Twitter/X",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400],
+      "credentials": {"oAuth2Api": {"id": "9", "name": "Twitter OAuth"}},
+      "notes": "Publishes content to Twitter/X"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.linkedin.com/v2/ugcPosts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  author: `urn:li:person:${$env.LINKEDIN_PERSON_ID}`,\n  lifecycleState: 'PUBLISHED',\n  specificContent: {\n    'com.linkedin.ugc.ShareContent': {\n      shareCommentary: {\n        text: $json.caption\n      },\n      shareMediaCategory: 'IMAGE',\n      media: [{\n        status: 'READY',\n        originalUrl: $json.imageUrl\n      }]\n    }\n  },\n  visibility: {\n    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC'\n  }\n}) }}"
+      },
+      "id": "publish-linkedin",
+      "name": "Publish to LinkedIn",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 500],
+      "credentials": {"oAuth2Api": {"id": "10", "name": "LinkedIn OAuth"}},
+      "notes": "Publishes content to LinkedIn"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.tiktok.com/api/post/item/create/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  video_url: $json.videoUrl,\n  caption: $json.caption,\n  privacy_level: 'PUBLIC'\n}) }}"
+      },
+      "id": "publish-tiktok",
+      "name": "Publish to TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 600],
+      "credentials": {"httpHeaderAuth": {"id": "11", "name": "TikTok API"}},
+      "notes": "Publishes video content to TikTok"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Publishing Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [650, 400],
+      "notes": "Combines results from all platform publishes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = {\n  contentId: items[0].json.contentId,\n  publishedAt: new Date().toISOString(),\n  platforms: {\n    instagram: items[0].json.id ? 'success' : 'failed',\n    facebook: items[1].json.id ? 'success' : 'failed',\n    twitter: items[2].json.data?.id ? 'success' : 'failed',\n    linkedin: items[3].json.id ? 'success' : 'failed',\n    tiktok: items[4].json.share_id ? 'success' : 'failed'\n  },\n  totalSuccessful: Object.values(results.platforms || {}).filter(s => s === 'success').length,\n  totalFailed: Object.values(results.platforms || {}).filter(s => s === 'failed').length\n};\nreturn [{ json: results }];"
+      },
+      "id": "format-results",
+      "name": "Format Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 400],
+      "notes": "Formats publishing results for response and logging"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/analytics/publish-event",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}"
+      },
+      "id": "log-analytics",
+      "name": "Log to Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Logs publishing event to analytics database"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  contentId: $json.contentId,\n  publishedAt: $json.publishedAt,\n  platforms: $json.platforms,\n  summary: `Published to ${$json.totalSuccessful} of 5 platforms`\n}) }}"
+      },
+      "id": "respond",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 400]
+    }
+  ],
+  "connections": {
+    "Publish Request Webhook": {
+      "main": [[
+        {"node": "Publish to Instagram", "type": "main", "index": 0},
+        {"node": "Publish to Facebook", "type": "main", "index": 0},
+        {"node": "Publish to Twitter/X", "type": "main", "index": 0},
+        {"node": "Publish to LinkedIn", "type": "main", "index": 0},
+        {"node": "Publish to TikTok", "type": "main", "index": 0}
+      ]]
+    },
+    "Publish to Instagram": {"main": [[{"node": "Aggregate Publishing Results", "type": "main", "index": 0}]]},
+    "Publish to Facebook": {"main": [[{"node": "Aggregate Publishing Results", "type": "main", "index": 1}]]},
+    "Publish to Twitter/X": {"main": [[{"node": "Aggregate Publishing Results", "type": "main", "index": 2}]]},
+    "Publish to LinkedIn": {"main": [[{"node": "Aggregate Publishing Results", "type": "main", "index": 3}]]},
+    "Publish to TikTok": {"main": [[{"node": "Aggregate Publishing Results", "type": "main", "index": 4}]]},
+    "Aggregate Publishing Results": {"main": [[{"node": "Format Results", "type": "main", "index": 0}]]},
+    "Format Results": {"main": [[{"node": "Log to Analytics", "type": "main", "index": 0}]]},
+    "Log to Analytics": {"main": [[{"node": "Respond Success", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "tags": [{"id": "4", "name": "Distribution"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

@@ -1,0 +1,773 @@
+openapi: 3.0.3
+info:
+  title: NEXUS Platform API
+  description: |
+    Unified AI-powered platform API for UGC creation, creator marketplace, and commerce.
+
+    ## Authentication
+    All endpoints require Bearer token authentication except /auth endpoints.
+
+    ## Rate Limits
+    - Standard: 100 req/min (read), 50 req/min (write)
+    - Enterprise: 1000 req/min (read), 500 req/min (write)
+
+    ## Support
+    - Documentation: https://docs.nexusugc.com
+    - Email: api@nexusugc.com
+  version: 1.0.0
+  contact:
+    name: NEXUS API Support
+    email: api@nexusugc.com
+    url: https://nexusugc.com/support
+  license:
+    name: Proprietary
+    url: https://nexusugc.com/license
+
+servers:
+  - url: https://api.nexusugc.com/v1
+    description: Production server
+  - url: https://staging-api.nexusugc.com/v1
+    description: Staging server
+  - url: http://localhost:4000/v1
+    description: Local development
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Users
+    description: User management operations
+  - name: Creators
+    description: Creator profiles and portfolios
+  - name: Campaigns
+    description: Campaign management
+  - name: Content
+    description: Content upload and management
+  - name: Marketplace
+    description: Creator marketplace operations
+  - name: Commerce
+    description: Shoppable UGC and commerce tracking
+  - name: Analytics
+    description: Performance analytics and reporting
+  - name: AI
+    description: AI-powered content generation
+  - name: Notifications
+    description: User notifications
+  - name: Billing
+    description: Subscription and billing management
+
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      description: Creates a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticates user and returns access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Users]
+      summary: Update user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /creators/{creatorId}:
+    get:
+      tags: [Creators]
+      summary: Get creator profile
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CreatorIdParam'
+      responses:
+        '200':
+          description: Creator profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /creators/search:
+    get:
+      tags: [Creators]
+      summary: Search creators
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: Search query
+        - name: niches
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: minFollowers
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatorSearchResponse'
+
+  /campaigns:
+    get:
+      tags: [Campaigns]
+      summary: List campaigns
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, active, paused, completed, archived]
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Campaigns list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignListResponse'
+
+    post:
+      tags: [Campaigns]
+      summary: Create campaign
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignRequest'
+      responses:
+        '201':
+          description: Campaign created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /campaigns/{campaignId}:
+    get:
+      tags: [Campaigns]
+      summary: Get campaign details
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CampaignIdParam'
+      responses:
+        '200':
+          description: Campaign details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /content/upload:
+    post:
+      tags: [Content]
+      summary: Upload content
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadContentRequest'
+      responses:
+        '201':
+          description: Content uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContentUploadResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /ai/video/generate:
+    post:
+      tags: [AI]
+      summary: Generate AI video
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GenerateVideoRequest'
+      responses:
+        '202':
+          description: Video generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoGenerationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Get dashboard metrics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardMetrics'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 100
+
+    CreatorIdParam:
+      name: creatorId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Creator ID
+
+    CampaignIdParam:
+      name: campaignId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Campaign ID
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [email, password, firstName, lastName, role, acceptTerms]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+          enum: [brand, creator, admin]
+        acceptTerms:
+          type: boolean
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            userId:
+              type: string
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+            role:
+              type: string
+            emailVerified:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        mfaCode:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+            tokenType:
+              type: string
+            user:
+              $ref: '#/components/schemas/UserBasic'
+
+    RefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            accessToken:
+              type: string
+            expiresIn:
+              type: integer
+
+    UserBasic:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    UserProfile:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        avatar:
+          type: string
+        company:
+          type: object
+        preferences:
+          type: object
+        subscription:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        company:
+          type: object
+        preferences:
+          type: object
+
+    CreatorProfile:
+      type: object
+      properties:
+        creatorId:
+          type: string
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatar:
+          type: string
+        niches:
+          type: array
+          items:
+            type: string
+        socialProfiles:
+          type: object
+        portfolio:
+          type: object
+        ratings:
+          type: object
+        trustScore:
+          type: integer
+        verified:
+          type: boolean
+
+    CreatorSearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreatorProfile'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    CreateCampaignRequest:
+      type: object
+      required: [name, type, budget, timeline, deliverables]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [ugc_collection, influencer, ambassador]
+        budget:
+          type: object
+        timeline:
+          type: object
+        deliverables:
+          type: object
+        targeting:
+          type: object
+        brief:
+          type: object
+
+    Campaign:
+      type: object
+      properties:
+        campaignId:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    CampaignDetail:
+      allOf:
+        - $ref: '#/components/schemas/Campaign'
+        - type: object
+          properties:
+            description:
+              type: string
+            budget:
+              type: object
+            timeline:
+              type: object
+            progress:
+              type: object
+            performance:
+              type: object
+
+    CampaignListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Campaign'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    UploadContentRequest:
+      type: object
+      required: [file, campaignId]
+      properties:
+        file:
+          type: string
+          format: binary
+        campaignId:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        platform:
+          type: string
+
+    ContentUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            contentId:
+              type: string
+            status:
+              type: string
+            uploadedAt:
+              type: string
+              format: date-time
+
+    GenerateVideoRequest:
+      type: object
+      required: [images, script, style, aspectRatio, duration]
+      properties:
+        images:
+          type: array
+          items:
+            type: string
+            format: binary
+        script:
+          type: string
+        style:
+          type: string
+          enum: [ugc, testimonial, tutorial, unboxing]
+        aspectRatio:
+          type: string
+          enum: ['9:16', '1:1', '16:9']
+        duration:
+          type: integer
+        voiceId:
+          type: string
+        music:
+          type: string
+
+    VideoGenerationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            jobId:
+              type: string
+            status:
+              type: string
+            estimatedTime:
+              type: integer
+            statusUrl:
+              type: string
+
+    DashboardMetrics:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            overview:
+              type: object
+            trends:
+              type: object
+            topPerforming:
+              type: object
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

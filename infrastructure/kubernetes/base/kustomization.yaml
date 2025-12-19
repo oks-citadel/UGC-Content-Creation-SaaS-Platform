@@ -1,0 +1,98 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nexus
+
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # Configuration
+  - configmap.yaml
+  - secrets.yaml
+
+  # Services
+  - deployments/api-gateway.yaml
+  - deployments/auth-service.yaml
+  - deployments/user-service.yaml
+  - deployments/creator-service.yaml
+  - deployments/campaign-service.yaml
+  - deployments/content-service.yaml
+  - deployments/commerce-service.yaml
+  - deployments/analytics-service.yaml
+  - deployments/billing-service.yaml
+  - deployments/marketplace-service.yaml
+  - deployments/notification-service.yaml
+  - deployments/workflow-service.yaml
+  - deployments/ai-service.yaml
+
+  # Workers
+  - workers/video-processor.yaml
+  - workers/social-publisher.yaml
+  - workers/analytics-aggregator.yaml
+  - workers/notification-dispatcher.yaml
+
+  # Ingress
+  - ingress/ingress.yaml
+  - ingress/certificate.yaml
+
+  # Monitoring
+  - monitoring/prometheus-servicemonitor.yaml
+  - monitoring/grafana-dashboards.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: nexus-platform
+
+images:
+  - name: nexus/api-gateway
+    newName: nexusregistry.azurecr.io/api-gateway
+    newTag: latest
+  - name: nexus/auth-service
+    newName: nexusregistry.azurecr.io/auth-service
+    newTag: latest
+  - name: nexus/user-service
+    newName: nexusregistry.azurecr.io/user-service
+    newTag: latest
+  - name: nexus/creator-service
+    newName: nexusregistry.azurecr.io/creator-service
+    newTag: latest
+  - name: nexus/campaign-service
+    newName: nexusregistry.azurecr.io/campaign-service
+    newTag: latest
+  - name: nexus/content-service
+    newName: nexusregistry.azurecr.io/content-service
+    newTag: latest
+  - name: nexus/commerce-service
+    newName: nexusregistry.azurecr.io/commerce-service
+    newTag: latest
+  - name: nexus/analytics-service
+    newName: nexusregistry.azurecr.io/analytics-service
+    newTag: latest
+  - name: nexus/billing-service
+    newName: nexusregistry.azurecr.io/billing-service
+    newTag: latest
+  - name: nexus/marketplace-service
+    newName: nexusregistry.azurecr.io/marketplace-service
+    newTag: latest
+  - name: nexus/notification-service
+    newName: nexusregistry.azurecr.io/notification-service
+    newTag: latest
+  - name: nexus/workflow-service
+    newName: nexusregistry.azurecr.io/workflow-service
+    newTag: latest
+  - name: nexus/ai-service
+    newName: nexusregistry.azurecr.io/ai-service
+    newTag: latest
+  - name: nexus/video-processor
+    newName: nexusregistry.azurecr.io/video-processor
+    newTag: latest
+  - name: nexus/social-publisher
+    newName: nexusregistry.azurecr.io/social-publisher
+    newTag: latest
+  - name: nexus/analytics-aggregator
+    newName: nexusregistry.azurecr.io/analytics-aggregator
+    newTag: latest
+  - name: nexus/notification-dispatcher
+    newName: nexusregistry.azurecr.io/notification-dispatcher
+    newTag: latest

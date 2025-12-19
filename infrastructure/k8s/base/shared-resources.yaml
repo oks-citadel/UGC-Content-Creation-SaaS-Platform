@@ -1,0 +1,142 @@
+# =============================================================================
+# Shared Kubernetes Resources for CreatorBridge
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: creatorbridge
+  labels:
+    app.kubernetes.io/part-of: creatorbridge
+    istio-injection: enabled
+---
+# Platform ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: creatorbridge
+data:
+  environment: "production"
+  log-level: "info"
+  cdn-hostname: "cdn.creatorbridge.com"
+  api-base-url: "https://api.creatorbridge.com"
+  web-app-url: "https://app.creatorbridge.com"
+  brand-portal-url: "https://brands.creatorbridge.com"
+  creator-portal-url: "https://creators.creatorbridge.com"
+---
+# Shared Secrets Template (actual values from Key Vault)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shared-secrets
+  namespace: creatorbridge
+type: Opaque
+stringData:
+  redis-url: "PLACEHOLDER_FROM_KEYVAULT"
+  jwt-secret: "PLACEHOLDER_FROM_KEYVAULT"
+  jwt-refresh-secret: "PLACEHOLDER_FROM_KEYVAULT"
+---
+# Asset Service Secrets Template
+apiVersion: v1
+kind: Secret
+metadata:
+  name: asset-service-secrets
+  namespace: creatorbridge
+type: Opaque
+stringData:
+  database-url: "PLACEHOLDER_FROM_KEYVAULT"
+  azure-storage-connection-string: "PLACEHOLDER_FROM_KEYVAULT"
+---
+# Rights Service Secrets Template
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rights-service-secrets
+  namespace: creatorbridge
+type: Opaque
+stringData:
+  database-url: "PLACEHOLDER_FROM_KEYVAULT"
+---
+# Payout Service Secrets Template
+apiVersion: v1
+kind: Secret
+metadata:
+  name: payout-service-secrets
+  namespace: creatorbridge
+type: Opaque
+stringData:
+  database-url: "PLACEHOLDER_FROM_KEYVAULT"
+  stripe-secret-key: "PLACEHOLDER_FROM_KEYVAULT"
+  stripe-webhook-secret: "PLACEHOLDER_FROM_KEYVAULT"
+  stripe-connect-client-id: "PLACEHOLDER_FROM_KEYVAULT"
+---
+# Network Policy - Allow internal traffic only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-external
+  namespace: creatorbridge
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: creatorbridge
+        - podSelector: {}
+---
+# Network Policy - Allow ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress
+  namespace: creatorbridge
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 80
+---
+# ResourceQuota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: creatorbridge-quota
+  namespace: creatorbridge
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "40"
+    limits.memory: 80Gi
+    pods: "100"
+    services: "20"
+    secrets: "50"
+    configmaps: "50"
+---
+# LimitRange for default resource limits
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: creatorbridge-limits
+  namespace: creatorbridge
+spec:
+  limits:
+    - default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 256Mi
+      type: Container

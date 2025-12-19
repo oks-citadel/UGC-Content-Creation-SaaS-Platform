@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Campaign {
+  id                String    @id @default(uuid()) @db.Uuid
+  organizationId    String    @map("organization_id") @db.Uuid
+  name              String
+  slug              String
+  description       String?
+  status            CampaignStatus @default(DRAFT)
+  type              CampaignType   @default(UGC)
+  startDate         DateTime?  @map("start_date")
+  endDate           DateTime?  @map("end_date")
+  budget            Decimal?   @db.Decimal(12, 2)
+  currency          String     @default("USD")
+  targetAudience    Json?      @map("target_audience")
+  goals             Json?
+  tags              String[]
+  createdBy         String     @map("created_by") @db.Uuid
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  brief             CampaignBrief?
+  deliverables      Deliverable[]
+  milestones        Milestone[]
+  applications      CreatorApplication[]
+  content           Content[]
+  workflows         Workflow[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("campaigns")
+}
+
+model CampaignBrief {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @unique @map("campaign_id") @db.Uuid
+  overview          String?
+  objectives        Json?
+  targetPlatforms   String[] @map("target_platforms")
+  contentTypes      String[] @map("content_types")
+  brandGuidelines   Json?    @map("brand_guidelines")
+  doAndDonts        Json?    @map("do_and_donts")
+  keyMessages       String[] @map("key_messages")
+  hashtags          String[]
+  mentions          String[]
+  references        Json?
+  attachments       Json?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_briefs")
+}
+
+model Deliverable {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @map("campaign_id") @db.Uuid
+  name              String
+  description       String?
+  type              DeliverableType
+  platform          String?
+  quantity          Int      @default(1)
+  requirements      Json?
+  dueDate           DateTime? @map("due_date")
+  compensation      Decimal?  @db.Decimal(10, 2)
+  status            DeliverableStatus @default(PENDING)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submissions ContentSubmission[]
+
+  @@index([campaignId])
+  @@map("deliverables")
+}
+
+model Milestone {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @map("campaign_id") @db.Uuid
+  name              String
+  description       String?
+  dueDate           DateTime? @map("due_date")
+  completedAt       DateTime? @map("completed_at")
+  order             Int      @default(0)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("milestones")
+}
+
+model CreatorApplication {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @map("campaign_id") @db.Uuid
+  creatorId         String   @map("creator_id") @db.Uuid
+  status            ApplicationStatus @default(PENDING)
+  pitch             String?
+  proposedRate      Decimal? @map("proposed_rate") @db.Decimal(10, 2)
+  portfolio         Json?
+  notes             String?
+  reviewedBy        String?  @map("reviewed_by") @db.Uuid
+  reviewedAt        DateTime? @map("reviewed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, creatorId])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("creator_applications")
+}
+
+model Content {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @map("campaign_id") @db.Uuid
+  creatorId         String   @map("creator_id") @db.Uuid
+  title             String?
+  description       String?
+  type              ContentType
+  status            ContentStatus @default(DRAFT)
+  mediaUrl          String?  @map("media_url")
+  thumbnailUrl      String?  @map("thumbnail_url")
+  metadata          Json?
+  publishedAt       DateTime? @map("published_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  submissions ContentSubmission[]
+  reviews ContentReview[]
+
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("content")
+}
+
+model ContentSubmission {
+  id                String   @id @default(uuid()) @db.Uuid
+  contentId         String   @map("content_id") @db.Uuid
+  deliverableId     String   @map("deliverable_id") @db.Uuid
+  version           Int      @default(1)
+  notes             String?
+  submittedAt       DateTime @default(now()) @map("submitted_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  deliverable Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@index([deliverableId])
+  @@map("content_submissions")
+}
+
+model ContentReview {
+  id                String   @id @default(uuid()) @db.Uuid
+  contentId         String   @map("content_id") @db.Uuid
+  reviewerId        String   @map("reviewer_id") @db.Uuid
+  status            ReviewStatus
+  feedback          String?
+  rating            Int?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@index([reviewerId])
+  @@map("content_reviews")
+}
+
+model Workflow {
+  id                String   @id @default(uuid()) @db.Uuid
+  campaignId        String   @map("campaign_id") @db.Uuid
+  name              String
+  description       String?
+  status            WorkflowStatus @default(ACTIVE)
+  steps             Json
+  currentStep       Int      @default(0) @map("current_step")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("workflows")
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignType {
+  UGC
+  INFLUENCER
+  AFFILIATE
+  AMBASSADOR
+  PRODUCT_SEEDING
+}
+
+enum DeliverableType {
+  VIDEO
+  IMAGE
+  STORY
+  REEL
+  TIKTOK
+  BLOG_POST
+  REVIEW
+  TESTIMONIAL
+  OTHER
+}
+
+enum DeliverableStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  UNDER_REVIEW
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum ContentType {
+  VIDEO
+  IMAGE
+  CAROUSEL
+  STORY
+  REEL
+  TIKTOK
+  YOUTUBE
+  BLOG
+  OTHER
+}
+
+enum ContentStatus {
+  DRAFT
+  PENDING_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+enum WorkflowStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}

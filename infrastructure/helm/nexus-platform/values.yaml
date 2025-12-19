@@ -1,0 +1,403 @@
+# =============================================================================
+# NEXUS Platform Helm Values
+# =============================================================================
+
+global:
+  environment: prod
+  domain: nexusugc.com
+
+  image:
+    registry: acrnexusprod.azurecr.io
+    pullPolicy: IfNotPresent
+    tag: latest
+
+  imagePullSecrets:
+    - name: acr-secret
+
+  # Azure configuration
+  azure:
+    subscriptionId: ""
+    resourceGroup: rg-nexus-prod
+    location: eastus
+
+# =============================================================================
+# API Gateway
+# =============================================================================
+apiGateway:
+  enabled: true
+  replicaCount: 3
+
+  image:
+    repository: api-gateway
+
+  service:
+    type: ClusterIP
+    port: 4000
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+      nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    hosts:
+      - host: api.nexusugc.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: api-tls
+        hosts:
+          - api.nexusugc.com
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  env:
+    - name: NODE_ENV
+      value: production
+    - name: PORT
+      value: "4000"
+
+# =============================================================================
+# Auth Service
+# =============================================================================
+authService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: auth-service
+
+  service:
+    type: ClusterIP
+    port: 3001
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+# =============================================================================
+# User Service
+# =============================================================================
+userService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: user-service
+
+  service:
+    type: ClusterIP
+    port: 3002
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+# =============================================================================
+# Campaign Service
+# =============================================================================
+campaignService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: campaign-service
+
+  service:
+    type: ClusterIP
+    port: 3003
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+# =============================================================================
+# Content Service
+# =============================================================================
+contentService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: content-service
+
+  service:
+    type: ClusterIP
+    port: 3004
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+
+# =============================================================================
+# Creator Service
+# =============================================================================
+creatorService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: creator-service
+
+  service:
+    type: ClusterIP
+    port: 3005
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+# =============================================================================
+# Commerce Service
+# =============================================================================
+commerceService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: commerce-service
+
+  service:
+    type: ClusterIP
+    port: 3007
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+# =============================================================================
+# Analytics Service
+# =============================================================================
+analyticsService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: analytics-service
+
+  service:
+    type: ClusterIP
+    port: 3008
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+
+# =============================================================================
+# Notification Service
+# =============================================================================
+notificationService:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: notification-service
+
+  service:
+    type: ClusterIP
+    port: 3009
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+# =============================================================================
+# Workers
+# =============================================================================
+workers:
+  videoProcessor:
+    enabled: true
+    replicaCount: 2
+
+    image:
+      repository: video-processor
+
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+
+    nodeSelector:
+      workload: background
+
+  analyticsAggregator:
+    enabled: true
+    replicaCount: 2
+
+    image:
+      repository: analytics-aggregator
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    nodeSelector:
+      workload: background
+
+# =============================================================================
+# Redis (Subchart)
+# =============================================================================
+redis:
+  enabled: false  # Using Azure Cache for Redis
+
+# =============================================================================
+# External Secrets
+# =============================================================================
+externalSecrets:
+  enabled: true
+  refreshInterval: 1h
+  secretStore:
+    kind: AzureKeyVault
+    name: nexus-keyvault
+
+# =============================================================================
+# Service Monitor (Prometheus)
+# =============================================================================
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 30s
+
+# =============================================================================
+# Network Policies
+# =============================================================================
+networkPolicies:
+  enabled: true
+
+# =============================================================================
+# Service Account
+# =============================================================================
+serviceAccount:
+  create: true
+  name: ""
+  annotations:
+    azure.workload.identity/client-id: ""
+
+# =============================================================================
+# Secrets (only used when externalSecrets.enabled is false)
+# =============================================================================
+secrets:
+  databaseUrl: ""
+  redisUrl: ""
+  jwtSecret: ""
+  jwtRefreshSecret: ""
+  azure:
+    clientId: ""
+    clientSecret: ""
+    tenantId: ""
+    storageConnectionString: ""
+    serviceBusConnectionString: ""
+  stripe:
+    secretKey: ""
+    webhookSecret: ""
+  openai:
+    apiKey: ""
+  sendgrid:
+    apiKey: ""
+  twilio:
+    accountSid: ""
+    authToken: ""
+
+# =============================================================================
+# Log Level
+# =============================================================================
+logLevel: info

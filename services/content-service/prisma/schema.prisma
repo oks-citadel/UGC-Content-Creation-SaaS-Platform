@@ -1,0 +1,260 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Media {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String?  @map("organization_id") @db.Uuid
+  uploadedBy        String   @map("uploaded_by") @db.Uuid
+  type              MediaType
+  originalFilename  String   @map("original_filename")
+  filename          String
+  mimeType          String   @map("mime_type")
+  size              BigInt
+  width             Int?
+  height            Int?
+  duration          Float?
+  url               String
+  thumbnailUrl      String?  @map("thumbnail_url")
+  cdnUrl            String?  @map("cdn_url")
+  blurhash          String?
+  metadata          Json?
+  status            MediaStatus @default(PROCESSING)
+  processingError   String?     @map("processing_error")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  versions          MediaVersion[]
+  content           Content[]
+
+  @@index([organizationId])
+  @@index([uploadedBy])
+  @@index([type])
+  @@index([status])
+  @@map("media")
+}
+
+model MediaVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  mediaId     String   @map("media_id") @db.Uuid
+  version     String
+  width       Int?
+  height      Int?
+  size        BigInt
+  url         String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  media Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@index([mediaId])
+  @@map("media_versions")
+}
+
+model Content {
+  id                String   @id @default(uuid()) @db.Uuid
+  organizationId    String?  @map("organization_id") @db.Uuid
+  creatorId         String   @map("creator_id") @db.Uuid
+  campaignId        String?  @map("campaign_id") @db.Uuid
+  mediaId           String?  @map("media_id") @db.Uuid
+  title             String?
+  description       String?
+  caption           String?
+  type              ContentType
+  status            ContentStatus @default(DRAFT)
+  platform          String?
+  scheduledAt       DateTime?     @map("scheduled_at")
+  publishedAt       DateTime?     @map("published_at")
+  externalUrl       String?       @map("external_url")
+  externalId        String?       @map("external_id")
+  hashtags          String[]
+  mentions          String[]
+  metadata          Json?
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  media             Media?        @relation(fields: [mediaId], references: [id])
+  versions          ContentVersion[]
+  comments          ContentComment[]
+  analytics         ContentAnalytics?
+
+  @@index([organizationId])
+  @@index([creatorId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([type])
+  @@map("content")
+}
+
+model ContentVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  contentId   String   @map("content_id") @db.Uuid
+  version     Int
+  title       String?
+  description String?
+  caption     String?
+  mediaUrl    String?  @map("media_url")
+  changes     Json?
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@map("content_versions")
+}
+
+model ContentComment {
+  id          String   @id @default(uuid()) @db.Uuid
+  contentId   String   @map("content_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  parentId    String?  @map("parent_id") @db.Uuid
+  text        String
+  timestamp   Float?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  parent  ContentComment? @relation("CommentReplies", fields: [parentId], references: [id])
+  replies ContentComment[] @relation("CommentReplies")
+
+  @@index([contentId])
+  @@index([userId])
+  @@map("content_comments")
+}
+
+model ContentAnalytics {
+  id              String   @id @default(uuid()) @db.Uuid
+  contentId       String   @unique @map("content_id") @db.Uuid
+  views           BigInt   @default(0)
+  likes           BigInt   @default(0)
+  comments        BigInt   @default(0)
+  shares          BigInt   @default(0)
+  saves           BigInt   @default(0)
+  reach           BigInt   @default(0)
+  impressions     BigInt   @default(0)
+  engagementRate  Float?   @map("engagement_rate")
+  clickThroughRate Float?  @map("click_through_rate")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@map("content_analytics")
+}
+
+model AIGeneration {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String?  @map("organization_id") @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  type            AIGenerationType
+  prompt          String
+  negativePrompt  String?  @map("negative_prompt")
+  model           String
+  parameters      Json?
+  status          AIGenerationStatus @default(PENDING)
+  resultUrl       String?  @map("result_url")
+  thumbnailUrl    String?  @map("thumbnail_url")
+  cost            Decimal? @db.Decimal(10, 4)
+  processingTime  Int?     @map("processing_time")
+  error           String?
+  metadata        Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("ai_generations")
+}
+
+model Template {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String?  @map("organization_id") @db.Uuid
+  createdBy       String   @map("created_by") @db.Uuid
+  name            String
+  description     String?
+  type            TemplateType
+  category        String?
+  thumbnailUrl    String?  @map("thumbnail_url")
+  config          Json
+  isPublic        Boolean  @default(false) @map("is_public")
+  usageCount      Int      @default(0) @map("usage_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([isPublic])
+  @@map("templates")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum MediaStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum ContentType {
+  VIDEO
+  IMAGE
+  CAROUSEL
+  STORY
+  REEL
+  TIKTOK
+  YOUTUBE
+  BLOG
+  OTHER
+}
+
+enum ContentStatus {
+  DRAFT
+  PENDING_REVIEW
+  REVISION_REQUESTED
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AIGenerationType {
+  IMAGE
+  VIDEO
+  SCRIPT
+  CAPTION
+  HASHTAG
+  THUMBNAIL
+  AVATAR
+  VOICE
+}
+
+enum AIGenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TemplateType {
+  VIDEO
+  IMAGE
+  STORY
+  CAROUSEL
+  CAPTION
+}

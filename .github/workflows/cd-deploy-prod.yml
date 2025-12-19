@@ -1,0 +1,306 @@
+# =============================================================================
+# Production Deployment Pipeline
+# =============================================================================
+
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Component to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - backend
+          - web
+          - infrastructure
+      confirm:
+        description: 'Type "deploy-prod" to confirm'
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+env:
+  AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+  AKS_CLUSTER_NAME: aks-nexus-prod
+  AKS_RESOURCE_GROUP: rg-nexus-prod-eastus-aks
+
+jobs:
+  validate:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'deploy-prod'
+    outputs:
+      deploy_backend: ${{ steps.check.outputs.backend }}
+      deploy_web: ${{ steps.check.outputs.web }}
+      deploy_infra: ${{ steps.check.outputs.infra }}
+    steps:
+      - name: Validate input
+        id: check
+        run: |
+          case "${{ github.event.inputs.component }}" in
+            "all")
+              echo "backend=true" >> $GITHUB_OUTPUT
+              echo "web=true" >> $GITHUB_OUTPUT
+              echo "infra=true" >> $GITHUB_OUTPUT
+              ;;
+            "backend")
+              echo "backend=true" >> $GITHUB_OUTPUT
+              echo "web=false" >> $GITHUB_OUTPUT
+              echo "infra=false" >> $GITHUB_OUTPUT
+              ;;
+            "web")
+              echo "backend=false" >> $GITHUB_OUTPUT
+              echo "web=true" >> $GITHUB_OUTPUT
+              echo "infra=false" >> $GITHUB_OUTPUT
+              ;;
+            "infrastructure")
+              echo "backend=false" >> $GITHUB_OUTPUT
+              echo "web=false" >> $GITHUB_OUTPUT
+              echo "infra=true" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.deploy_backend == 'true'
+    strategy:
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - billing-service
+          - notification-service
+          - campaign-service
+          - creator-service
+          - content-service
+          - asset-service
+          - rights-service
+          - analytics-service
+          - payout-service
+          - marketplace-service
+          - commerce-service
+          - compliance-service
+          - integration-service
+          - workflow-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:prod
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NODE_ENV=production
+
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.deploy_infra == 'true'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: infrastructure/terraform/environments/prod
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+        working-directory: infrastructure/terraform/environments/prod
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: true
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: infrastructure/terraform/environments/prod
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: true
+
+  deploy-backend:
+    name: Deploy Backend to AKS
+    runs-on: ubuntu-latest
+    needs: [validate, build-and-push]
+    if: always() && needs.validate.outputs.deploy_backend == 'true' && needs.build-and-push.result == 'success'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ env.AKS_RESOURCE_GROUP }} \
+            --name ${{ env.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install nexus-platform ./infrastructure/helm/nexus-platform \
+            --namespace nexus \
+            --create-namespace \
+            --set global.environment=prod \
+            --set global.image.tag=${{ github.sha }} \
+            --set global.image.registry=${{ env.ACR_LOGIN_SERVER }} \
+            --wait \
+            --timeout 10m
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/api-gateway -n nexus --timeout=5m
+          kubectl rollout status deployment/auth-service -n nexus --timeout=5m
+          kubectl rollout status deployment/user-service -n nexus --timeout=5m
+          kubectl rollout status deployment/billing-service -n nexus --timeout=5m
+          kubectl rollout status deployment/campaign-service -n nexus --timeout=5m
+          kubectl rollout status deployment/creator-service -n nexus --timeout=5m
+          kubectl rollout status deployment/content-service -n nexus --timeout=5m
+          kubectl rollout status deployment/asset-service -n nexus --timeout=5m
+          kubectl rollout status deployment/rights-service -n nexus --timeout=5m
+          kubectl rollout status deployment/analytics-service -n nexus --timeout=5m
+          kubectl rollout status deployment/payout-service -n nexus --timeout=5m
+          kubectl rollout status deployment/notification-service -n nexus --timeout=5m
+
+  deploy-web:
+    name: Deploy Web Apps
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.deploy_web == 'true'
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web app
+        run: pnpm turbo run build --filter='./apps/web'
+        env:
+          NEXT_PUBLIC_API_URL: https://api.nexusugc.com
+          NEXT_PUBLIC_ENVIRONMENT: production
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: apps/web
+          output_location: .next
+          skip_app_build: true
+
+  notify:
+    name: Notify
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, deploy-backend, deploy-web]
+    if: always()
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production Deployment ${{ job.status == 'success' && 'Succeeded' || 'Failed' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*NEXUS Production Deployment*\n\nComponent: ${{ github.event.inputs.component }}\nStatus: ${{ job.status }}\nTriggered by: ${{ github.actor }}\n\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true

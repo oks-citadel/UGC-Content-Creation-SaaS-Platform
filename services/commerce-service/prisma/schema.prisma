@@ -1,0 +1,449 @@
+// Prisma schema for Commerce Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProductSource {
+  shopify
+  woocommerce
+  manual
+  api
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  cancelled
+  refunded
+  failed
+}
+
+enum AttributionEventType {
+  view
+  click
+  add_to_cart
+  purchase
+  share
+  like
+}
+
+enum AttributionModelType {
+  first_touch
+  last_touch
+  linear
+  time_decay
+  position_based
+  u_shaped
+}
+
+enum GalleryLayout {
+  grid
+  masonry
+  carousel
+  slider
+  fullscreen
+  story
+}
+
+model Product {
+  id            String        @id @default(uuid())
+  external_id   String        @unique // ID from Shopify/WooCommerce
+  name          String
+  description   String?       @db.Text
+  price         Decimal       @db.Decimal(10, 2)
+  currency      String        @default("USD")
+  compare_price Decimal?      @db.Decimal(10, 2)
+  sku           String?
+  images        Json          // Array of image URLs
+  variants      Json?         // Product variants
+  inventory     Int?
+  source        ProductSource @default(manual)
+  source_url    String?       // URL to product in source system
+  metadata      Json?         // Additional product metadata
+  tags          String[]      @default([])
+
+  // Relationships
+  tenant_id     String
+  created_by    String?
+
+  // Timestamps
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  synced_at     DateTime?
+
+  // Relations
+  product_tags  ProductTag[]
+  gallery_products GalleryProduct[]
+  order_items   OrderItem[]
+  attribution_events AttributionEvent[]
+
+  @@index([tenant_id])
+  @@index([external_id])
+  @@index([source])
+  @@index([created_at])
+  @@map("products")
+}
+
+model ShoppableGallery {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?        @db.Text
+  layout        GalleryLayout  @default(grid)
+  settings      Json?          // Layout-specific settings
+  embed_code    String         @db.Text
+  is_active     Boolean        @default(true)
+
+  // Customization
+  theme         Json?          // Colors, fonts, etc.
+  cta_settings  Json?          // Call-to-action configuration
+
+  // Analytics
+  view_count    Int            @default(0)
+  click_count   Int            @default(0)
+  conversion_count Int         @default(0)
+
+  // Relationships
+  tenant_id     String
+  created_by    String
+
+  // Timestamps
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  published_at  DateTime?
+
+  // Relations
+  content_items GalleryContent[]
+  products      GalleryProduct[]
+  orders        Order[]
+  attribution_events AttributionEvent[]
+
+  @@index([tenant_id])
+  @@index([created_by])
+  @@index([is_active])
+  @@map("shoppable_galleries")
+}
+
+model GalleryContent {
+  id          String           @id @default(uuid())
+  gallery_id  String
+  content_id  String           // Reference to content in content-service
+  position    Int              @default(0)
+  is_visible  Boolean          @default(true)
+  settings    Json?            // Content-specific settings
+
+  created_at  DateTime         @default(now())
+  updated_at  DateTime         @updatedAt
+
+  gallery     ShoppableGallery @relation(fields: [gallery_id], references: [id], onDelete: Cascade)
+  product_tags ProductTag[]
+
+  @@unique([gallery_id, content_id])
+  @@index([gallery_id])
+  @@index([content_id])
+  @@map("gallery_content")
+}
+
+model GalleryProduct {
+  id          String           @id @default(uuid())
+  gallery_id  String
+  product_id  String
+  position    Int              @default(0)
+  is_featured Boolean          @default(false)
+
+  created_at  DateTime         @default(now())
+
+  gallery     ShoppableGallery @relation(fields: [gallery_id], references: [id], onDelete: Cascade)
+  product     Product          @relation(fields: [product_id], references: [id], onDelete: Cascade)
+
+  @@unique([gallery_id, product_id])
+  @@index([gallery_id])
+  @@index([product_id])
+  @@map("gallery_products")
+}
+
+model ProductTag {
+  id              String          @id @default(uuid())
+  content_id      String          // Reference to content item
+  product_id      String
+  gallery_content_id String?
+
+  // Position for images (normalized 0-1)
+  position_x      Decimal?        @db.Decimal(5, 4)
+  position_y      Decimal?        @db.Decimal(5, 4)
+
+  // Timestamp for videos (in seconds)
+  timestamp       Decimal?        @db.Decimal(10, 2)
+
+  // Display settings
+  label           String?
+  is_visible      Boolean         @default(true)
+  auto_detected   Boolean         @default(false)
+  confidence      Decimal?        @db.Decimal(5, 4) // AI detection confidence
+
+  // Relationships
+  tenant_id       String
+  created_by      String?
+
+  // Timestamps
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  // Relations
+  product         Product         @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  gallery_content GalleryContent? @relation(fields: [gallery_content_id], references: [id], onDelete: Cascade)
+
+  @@index([content_id])
+  @@index([product_id])
+  @@index([tenant_id])
+  @@index([gallery_content_id])
+  @@map("product_tags")
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  order_number      String        @unique
+
+  // Customer information
+  customer_email    String
+  customer_name     String?
+  customer_phone    String?
+  customer_data     Json?         // Additional customer info
+
+  // Order details
+  subtotal          Decimal       @db.Decimal(10, 2)
+  tax               Decimal       @db.Decimal(10, 2) @default(0)
+  shipping          Decimal       @db.Decimal(10, 2) @default(0)
+  discount          Decimal       @db.Decimal(10, 2) @default(0)
+  total             Decimal       @db.Decimal(10, 2)
+  currency          String        @default("USD")
+
+  // Status
+  status            OrderStatus   @default(pending)
+  payment_status    String?
+  fulfillment_status String?
+
+  // Source tracking
+  source_content_id String?       // Content that led to order
+  source_gallery_id String?       // Gallery that led to order
+  source_campaign_id String?      // Marketing campaign
+
+  // External references
+  external_order_id String?       // ID in Shopify/WooCommerce
+  source_system     ProductSource?
+
+  // Shipping
+  shipping_address  Json?
+  billing_address   Json?
+  tracking_number   String?
+
+  // Metadata
+  notes             String?       @db.Text
+  metadata          Json?
+
+  // Relationships
+  tenant_id         String
+  created_by        String?
+
+  // Timestamps
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+  completed_at      DateTime?
+
+  // Relations
+  items             OrderItem[]
+  source_gallery    ShoppableGallery? @relation(fields: [source_gallery_id], references: [id], onDelete: SetNull)
+  attribution_events AttributionEvent[]
+
+  @@index([tenant_id])
+  @@index([order_number])
+  @@index([customer_email])
+  @@index([status])
+  @@index([source_content_id])
+  @@index([source_gallery_id])
+  @@index([created_at])
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String    @id @default(uuid())
+  order_id    String
+  product_id  String
+
+  // Item details
+  quantity    Int
+  price       Decimal   @db.Decimal(10, 2)
+  total       Decimal   @db.Decimal(10, 2)
+
+  // Product snapshot (in case product changes)
+  product_name String
+  product_sku  String?
+  variant_info Json?
+
+  created_at  DateTime  @default(now())
+
+  order       Order     @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [product_id], references: [id], onDelete: Restrict)
+
+  @@index([order_id])
+  @@index([product_id])
+  @@map("order_items")
+}
+
+model AttributionEvent {
+  id              String                @id @default(uuid())
+  type            AttributionEventType
+
+  // Event source
+  content_id      String?
+  product_id      String?
+  gallery_id      String?
+  order_id        String?
+
+  // Financial data
+  revenue         Decimal?              @db.Decimal(10, 2)
+  quantity        Int?
+
+  // User tracking
+  session_id      String?
+  user_id         String?
+  customer_id     String?
+
+  // Attribution context
+  referrer        String?
+  utm_source      String?
+  utm_medium      String?
+  utm_campaign    String?
+  utm_content     String?
+
+  // Device/Browser
+  user_agent      String?
+  ip_address      String?
+  device_type     String?
+
+  // Metadata
+  metadata        Json?
+
+  // Relationships
+  tenant_id       String
+
+  // Timestamp
+  created_at      DateTime              @default(now())
+
+  // Relations
+  product         Product?              @relation(fields: [product_id], references: [id], onDelete: SetNull)
+  gallery         ShoppableGallery?     @relation(fields: [gallery_id], references: [id], onDelete: SetNull)
+  order           Order?                @relation(fields: [order_id], references: [id], onDelete: SetNull)
+
+  @@index([tenant_id])
+  @@index([type])
+  @@index([content_id])
+  @@index([product_id])
+  @@index([gallery_id])
+  @@index([order_id])
+  @@index([session_id])
+  @@index([created_at])
+  @@map("attribution_events")
+}
+
+model AttributionModel {
+  id          String                @id @default(uuid())
+  name        String
+  type        AttributionModelType
+  description String?               @db.Text
+
+  // Model configuration
+  weights     Json                  // Attribution weights/rules
+  window_days Int                   @default(30)
+  is_active   Boolean               @default(true)
+  is_default  Boolean               @default(false)
+
+  // Relationships
+  tenant_id   String
+  created_by  String
+
+  // Timestamps
+  created_at  DateTime              @default(now())
+  updated_at  DateTime              @updatedAt
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@index([type])
+  @@index([is_default])
+  @@map("attribution_models")
+}
+
+model CheckoutSession {
+  id              String    @id @default(uuid())
+  session_token   String    @unique
+
+  // Cart data
+  items           Json      // Array of cart items
+  subtotal        Decimal   @db.Decimal(10, 2)
+  total           Decimal   @db.Decimal(10, 2)
+  currency        String    @default("USD")
+
+  // Customer info
+  customer_email  String?
+  customer_data   Json?
+
+  // Source tracking
+  content_id      String?
+  gallery_id      String?
+
+  // Status
+  is_completed    Boolean   @default(false)
+  order_id        String?   @unique
+
+  // Metadata
+  metadata        Json?
+
+  // Relationships
+  tenant_id       String
+
+  // Timestamps
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  expires_at      DateTime
+  completed_at    DateTime?
+
+  @@index([tenant_id])
+  @@index([session_token])
+  @@index([expires_at])
+  @@index([is_completed])
+  @@map("checkout_sessions")
+}
+
+model IntegrationConfig {
+  id          String    @id @default(uuid())
+  source      ProductSource
+
+  // Credentials (encrypted)
+  credentials Json
+
+  // Settings
+  settings    Json?
+  is_active   Boolean   @default(true)
+
+  // Sync status
+  last_sync_at DateTime?
+  sync_status  String?
+
+  // Relationships
+  tenant_id   String
+
+  // Timestamps
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @updatedAt
+
+  @@unique([tenant_id, source])
+  @@index([tenant_id])
+  @@index([source])
+  @@map("integration_configs")
+}

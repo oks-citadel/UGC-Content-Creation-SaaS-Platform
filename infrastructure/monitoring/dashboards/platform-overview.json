@@ -1,0 +1,351 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "name": "CreatorBridge Platform Overview Dashboard",
+    "description": "High-level platform health and business metrics"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Portal/dashboards",
+      "apiVersion": "2020-09-01-preview",
+      "name": "creatorbridge-platform-overview",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "hidden-title": "CreatorBridge Platform Overview",
+        "environment": "production"
+      },
+      "properties": {
+        "lenses": [
+          {
+            "order": 0,
+            "parts": [
+              {
+                "position": {
+                  "x": 0,
+                  "y": 0,
+                  "colSpan": 4,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/HubsExtension/PartType/MarkdownPart",
+                  "settings": {
+                    "content": {
+                      "content": "# CreatorBridge Platform\n## Real-time Platform Health",
+                      "title": "",
+                      "subtitle": "",
+                      "markdownSource": 1
+                    }
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 4,
+                  "y": 0,
+                  "colSpan": 2,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Active Users",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT1H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('appInsightsId')]",
+                        "metricNamespace": "microsoft.insights/components",
+                        "metricName": "users/count",
+                        "aggregationType": "Sum",
+                        "displayName": "Active Users"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 6,
+                  "y": 0,
+                  "colSpan": 2,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Request Rate",
+                    "chartType": "AreaChart",
+                    "timeRange": {
+                      "duration": "PT1H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('appInsightsId')]",
+                        "metricNamespace": "microsoft.insights/components",
+                        "metricName": "requests/count",
+                        "aggregationType": "Sum",
+                        "displayName": "Requests/sec"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 8,
+                  "y": 0,
+                  "colSpan": 2,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Error Rate",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT1H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('appInsightsId')]",
+                        "metricNamespace": "microsoft.insights/components",
+                        "metricName": "requests/failed",
+                        "aggregationType": "Sum",
+                        "displayName": "Failed Requests"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 10,
+                  "y": 0,
+                  "colSpan": 2,
+                  "rowSpan": 2
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Response Time (P95)",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT1H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('appInsightsId')]",
+                        "metricNamespace": "microsoft.insights/components",
+                        "metricName": "requests/duration",
+                        "aggregationType": "percentile_95",
+                        "displayName": "P95 Latency"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 0,
+                  "y": 2,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Service Health by Endpoint",
+                    "chartType": "StackedBarChart",
+                    "timeRange": {
+                      "duration": "PT6H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('appInsightsId')]",
+                        "metricNamespace": "microsoft.insights/components",
+                        "metricName": "requests/count",
+                        "aggregationType": "Sum",
+                        "splitBy": "request/name"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 6,
+                  "y": 2,
+                  "colSpan": 6,
+                  "rowSpan": 4
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "AKS Cluster CPU & Memory",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT6H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('aksClusterId')]",
+                        "metricNamespace": "Microsoft.ContainerService/managedClusters",
+                        "metricName": "node_cpu_usage_percentage",
+                        "aggregationType": "Average",
+                        "displayName": "CPU %"
+                      },
+                      {
+                        "resourceId": "[parameters('aksClusterId')]",
+                        "metricNamespace": "Microsoft.ContainerService/managedClusters",
+                        "metricName": "node_memory_rss_percentage",
+                        "aggregationType": "Average",
+                        "displayName": "Memory %"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 0,
+                  "y": 6,
+                  "colSpan": 4,
+                  "rowSpan": 3
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "PostgreSQL Connections",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT6H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('postgresId')]",
+                        "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+                        "metricName": "active_connections",
+                        "aggregationType": "Average",
+                        "displayName": "Active Connections"
+                      },
+                      {
+                        "resourceId": "[parameters('postgresId')]",
+                        "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+                        "metricName": "connections_failed",
+                        "aggregationType": "Sum",
+                        "displayName": "Failed Connections"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 4,
+                  "y": 6,
+                  "colSpan": 4,
+                  "rowSpan": 3
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Redis Cache Performance",
+                    "chartType": "LineChart",
+                    "timeRange": {
+                      "duration": "PT6H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('redisId')]",
+                        "metricNamespace": "Microsoft.Cache/Redis",
+                        "metricName": "cacheHits",
+                        "aggregationType": "Sum",
+                        "displayName": "Cache Hits"
+                      },
+                      {
+                        "resourceId": "[parameters('redisId')]",
+                        "metricNamespace": "Microsoft.Cache/Redis",
+                        "metricName": "cacheMisses",
+                        "aggregationType": "Sum",
+                        "displayName": "Cache Misses"
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "position": {
+                  "x": 8,
+                  "y": 6,
+                  "colSpan": 4,
+                  "rowSpan": 3
+                },
+                "metadata": {
+                  "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+                  "settings": {
+                    "title": "Blob Storage Operations",
+                    "chartType": "AreaChart",
+                    "timeRange": {
+                      "duration": "PT6H"
+                    },
+                    "metrics": [
+                      {
+                        "resourceId": "[parameters('storageAccountId')]",
+                        "metricNamespace": "Microsoft.Storage/storageAccounts/blobServices",
+                        "metricName": "BlobCount",
+                        "aggregationType": "Average",
+                        "displayName": "Blob Count"
+                      },
+                      {
+                        "resourceId": "[parameters('storageAccountId')]",
+                        "metricNamespace": "Microsoft.Storage/storageAccounts/blobServices",
+                        "metricName": "BlobCapacity",
+                        "aggregationType": "Average",
+                        "displayName": "Storage Used (GB)"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "parameters": {
+    "appInsightsId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of Application Insights"
+      }
+    },
+    "aksClusterId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of AKS Cluster"
+      }
+    },
+    "postgresId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of PostgreSQL Server"
+      }
+    },
+    "redisId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of Redis Cache"
+      }
+    },
+    "storageAccountId": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource ID of Storage Account"
+      }
+    }
+  }
+}

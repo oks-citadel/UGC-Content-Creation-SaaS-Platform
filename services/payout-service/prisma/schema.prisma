@@ -1,0 +1,495 @@
+// Prisma schema for CreatorBridge Payout Service
+// Manages creator payments, earnings, tax documents, and payout processing
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PayoutMethod {
+  STRIPE_CONNECT
+  PAYPAL
+  BANK_TRANSFER
+  WISE
+  CHECK
+}
+
+enum PayoutSchedule {
+  MANUAL
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+}
+
+enum EarningStatus {
+  PENDING        // Content approved, not yet cleared
+  CLEARED        // Available for payout
+  PAID           // Included in a payout
+  REFUNDED       // Refunded to brand
+  DISPUTED       // Under dispute
+}
+
+enum EarningType {
+  CONTENT_PAYMENT    // Payment for content creation
+  BONUS              // Performance bonus
+  REFERRAL           // Referral bonus
+  ROYALTY            // Usage royalty
+  ADJUSTMENT         // Manual adjustment
+}
+
+enum TaxDocumentType {
+  W9              // US individuals/businesses
+  W8BEN           // Foreign individuals
+  W8BEN_E         // Foreign entities
+  FORM_1099       // Annual earnings statement
+  FORM_1042S      // Foreign person's income
+}
+
+enum TaxDocumentStatus {
+  PENDING_SUBMISSION
+  SUBMITTED
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum PayoutAccountStatus {
+  PENDING_SETUP
+  PENDING_VERIFICATION
+  VERIFIED
+  SUSPENDED
+  CLOSED
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+model CreatorBalance {
+  id              String        @id @default(uuid()) @db.Uuid
+  creatorId       String        @unique @map("creator_id") @db.Uuid
+
+  // Balances (in cents to avoid floating point issues)
+  availableBalance BigInt       @default(0) @map("available_balance")
+  pendingBalance  BigInt        @default(0) @map("pending_balance")
+  reservedBalance BigInt        @default(0) @map("reserved_balance")  // Held for disputes
+  lifetimeEarnings BigInt       @default(0) @map("lifetime_earnings")
+  lifetimePayouts BigInt        @default(0) @map("lifetime_payouts")
+
+  currency        String        @default("USD")
+
+  // Payout settings
+  minimumPayout   BigInt        @default(10000) @map("minimum_payout")  // $100.00 in cents
+  schedule        PayoutSchedule @default(BI_WEEKLY)
+  holdPayouts     Boolean       @default(false) @map("hold_payouts")
+
+  // Default payout method
+  defaultAccountId String?      @map("default_account_id") @db.Uuid
+
+  // Stats
+  totalPayouts    Int           @default(0) @map("total_payouts")
+
+  // Tax status
+  taxVerified     Boolean       @default(false) @map("tax_verified")
+  taxCountry      String?       @map("tax_country")
+
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  lastPayoutAt    DateTime?     @map("last_payout_at")
+  nextScheduledPayout DateTime? @map("next_scheduled_payout")
+
+  // Relations
+  earnings        Earning[]
+  payouts         Payout[]
+  payoutAccounts  PayoutAccount[]
+
+  @@index([creatorId])
+  @@map("creator_balances")
+}
+
+model Earning {
+  id              String        @id @default(uuid()) @db.Uuid
+  creatorId       String        @map("creator_id") @db.Uuid
+  balanceId       String        @map("balance_id") @db.Uuid
+
+  // Source
+  type            EarningType
+  contentId       String?       @map("content_id") @db.Uuid
+  campaignId      String?       @map("campaign_id") @db.Uuid
+  brandId         String?       @map("brand_id") @db.Uuid
+
+  // Amount (in cents)
+  grossAmount     BigInt        @map("gross_amount")
+  platformFee     BigInt        @map("platform_fee")
+  processingFee   BigInt        @default(0) @map("processing_fee")
+  taxWithholding  BigInt        @default(0) @map("tax_withholding")
+  netAmount       BigInt        @map("net_amount")
+  currency        String        @default("USD")
+
+  // Fee details
+  feePercentage   Float         @map("fee_percentage")  // Platform fee percentage
+
+  // Status
+  status          EarningStatus @default(PENDING)
+  statusReason    String?       @map("status_reason")
+
+  // Clearing
+  clearingDays    Int           @default(7) @map("clearing_days")
+  clearsAt        DateTime      @map("clears_at")
+  clearedAt       DateTime?     @map("cleared_at")
+
+  // Payout reference
+  payoutId        String?       @map("payout_id") @db.Uuid
+
+  // Description
+  description     String?
+  metadata        Json?
+
+  // Timestamps
+  earnedAt        DateTime      @default(now()) @map("earned_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  balance         CreatorBalance @relation(fields: [balanceId], references: [id])
+  payout          Payout?        @relation(fields: [payoutId], references: [id])
+
+  @@index([creatorId])
+  @@index([balanceId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([clearsAt])
+  @@index([payoutId])
+  @@map("earnings")
+}
+
+model Payout {
+  id              String        @id @default(uuid()) @db.Uuid
+  creatorId       String        @map("creator_id") @db.Uuid
+  balanceId       String        @map("balance_id") @db.Uuid
+  accountId       String        @map("account_id") @db.Uuid
+
+  // Amount (in cents)
+  grossAmount     BigInt        @map("gross_amount")
+  processingFee   BigInt        @default(0) @map("processing_fee")
+  netAmount       BigInt        @map("net_amount")
+  currency        String        @default("USD")
+
+  // Method
+  method          PayoutMethod
+
+  // Status
+  status          PayoutStatus  @default(PENDING)
+  statusReason    String?       @map("status_reason")
+
+  // External references
+  externalId      String?       @map("external_id")  // Stripe transfer ID, PayPal batch ID, etc.
+  externalBatchId String?       @map("external_batch_id")
+  transactionId   String?       @unique @map("transaction_id")
+
+  // Destination info (masked)
+  destinationMask String?       @map("destination_mask")  // e.g., "****1234"
+  destinationType String?       @map("destination_type")  // bank_account, debit_card
+
+  // Timing
+  requestedAt     DateTime      @default(now()) @map("requested_at")
+  processedAt     DateTime?     @map("processed_at")
+  completedAt     DateTime?     @map("completed_at")
+  failedAt        DateTime?     @map("failed_at")
+  estimatedArrival DateTime?    @map("estimated_arrival")
+
+  // Failure handling
+  failureCode     String?       @map("failure_code")
+  failureMessage  String?       @map("failure_message")
+  retryCount      Int           @default(0) @map("retry_count")
+  maxRetries      Int           @default(3) @map("max_retries")
+
+  // Notes
+  note            String?
+  internalNote    String?       @map("internal_note")
+
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  balance         CreatorBalance @relation(fields: [balanceId], references: [id])
+  account         PayoutAccount  @relation(fields: [accountId], references: [id])
+  earnings        Earning[]
+  events          PayoutEvent[]
+
+  @@index([creatorId])
+  @@index([balanceId])
+  @@index([accountId])
+  @@index([status])
+  @@index([requestedAt])
+  @@index([externalId])
+  @@map("payouts")
+}
+
+model PayoutEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  payoutId        String   @map("payout_id") @db.Uuid
+
+  // Event details
+  eventType       String   @map("event_type")  // requested, processing, completed, failed, etc.
+  previousStatus  PayoutStatus? @map("previous_status")
+  newStatus       PayoutStatus? @map("new_status")
+
+  // Details
+  description     String?
+  metadata        Json?
+
+  // External event
+  externalEventId String?  @map("external_event_id")
+  externalEventType String? @map("external_event_type")
+
+  // Timestamp
+  occurredAt      DateTime @default(now()) @map("occurred_at")
+
+  payout          Payout   @relation(fields: [payoutId], references: [id], onDelete: Cascade)
+
+  @@index([payoutId])
+  @@index([occurredAt])
+  @@map("payout_events")
+}
+
+model PayoutAccount {
+  id              String              @id @default(uuid()) @db.Uuid
+  creatorId       String              @map("creator_id") @db.Uuid
+  balanceId       String              @map("balance_id") @db.Uuid
+
+  // Account type
+  method          PayoutMethod
+  status          PayoutAccountStatus @default(PENDING_SETUP)
+
+  // Is this the default?
+  isDefault       Boolean             @default(false) @map("is_default")
+
+  // Account details (encrypted or tokenized)
+  // Stripe Connect
+  stripeAccountId String?             @unique @map("stripe_account_id")
+
+  // PayPal
+  paypalEmail     String?             @map("paypal_email")
+  paypalMerchantId String?            @map("paypal_merchant_id")
+
+  // Bank Transfer
+  bankName        String?             @map("bank_name")
+  bankCountry     String?             @map("bank_country")
+  accountLastFour String?             @map("account_last_four")
+  routingLastFour String?             @map("routing_last_four")
+  accountType     String?             @map("account_type")  // checking, savings
+
+  // Wise
+  wiseRecipientId String?             @map("wise_recipient_id")
+
+  // Verification
+  verifiedAt      DateTime?           @map("verified_at")
+  verificationDetails Json?           @map("verification_details")
+
+  // Payout limits
+  dailyLimit      BigInt?             @map("daily_limit")
+  monthlyLimit    BigInt?             @map("monthly_limit")
+
+  // Status reason
+  statusReason    String?             @map("status_reason")
+  suspendedAt     DateTime?           @map("suspended_at")
+  suspendedReason String?             @map("suspended_reason")
+
+  // Timestamps
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  // Relations
+  balance         CreatorBalance      @relation(fields: [balanceId], references: [id])
+  payouts         Payout[]
+
+  @@index([creatorId])
+  @@index([balanceId])
+  @@index([method])
+  @@index([status])
+  @@map("payout_accounts")
+}
+
+model TaxDocument {
+  id              String            @id @default(uuid()) @db.Uuid
+  creatorId       String            @map("creator_id") @db.Uuid
+
+  // Document type and status
+  type            TaxDocumentType
+  status          TaxDocumentStatus @default(PENDING_SUBMISSION)
+  taxYear         Int               @map("tax_year")
+
+  // Document content (encrypted)
+  documentUrl     String?           @map("document_url")
+  encryptedData   String?           @db.Text @map("encrypted_data")
+
+  // Tax identifiers (encrypted/hashed)
+  tinHash         String?           @map("tin_hash")  // Hashed TIN/SSN/EIN
+  tinLastFour     String?           @map("tin_last_four")
+  tinType         String?           @map("tin_type")  // ssn, ein, itin
+
+  // Name and address
+  legalName       String?           @map("legal_name")
+  businessName    String?           @map("business_name")
+  address         Json?             // Encrypted address
+
+  // Foreign status (for W-8)
+  countryOfResidence String?        @map("country_of_residence")
+  treatyCountry   String?           @map("treaty_country")
+  treatyArticle   String?           @map("treaty_article")
+  withholdingRate Float?            @map("withholding_rate")
+
+  // Signature
+  signedAt        DateTime?         @map("signed_at")
+  signatureData   String?           @db.Text @map("signature_data")
+  ipAddress       String?           @map("ip_address")
+
+  // Review
+  reviewedBy      String?           @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?         @map("reviewed_at")
+  rejectionReason String?           @map("rejection_reason")
+
+  // Expiration
+  expiresAt       DateTime?         @map("expires_at")
+  reminderSentAt  DateTime?         @map("reminder_sent_at")
+
+  // Timestamps
+  submittedAt     DateTime?         @map("submitted_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  @@unique([creatorId, type, taxYear])
+  @@index([creatorId])
+  @@index([type])
+  @@index([status])
+  @@index([taxYear])
+  @@map("tax_documents")
+}
+
+model Form1099 {
+  id              String   @id @default(uuid()) @db.Uuid
+  creatorId       String   @map("creator_id") @db.Uuid
+
+  // Tax year
+  taxYear         Int      @map("tax_year")
+
+  // Earnings summary (in cents)
+  totalEarnings   BigInt   @map("total_earnings")
+  totalWithholding BigInt  @default(0) @map("total_withholding")
+
+  // Recipient info
+  recipientName   String   @map("recipient_name")
+  recipientTinLastFour String @map("recipient_tin_last_four")
+
+  // Form details
+  formType        String   @default("1099-NEC") @map("form_type")
+  boxAmounts      Json     @map("box_amounts")  // Box 1: Nonemployee compensation, etc.
+
+  // Documents
+  formUrl         String?  @map("form_url")
+  copyBUrl        String?  @map("copy_b_url")  // Recipient copy
+
+  // IRS filing
+  irsSubmissionId String?  @map("irs_submission_id")
+  irsSubmittedAt  DateTime? @map("irs_submitted_at")
+  irsAcceptedAt   DateTime? @map("irs_accepted_at")
+  irsRejectedAt   DateTime? @map("irs_rejected_at")
+  irsRejectionReason String? @map("irs_rejection_reason")
+
+  // Delivery to recipient
+  deliveredAt     DateTime? @map("delivered_at")
+  deliveryMethod  String?   @map("delivery_method")  // email, mail, download
+
+  // Corrections
+  isCorrection    Boolean  @default(false) @map("is_correction")
+  originalFormId  String?  @map("original_form_id") @db.Uuid
+
+  // Timestamps
+  generatedAt     DateTime @default(now()) @map("generated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([creatorId, taxYear, isCorrection])
+  @@index([creatorId])
+  @@index([taxYear])
+  @@map("form_1099s")
+}
+
+model PayoutWebhookEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+
+  // Source
+  provider        String   // stripe, paypal, wise
+  eventId         String   @map("event_id")
+  eventType       String   @map("event_type")
+
+  // Payload
+  payload         Json
+  headers         Json?
+
+  // Processing
+  processed       Boolean  @default(false)
+  processedAt     DateTime? @map("processed_at")
+  processingError String?  @map("processing_error")
+  retryCount      Int      @default(0) @map("retry_count")
+
+  // References
+  payoutId        String?  @map("payout_id") @db.Uuid
+  accountId       String?  @map("account_id") @db.Uuid
+
+  // Timestamps
+  receivedAt      DateTime @default(now()) @map("received_at")
+
+  @@unique([provider, eventId])
+  @@index([provider])
+  @@index([eventType])
+  @@index([processed])
+  @@index([receivedAt])
+  @@map("payout_webhook_events")
+}
+
+model PayoutSettings {
+  id              String   @id @default(uuid()) @db.Uuid
+
+  // Platform-wide settings
+  key             String   @unique
+  value           Json
+
+  // Common settings:
+  // - default_fee_percentage
+  // - minimum_payout_amount
+  // - clearing_days
+  // - supported_currencies
+  // - supported_payout_methods
+  // - tax_withholding_rates
+
+  description     String?
+  isSecret        Boolean  @default(false) @map("is_secret")
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by") @db.Uuid
+
+  @@map("payout_settings")
+}

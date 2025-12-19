@@ -1,0 +1,59 @@
+# =============================================================================
+# Kustomize Staging Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: creatorbridge-staging
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+resources:
+  - ../base
+
+images:
+  - name: creatorbridge.azurecr.io/asset-service
+    newName: creatorbridgestaging.azurecr.io/asset-service
+    newTag: latest
+  - name: creatorbridge.azurecr.io/rights-service
+    newName: creatorbridgestaging.azurecr.io/rights-service
+    newTag: latest
+  - name: creatorbridge.azurecr.io/payout-service
+    newName: creatorbridgestaging.azurecr.io/payout-service
+    newTag: latest
+
+replicas:
+  - name: asset-service
+    count: 1
+  - name: rights-service
+    count: 1
+  - name: payout-service
+    count: 1
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: api-staging.creatorbridge.com
+      - op: replace
+        path: /spec/rules/0/host
+        value: api-staging.creatorbridge.com
+    target:
+      kind: Ingress
+      name: creatorbridge-api
+  - patch: |-
+      - op: replace
+        path: /data/environment
+        value: staging
+      - op: replace
+        path: /data/cdn-hostname
+        value: cdn-staging.creatorbridge.com
+      - op: replace
+        path: /data/api-base-url
+        value: https://api-staging.creatorbridge.com
+    target:
+      kind: ConfigMap
+      name: platform-config

@@ -1,0 +1,109 @@
+```mermaid
+graph TB
+    subgraph "Users"
+        Users[End Users]
+    end
+
+    subgraph "CDN & Load Balancer"
+        Cloudflare[Cloudflare CDN]
+        ALB[AWS ALB<br/>Load Balancer]
+    end
+
+    subgraph "Kubernetes Cluster (EKS)"
+        subgraph "Ingress"
+            Ingress[Nginx Ingress<br/>Controller]
+        end
+
+        subgraph "API Gateway Pods"
+            Kong1[Kong Pod 1]
+            Kong2[Kong Pod 2]
+            Kong3[Kong Pod 3]
+        end
+
+        subgraph "Service Pods (Auto-Scaling)"
+            UserPod1[User Service Pod]
+            UserPod2[User Service Pod]
+            CampaignPod1[Campaign Service Pod]
+            CampaignPod2[Campaign Service Pod]
+            ContentPod1[Content Service Pod]
+            ContentPod2[Content Service Pod]
+        end
+
+        subgraph "AI/ML Pods (GPU)"
+            AIPod1[AI Service Pod<br/>GPU Enabled]
+            AIPod2[AI Service Pod<br/>GPU Enabled]
+        end
+
+        subgraph "Worker Pods"
+            Worker1[Video Processor]
+            Worker2[Social Publisher]
+            Worker3[Analytics Aggregator]
+        end
+    end
+
+    subgraph "Managed Services (AWS)"
+        RDS[(Amazon RDS<br/>PostgreSQL)]
+        ElastiCache[(ElastiCache<br/>Redis)]
+        S3[(S3 Bucket<br/>Media Storage)]
+        SageMaker[SageMaker<br/>ML Training]
+    end
+
+    subgraph "External Services"
+        MongoDB[(MongoDB Atlas)]
+        Snowflake[(Snowflake<br/>Data Warehouse)]
+        Datadog[Datadog<br/>Monitoring]
+    end
+
+    Users --> Cloudflare
+    Cloudflare --> ALB
+    ALB --> Ingress
+    Ingress --> Kong1
+    Ingress --> Kong2
+    Ingress --> Kong3
+
+    Kong1 --> UserPod1
+    Kong1 --> UserPod2
+    Kong2 --> CampaignPod1
+    Kong2 --> CampaignPod2
+    Kong3 --> ContentPod1
+    Kong3 --> ContentPod2
+
+    ContentPod1 --> AIPod1
+    ContentPod2 --> AIPod2
+
+    UserPod1 --> RDS
+    UserPod2 --> RDS
+    CampaignPod1 --> RDS
+    CampaignPod2 --> RDS
+
+    UserPod1 --> ElastiCache
+    CampaignPod1 --> ElastiCache
+
+    ContentPod1 --> S3
+    ContentPod2 --> S3
+    ContentPod1 --> MongoDB
+    ContentPod2 --> MongoDB
+
+    Worker1 --> S3
+    Worker2 --> MongoDB
+    Worker3 --> Snowflake
+
+    AIPod1 --> SageMaker
+    AIPod2 --> SageMaker
+
+    Kong1 -.->|Metrics| Datadog
+    UserPod1 -.->|Metrics| Datadog
+    CampaignPod1 -.->|Metrics| Datadog
+
+    classDef userStyle fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    classDef networkStyle fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    classDef k8sStyle fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    classDef dataStyle fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef externalStyle fill:#fce4ec,stroke:#c2185b,stroke-width:2px
+
+    class Users userStyle
+    class Cloudflare,ALB networkStyle
+    class Ingress,Kong1,Kong2,Kong3,UserPod1,UserPod2,CampaignPod1,CampaignPod2,ContentPod1,ContentPod2,AIPod1,AIPod2,Worker1,Worker2,Worker3 k8sStyle
+    class RDS,ElastiCache,S3,SageMaker dataStyle
+    class MongoDB,Snowflake,Datadog externalStyle
+```

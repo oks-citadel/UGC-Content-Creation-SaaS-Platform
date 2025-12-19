@@ -1,0 +1,159 @@
+{
+  "draftCampaign": {
+    "id": "campaign-draft-123",
+    "organizationId": "org-brand-123",
+    "name": "Summer UGC Campaign",
+    "slug": "summer-ugc-campaign",
+    "description": "Campaign for summer product launch",
+    "type": "UGC",
+    "status": "DRAFT",
+    "budget": "10000.00",
+    "currency": "USD",
+    "startDate": "2024-06-01T00:00:00.000Z",
+    "endDate": "2024-08-31T23:59:59.999Z",
+    "targetAudience": {
+      "age": ["18-24", "25-34"],
+      "gender": ["female", "male"],
+      "locations": ["US", "UK", "CA"]
+    },
+    "goals": {
+      "awareness": 80,
+      "engagement": 15,
+      "conversion": 5
+    },
+    "tags": ["summer", "lifestyle", "product-launch"],
+    "createdBy": "brand-user-123",
+    "createdAt": "2024-05-01T00:00:00.000Z",
+    "updatedAt": "2024-05-01T00:00:00.000Z"
+  },
+  "activeCampaign": {
+    "id": "campaign-active-456",
+    "organizationId": "org-brand-123",
+    "name": "Influencer Collaboration Q2",
+    "slug": "influencer-collaboration-q2",
+    "description": "Partnering with influencers for brand awareness",
+    "type": "INFLUENCER",
+    "status": "ACTIVE",
+    "budget": "25000.00",
+    "currency": "USD",
+    "startDate": "2024-04-01T00:00:00.000Z",
+    "endDate": "2024-06-30T23:59:59.999Z",
+    "targetAudience": {
+      "age": ["25-34", "35-44"],
+      "gender": ["all"],
+      "locations": ["US", "UK", "AU"]
+    },
+    "goals": {
+      "awareness": 60,
+      "engagement": 30,
+      "conversion": 10
+    },
+    "tags": ["influencer", "awareness", "q2"],
+    "createdBy": "brand-user-123",
+    "createdAt": "2024-03-15T00:00:00.000Z",
+    "updatedAt": "2024-04-01T00:00:00.000Z",
+    "publishedAt": "2024-04-01T00:00:00.000Z"
+  },
+  "completedCampaign": {
+    "id": "campaign-completed-789",
+    "organizationId": "org-brand-123",
+    "name": "Winter Holiday Campaign",
+    "slug": "winter-holiday-campaign",
+    "description": "Holiday season UGC campaign",
+    "type": "UGC",
+    "status": "COMPLETED",
+    "budget": "15000.00",
+    "currency": "USD",
+    "startDate": "2023-11-01T00:00:00.000Z",
+    "endDate": "2023-12-31T23:59:59.999Z",
+    "targetAudience": {
+      "age": ["18-24", "25-34", "35-44"],
+      "gender": ["all"],
+      "locations": ["US"]
+    },
+    "goals": {
+      "awareness": 70,
+      "engagement": 20,
+      "conversion": 10
+    },
+    "tags": ["holiday", "winter", "seasonal"],
+    "createdBy": "brand-user-123",
+    "createdAt": "2023-10-01T00:00:00.000Z",
+    "updatedAt": "2024-01-05T00:00:00.000Z",
+    "publishedAt": "2023-11-01T00:00:00.000Z",
+    "completedAt": "2024-01-05T00:00:00.000Z"
+  },
+  "campaignWithBrief": {
+    "id": "campaign-with-brief-111",
+    "organizationId": "org-brand-123",
+    "name": "Product Launch Campaign",
+    "slug": "product-launch-campaign",
+    "type": "UGC",
+    "status": "ACTIVE",
+    "budget": "20000.00",
+    "currency": "USD",
+    "brief": {
+      "id": "brief-111",
+      "overview": "We are launching a new eco-friendly product line",
+      "objectives": {
+        "awareness": 70,
+        "engagement": 20,
+        "sales": 10
+      },
+      "targetPlatforms": ["tiktok", "instagram", "youtube"],
+      "contentTypes": ["video", "image", "story"],
+      "brandGuidelines": {
+        "colors": ["#00FF00", "#FFFFFF"],
+        "fonts": ["Roboto", "Open Sans"],
+        "tone": "friendly and authentic"
+      },
+      "doAndDonts": {
+        "do": ["Show product in use", "Be authentic", "Use natural lighting"],
+        "dont": ["Use competitors", "Make false claims", "Over-edit"]
+      },
+      "keyMessages": [
+        "Eco-friendly and sustainable",
+        "High quality materials",
+        "Affordable luxury"
+      ],
+      "hashtags": ["#EcoLife", "#Sustainable", "#BrandName"],
+      "mentions": ["@brandname"],
+      "references": {
+        "styleGuide": "https://brand.com/style-guide.pdf",
+        "productImages": "https://brand.com/products"
+      }
+    },
+    "deliverables": [
+      {
+        "id": "deliverable-1",
+        "name": "TikTok Video",
+        "description": "30-60 second product showcase",
+        "type": "TIKTOK",
+        "platform": "tiktok",
+        "quantity": 5,
+        "requirements": {
+          "duration": "30-60 seconds",
+          "resolution": "1080x1920",
+          "format": "MP4"
+        },
+        "dueDate": "2024-06-15T00:00:00.000Z",
+        "compensation": "500.00"
+      },
+      {
+        "id": "deliverable-2",
+        "name": "Instagram Reel",
+        "description": "Product unboxing reel",
+        "type": "REEL",
+        "platform": "instagram",
+        "quantity": 3,
+        "requirements": {
+          "duration": "15-30 seconds",
+          "resolution": "1080x1920",
+          "format": "MP4"
+        },
+        "dueDate": "2024-06-20T00:00:00.000Z",
+        "compensation": "400.00"
+      }
+    ]
+  }
+}

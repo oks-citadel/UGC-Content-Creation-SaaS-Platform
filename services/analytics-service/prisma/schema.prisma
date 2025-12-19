@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MetricSnapshot {
+  id          String   @id @default(uuid())
+  entityType  String   @map("entity_type") // content, campaign, creator, commerce
+  entityId    String   @map("entity_id")
+  metrics     Json     // flexible metrics storage
+  period      String   // hourly, daily, weekly, monthly
+  recordedAt  DateTime @map("recorded_at") @default(now())
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  @@index([entityType, entityId, recordedAt])
+  @@index([period, recordedAt])
+  @@map("metric_snapshots")
+}
+
+model Dashboard {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  brandId     String?  @map("brand_id")
+  name        String
+  description String?
+  widgets     Json     // widget configurations
+  layout      Json     // grid layout configuration
+  isDefault   Boolean  @default(false) @map("is_default")
+  isPublic    Boolean  @default(false) @map("is_public")
+  settings    Json?    // theme, refresh rate, etc.
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  @@index([userId])
+  @@index([brandId])
+  @@map("dashboards")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  brandId     String?  @map("brand_id")
+  name        String
+  description String?
+  type        String   // performance, comparison, trend, custom
+  filters     Json     // date range, entities, metrics
+  schedule    Json?    // cron expression, timezone
+  format      String   @default("pdf") // pdf, excel, csv
+  recipients  Json?    // email addresses
+  template    String?  // whitelabel template ID
+  isActive    Boolean  @default(true) @map("is_active")
+  lastRunAt   DateTime? @map("last_run_at")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  executions ReportExecution[]
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([isActive, schedule])
+  @@map("reports")
+}
+
+model ReportExecution {
+  id          String   @id @default(uuid())
+  reportId    String   @map("report_id")
+  status      String   // pending, processing, completed, failed
+  fileUrl     String?  @map("file_url")
+  fileSize    Int?     @map("file_size")
+  error       String?
+  metadata    Json?    // execution details
+  startedAt   DateTime @map("started_at") @default(now())
+  completedAt DateTime? @map("completed_at")
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@index([status, startedAt])
+  @@map("report_executions")
+}
+
+model Alert {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  brandId     String?  @map("brand_id")
+  name        String
+  metric      String   // metric to monitor
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id") // null for global alerts
+  condition   String   // greater_than, less_than, equals, change_percent
+  threshold   Float
+  channels    Json     // email, slack, webhook, sms
+  isActive    Boolean  @default(true) @map("is_active")
+  cooldown    Int      @default(3600) // seconds before re-alerting
+  lastTriggered DateTime? @map("last_triggered")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  triggers AlertTrigger[]
+
+  @@index([userId])
+  @@index([brandId])
+  @@index([isActive, entityType])
+  @@map("alerts")
+}
+
+model AlertTrigger {
+  id          String   @id @default(uuid())
+  alertId     String   @map("alert_id")
+  value       Float    // actual value that triggered alert
+  threshold   Float    // threshold at time of trigger
+  metadata    Json?    // additional context
+  notified    Boolean  @default(false)
+  triggeredAt DateTime @map("triggered_at") @default(now())
+
+  alert Alert @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  @@index([alertId])
+  @@index([triggeredAt])
+  @@map("alert_triggers")
+}
+
+model AnomalyDetection {
+  id          String   @id @default(uuid())
+  metric      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  baseline    Float    // expected value
+  actual      Float    // actual value
+  deviation   Float    // standard deviations from baseline
+  severity    String   // low, medium, high, critical
+  metadata    Json?    // statistical details
+  resolved    Boolean  @default(false)
+  resolvedAt  DateTime? @map("resolved_at")
+  detectedAt  DateTime @map("detected_at") @default(now())
+
+  @@index([entityType, entityId])
+  @@index([severity, resolved])
+  @@index([detectedAt])
+  @@map("anomaly_detections")
+}
+
+model CreativeFatigue {
+  id              String   @id @default(uuid())
+  contentId       String   @map("content_id")
+  platformId      String   @map("platform_id")
+  fatigueScore    Float    @map("fatigue_score") // 0-100
+  performanceTrend String  @map("performance_trend") // declining, stable, improving
+  recommendation  String?  // refresh, retire, boost
+  metrics         Json     // historical performance data
+  threshold       Float    @default(70.0) // score threshold for action
+  actionTaken     String?  @map("action_taken")
+  detectedAt      DateTime @map("detected_at") @default(now())
+  updatedAt       DateTime @map("updated_at") @updatedAt
+
+  @@index([contentId])
+  @@index([fatigueScore])
+  @@index([detectedAt])
+  @@map("creative_fatigues")
+}
+
+model CachedMetric {
+  id          String   @id @default(uuid())
+  cacheKey    String   @unique @map("cache_key")
+  data        Json
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @map("created_at") @default(now())
+
+  @@index([cacheKey, expiresAt])
+  @@map("cached_metrics")
+}

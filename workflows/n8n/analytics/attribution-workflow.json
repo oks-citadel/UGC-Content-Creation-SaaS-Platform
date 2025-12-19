@@ -1,0 +1,74 @@
+{
+  "name": "Marketing Attribution - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "conversion-event", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Conversion Event Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "conversion-event",
+      "notes": "Triggered when conversion happens"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/touchpoints/{{ $json.userId }}",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "days", "value": "30"}]}
+      },
+      "id": "fetch-touchpoints",
+      "name": "Fetch Customer Touchpoints",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Gets all marketing touchpoints for user in last 30 days"
+    },
+    {
+      "parameters": {
+        "jsCode": "const touchpoints = $input.first().json.touchpoints || [];\\nconst conversion = $input.first().json;\\n\\n// Multi-touch attribution model (U-shaped)\\nconst totalTouchpoints = touchpoints.length;\\nif (totalTouchpoints === 0) return [{ json: { attribution: [] } }];\\n\\nconst attribution = touchpoints.map((tp, index) => {\\n  let weight = 0;\\n  if (totalTouchpoints === 1) {\\n    weight = 1.0; // 100% to single touchpoint\\n  } else if (index === 0) {\\n    weight = 0.4; // 40% to first touch\\n  } else if (index === totalTouchpoints - 1) {\\n    weight = 0.4; // 40% to last touch\\n  } else {\\n    weight = 0.2 / (totalTouchpoints - 2); // Remaining 20% split among middle touches\\n  }\\n  \\n  return {\\n    channel: tp.channel,\\n    campaign: tp.campaign,\\n    timestamp: tp.timestamp,\\n    attributedValue: conversion.value * weight,\\n    attributionWeight: weight,\\n    position: index === 0 ? 'first' : (index === totalTouchpoints - 1 ? 'last' : 'middle')\\n  };\\n});\\n\\nreturn [{\\n  json: {\\n    conversionId: conversion.conversionId,\\n    userId: conversion.userId,\\n    conversionValue: conversion.value,\\n    attribution: attribution,\\n    model: 'u-shaped',\\n    calculatedAt: new Date().toISOString()\\n  }\\n}];"
+      },
+      "id": "calculate",
+      "name": "Calculate Attribution",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notes": "Calculates multi-touch attribution using U-shaped model"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/analytics/attribution",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}"
+      },
+      "id": "save",
+      "name": "Save Attribution Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "notes": "Saves attribution to analytics database"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, attribution: $json.attribution }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Conversion Event Trigger": {"main": [[{"node": "Fetch Customer Touchpoints", "type": "main", "index": 0}]]},
+    "Fetch Customer Touchpoints": {"main": [[{"node": "Calculate Attribution", "type": "main", "index": 0}]]},
+    "Calculate Attribution": {"main": [[{"node": "Save Attribution Data", "type": "main", "index": 0}]]},
+    "Save Attribution Data": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "7", "name": "Analytics"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

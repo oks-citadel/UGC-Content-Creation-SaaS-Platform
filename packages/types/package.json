@@ -1,0 +1,65 @@
+{
+  "name": "@nexus/types",
+  "version": "1.0.0",
+  "description": "Shared TypeScript types for NEXUS platform",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./user": {
+      "import": "./dist/user.mjs",
+      "require": "./dist/user.js",
+      "types": "./dist/user.d.ts"
+    },
+    "./campaign": {
+      "import": "./dist/campaign.mjs",
+      "require": "./dist/campaign.js",
+      "types": "./dist/campaign.d.ts"
+    },
+    "./content": {
+      "import": "./dist/content.mjs",
+      "require": "./dist/content.js",
+      "types": "./dist/content.d.ts"
+    },
+    "./creator": {
+      "import": "./dist/creator.mjs",
+      "require": "./dist/creator.js",
+      "types": "./dist/creator.d.ts"
+    },
+    "./commerce": {
+      "import": "./dist/commerce.mjs",
+      "require": "./dist/commerce.js",
+      "types": "./dist/commerce.d.ts"
+    },
+    "./analytics": {
+      "import": "./dist/analytics.mjs",
+      "require": "./dist/analytics.js",
+      "types": "./dist/analytics.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.mjs",
+      "require": "./dist/api.js",
+      "types": "./dist/api.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  }
+}

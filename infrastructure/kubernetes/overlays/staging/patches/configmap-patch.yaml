@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-config
+  namespace: nexus-staging
+data:
+  NODE_ENV: "staging"
+  LOG_LEVEL: "info"
+  TRACING_ENABLED: "true"
+  RATE_LIMIT_ENABLED: "true"

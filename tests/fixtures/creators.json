@@ -1,0 +1,163 @@
+{
+  "verifiedCreator": {
+    "id": "creator-verified-123",
+    "userId": "creator-user-456",
+    "organizationId": "org-creator-456",
+    "displayName": "ContentPro",
+    "bio": "Professional content creator specializing in lifestyle and tech",
+    "profileImage": "https://storage.nexus.com/profiles/contentpro.jpg",
+    "coverImage": "https://storage.nexus.com/covers/contentpro.jpg",
+    "verified": true,
+    "niches": ["lifestyle", "technology", "fashion"],
+    "platforms": {
+      "tiktok": {
+        "handle": "@contentpro",
+        "followers": 150000,
+        "engagementRate": 5.2,
+        "averageViews": 50000,
+        "verified": true
+      },
+      "instagram": {
+        "handle": "@contentpro",
+        "followers": 80000,
+        "engagementRate": 4.8,
+        "averageViews": 25000,
+        "verified": true
+      },
+      "youtube": {
+        "handle": "@contentpro",
+        "subscribers": 45000,
+        "engagementRate": 3.5,
+        "averageViews": 15000,
+        "verified": false
+      }
+    },
+    "portfolio": [
+      {
+        "id": "portfolio-1",
+        "title": "Best Tech Product of 2024",
+        "url": "https://tiktok.com/@contentpro/video/123",
+        "platform": "tiktok",
+        "description": "Viral tech review video",
+        "views": 500000,
+        "likes": 50000,
+        "comments": 2000,
+        "shares": 5000
+      },
+      {
+        "id": "portfolio-2",
+        "title": "Summer Fashion Haul",
+        "url": "https://instagram.com/p/abc123",
+        "platform": "instagram",
+        "description": "Fashion content collaboration",
+        "views": 100000,
+        "likes": 15000,
+        "comments": 500
+      }
+    ],
+    "rates": {
+      "tiktokVideo": "500.00",
+      "tiktokStory": "150.00",
+      "instagramPost": "300.00",
+      "instagramStory": "100.00",
+      "instagramReel": "400.00",
+      "youtubeVideo": "1000.00",
+      "youtubeShort": "300.00"
+    },
+    "availability": {
+      "available": true,
+      "weeklyCapacity": 5,
+      "nextAvailableDate": "2024-06-01T00:00:00.000Z"
+    },
+    "stats": {
+      "totalCampaigns": 25,
+      "completedCampaigns": 23,
+      "rating": 4.8,
+      "onTimeDelivery": 95,
+      "responseTime": "< 2 hours"
+    },
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2024-05-01T00:00:00.000Z"
+  },
+  "newCreator": {
+    "id": "creator-new-789",
+    "userId": "creator-user-789",
+    "displayName": "NewCreator",
+    "bio": "Just starting my content creation journey",
+    "verified": false,
+    "niches": ["lifestyle"],
+    "platforms": {
+      "tiktok": {
+        "handle": "@newcreator",
+        "followers": 5000,
+        "engagementRate": 6.5,
+        "verified": false
+      }
+    },
+    "portfolio": [],
+    "rates": {
+      "tiktokVideo": "200.00",
+      "instagramPost": "150.00"
+    },
+    "availability": {
+      "available": true,
+      "weeklyCapacity": 3
+    },
+    "stats": {
+      "totalCampaigns": 2,
+      "completedCampaigns": 1,
+      "rating": 5.0,
+      "onTimeDelivery": 100,
+      "responseTime": "< 4 hours"
+    },
+    "createdAt": "2024-04-01T00:00:00.000Z",
+    "updatedAt": "2024-05-01T00:00:00.000Z"
+  },
+  "microInfluencer": {
+    "id": "creator-micro-456",
+    "userId": "creator-user-456",
+    "displayName": "MicroInfluencer",
+    "bio": "Micro-influencer focused on authentic content",
+    "verified": false,
+    "niches": ["beauty", "wellness", "lifestyle"],
+    "platforms": {
+      "instagram": {
+        "handle": "@microinfluencer",
+        "followers": 25000,
+        "engagementRate": 7.2,
+        "verified": false
+      },
+      "tiktok": {
+        "handle": "@microinfluencer",
+        "followers": 30000,
+        "engagementRate": 8.5,
+        "verified": false
+      }
+    },
+    "portfolio": [
+      {
+        "id": "portfolio-micro-1",
+        "title": "Skincare Routine",
+        "url": "https://instagram.com/reel/xyz",
+        "platform": "instagram",
+        "views": 50000,
+        "likes": 5000
+      }
+    ],
+    "rates": {
+      "tiktokVideo": "350.00",
+      "instagramPost": "250.00",
+      "instagramReel": "300.00"
+    },
+    "availability": {
+      "available": true,
+      "weeklyCapacity": 4
+    },
+    "stats": {
+      "totalCampaigns": 15,
+      "completedCampaigns": 14,
+      "rating": 4.7,
+      "onTimeDelivery": 93
+    }
+  }
+}

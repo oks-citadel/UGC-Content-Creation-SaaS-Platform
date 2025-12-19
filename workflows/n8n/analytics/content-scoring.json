@@ -1,0 +1,113 @@
+{
+  "name": "Content Performance Scoring - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 12}]}},
+      "id": "schedule",
+      "name": "Every 12 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Scores content performance twice daily"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/content/published",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "since", "value": "={{ $now.minus({ days: 7 }).toISO() }}"}]}
+      },
+      "id": "fetch",
+      "name": "Fetch Recent Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Gets content from last 7 days"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\\nconst scored = items.map(item => {\\n  const data = item.json;\\n  const likes = data.likes || 0;\\n  const comments = data.comments || 0;\\n  const shares = data.shares || 0;\\n  const impressions = data.impressions || 1;\\n  \\n  // Engagement rate\\n  const engagementRate = ((likes + comments + shares) / impressions) * 100;\\n  \\n  // Weighted score (0-100)\\n  const score = Math.min(100, \\n    (likes * 0.3) + \\n    (comments * 0.5) + \\n    (shares * 0.2) + \\n    (engagementRate * 10)\\n  );\\n  \\n  // Determine action\\n  let action = 'monitor';\\n  if (score >= 80) action = 'promote';\\n  else if (score >= 50) action = 'boost';\\n  else if (score < 20) action = 'suppress';\\n  \\n  return {\\n    json: {\\n      ...data,\\n      performanceScore: Math.round(score),\\n      engagementRate: engagementRate.toFixed(2),\\n      recommendedAction: action,\\n      scoredAt: new Date().toISOString()\\n    }\\n  };\\n});\\nreturn scored;"
+      },
+      "id": "score",
+      "name": "Calculate Performance Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notes": "Scores content based on engagement metrics"
+    },
+    {
+      "parameters": {
+        "conditions": {"string": [{"value1": "={{ $json.recommendedAction }}", "operation": "equals", "value2": "promote"}]}
+      },
+      "id": "check-promote",
+      "name": "Should Promote?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/{{ $json.contentId }}/boost",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ budget: 50, duration: 7, platforms: ['facebook', 'instagram'] }) }}"
+      },
+      "id": "boost",
+      "name": "Auto-boost High Performers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 150],
+      "notes": "Automatically promotes top-performing content"
+    },
+    {
+      "parameters": {
+        "conditions": {"string": [{"value1": "={{ $json.recommendedAction }}", "operation": "equals", "value2": "suppress"}]}
+      },
+      "id": "check-suppress",
+      "name": "Should Suppress?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/{{ $json.contentId }}/hide",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ reason: 'poor_performance', score: $json.performanceScore }) }}"
+      },
+      "id": "hide",
+      "name": "Hide Poor Performers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 450],
+      "notes": "Hides or deprioritizes poor performers"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.API_URL }}/content/{{ $json.contentId }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ performanceScore: $json.performanceScore, engagementRate: $json.engagementRate, recommendedAction: $json.recommendedAction }) }}"
+      },
+      "id": "update",
+      "name": "Update Content Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 300],
+      "notes": "Updates content record with scores"
+    }
+  ],
+  "connections": {
+    "Every 12 Hours": {"main": [[{"node": "Fetch Recent Content", "type": "main", "index": 0}]]},
+    "Fetch Recent Content": {"main": [[{"node": "Calculate Performance Score", "type": "main", "index": 0}]]},
+    "Calculate Performance Score": {"main": [[{"node": "Should Promote?", "type": "main", "index": 0}, {"node": "Should Suppress?", "type": "main", "index": 0}, {"node": "Update Content Metadata", "type": "main", "index": 0}]]},
+    "Should Promote?": {"main": [[{"node": "Auto-boost High Performers", "type": "main", "index": 0}]]},
+    "Should Suppress?": {"main": [[{"node": "Hide Poor Performers", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "7", "name": "Analytics"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

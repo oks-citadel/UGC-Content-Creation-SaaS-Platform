@@ -1,0 +1,149 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db', 'primaryTextColor': '#fff', 'primaryBorderColor': '#1e429f', 'lineColor': '#374151', 'secondaryColor': '#f3f4f6', 'tertiaryColor': '#e5e7eb'}}}%%
+graph TB
+    subgraph "Client Layer"
+        WEB[Web App<br/>Next.js]
+        MOBILE[Mobile App<br/>React Native]
+        CREATOR[Creator Portal]
+        BRAND[Brand Portal]
+        ADMIN[Admin Dashboard]
+    end
+
+    subgraph "Global Edge Layer"
+        FD[Azure Front Door<br/>Global Load Balancer + WAF]
+        CDN[Azure CDN<br/>Media Delivery]
+        DNS[Azure DNS]
+    end
+
+    subgraph "API Gateway Layer"
+        GW[API Gateway<br/>Authentication + Routing + Rate Limiting]
+    end
+
+    subgraph "Core Platform Services"
+        AUTH[Auth Service<br/>Port 8081]
+        USER[User Service<br/>Port 8082]
+        BILLING[Billing Service<br/>Port 8083]
+        NOTIFY[Notification Service<br/>Port 8084]
+    end
+
+    subgraph "UGC Domain Services"
+        CAMPAIGN[Campaign Service<br/>Port 8085]
+        CREATOR_SVC[Creator Service<br/>Port 8086]
+        CONTENT[Content Service<br/>Port 8087]
+        ASSET[Asset Service<br/>Port 8088]
+        RIGHTS[Rights Service<br/>Port 8089]
+        ANALYTICS[Analytics Service<br/>Port 8090]
+        PAYOUT[Payout Service<br/>Port 8091]
+    end
+
+    subgraph "Extended Services"
+        MARKETPLACE[Marketplace Service]
+        COMMERCE[Commerce Service]
+        COMPLIANCE[Compliance Service]
+        INTEGRATION[Integration Service]
+        WORKFLOW[Workflow Service]
+    end
+
+    subgraph "AI/ML Services"
+        VIDEO_GEN[AI Video Generator]
+        SCRIPT_GEN[AI Script Generator]
+        PERFORMANCE[Performance Predictor]
+        MODERATION[Content Moderation]
+    end
+
+    subgraph "Background Workers"
+        VIDEO_PROC[Video Processor]
+        SOCIAL_PUB[Social Publisher]
+        ANALYTICS_AGG[Analytics Aggregator]
+        NOTIFY_DISPATCH[Notification Dispatcher]
+    end
+
+    subgraph "Azure Data Layer"
+        POSTGRES[(Azure PostgreSQL<br/>Transactional)]
+        REDIS[(Azure Redis<br/>Cache)]
+        BLOB[(Azure Blob<br/>Media Files)]
+        QUEUE[(Azure Service Bus<br/>Message Queue)]
+        KEYVAULT[(Azure Key Vault<br/>Secrets)]
+    end
+
+    subgraph "External Integrations"
+        TIKTOK[TikTok API]
+        META[Meta API]
+        YOUTUBE[YouTube API]
+        STRIPE[Stripe<br/>Payments]
+        OPENAI[Azure OpenAI]
+    end
+
+    %% Client connections
+    WEB --> FD
+    MOBILE --> FD
+    CREATOR --> FD
+    BRAND --> FD
+    ADMIN --> FD
+
+    DNS --> FD
+    FD --> CDN
+    FD --> GW
+
+    %% Gateway to services
+    GW --> AUTH
+    GW --> USER
+    GW --> BILLING
+    GW --> NOTIFY
+    GW --> CAMPAIGN
+    GW --> CREATOR_SVC
+    GW --> CONTENT
+    GW --> ASSET
+    GW --> RIGHTS
+    GW --> ANALYTICS
+    GW --> PAYOUT
+
+    %% Service to AI
+    CONTENT --> MODERATION
+    CONTENT --> VIDEO_GEN
+    CAMPAIGN --> SCRIPT_GEN
+
+    %% Data layer connections
+    AUTH --> POSTGRES
+    AUTH --> REDIS
+    USER --> POSTGRES
+    BILLING --> POSTGRES
+    CAMPAIGN --> POSTGRES
+    CREATOR_SVC --> POSTGRES
+    CONTENT --> POSTGRES
+    ASSET --> BLOB
+    RIGHTS --> POSTGRES
+    ANALYTICS --> POSTGRES
+    ANALYTICS --> REDIS
+    PAYOUT --> POSTGRES
+
+    %% Workers
+    CONTENT --> QUEUE
+    QUEUE --> VIDEO_PROC
+    QUEUE --> SOCIAL_PUB
+    QUEUE --> ANALYTICS_AGG
+
+    %% External
+    BILLING --> STRIPE
+    PAYOUT --> STRIPE
+    INTEGRATION --> TIKTOK
+    INTEGRATION --> META
+    INTEGRATION --> YOUTUBE
+    SCRIPT_GEN --> OPENAI
+
+    %% Security
+    AUTH --> KEYVAULT
+    BILLING --> KEYVAULT
+
+    classDef clientStyle fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef serviceStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef dataStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef aiStyle fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef externalStyle fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef azureStyle fill:#0078d4,stroke:#005a9e,stroke-width:2px,color:#fff
+
+    class WEB,MOBILE,CREATOR,BRAND,ADMIN clientStyle
+    class AUTH,USER,BILLING,NOTIFY,CAMPAIGN,CREATOR_SVC,CONTENT,ASSET,RIGHTS,ANALYTICS,PAYOUT serviceStyle
+    class POSTGRES,REDIS,BLOB,QUEUE,KEYVAULT dataStyle
+    class VIDEO_GEN,SCRIPT_GEN,PERFORMANCE,MODERATION aiStyle
+    class TIKTOK,META,YOUTUBE,STRIPE,OPENAI externalStyle
+    class FD,CDN,DNS azureStyle

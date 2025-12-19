@@ -1,0 +1,274 @@
+// Prisma schema for NEXUS Billing Service
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanName {
+  FREE
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  UNCOLLECTIBLE
+  VOID
+}
+
+enum PaymentMethodType {
+  CARD
+  BANK_ACCOUNT
+  PAYPAL
+  CRYPTO
+}
+
+enum UsageType {
+  VIEWS
+  RENDERS
+  AI_GENERATIONS
+  WORKFLOW_RUNS
+  STORAGE_GB
+  BANDWIDTH_GB
+  API_CALLS
+}
+
+enum DunningStatus {
+  NONE
+  RETRY_1
+  RETRY_2
+  RETRY_3
+  FAILED
+}
+
+model Plan {
+  id                  String         @id @default(uuid())
+  name                PlanName       @unique
+  displayName         String
+  description         String?
+  price               Decimal        @db.Decimal(10, 2)
+  billingPeriod       String         @default("monthly") // monthly, yearly
+  features            Json           // Array of feature strings
+  limits              Json           // Object with usage limits
+  isActive            Boolean        @default(true)
+  stripePriceId       String?        @unique
+  stripeProductId     String?        @unique
+  trialPeriodDays     Int?
+  metadata            Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  subscriptions       Subscription[]
+
+  @@index([name])
+  @@map("plans")
+}
+
+model Subscription {
+  id                  String              @id @default(uuid())
+  userId              String
+  planId              String
+  status              SubscriptionStatus  @default(TRIALING)
+  stripeSubscriptionId String?            @unique
+  stripeCustomerId    String?
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAt            DateTime?
+  canceledAt          DateTime?
+  cancelAtPeriodEnd   Boolean            @default(false)
+  trialStart          DateTime?
+  trialEnd            DateTime?
+  metadata            Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  plan                Plan               @relation(fields: [planId], references: [id])
+  invoices            Invoice[]
+  usageRecords        UsageRecord[]
+  entitlements        Entitlement[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([stripeCustomerId])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                  String         @id @default(uuid())
+  subscriptionId      String
+  userId              String
+  invoiceNumber       String         @unique
+  amount              Decimal        @db.Decimal(10, 2)
+  tax                 Decimal        @default(0) @db.Decimal(10, 2)
+  total               Decimal        @db.Decimal(10, 2)
+  currency            String         @default("usd")
+  status              InvoiceStatus  @default(DRAFT)
+  description         String?
+  periodStart         DateTime
+  periodEnd           DateTime
+  dueDate             DateTime?
+  paidAt              DateTime?
+  stripeInvoiceId     String?        @unique
+  stripePaymentIntentId String?
+  hostedInvoiceUrl    String?
+  invoicePdfUrl       String?
+  dunningStatus       DunningStatus  @default(NONE)
+  dunningAttempts     Int            @default(0)
+  lastDunningAttempt  DateTime?
+  nextDunningAttempt  DateTime?
+  lineItems           Json?          // Array of invoice line items
+  metadata            Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  subscription        Subscription   @relation(fields: [subscriptionId], references: [id])
+  paymentAttempts     PaymentAttempt[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([dunningStatus])
+  @@map("invoices")
+}
+
+model PaymentMethod {
+  id                  String             @id @default(uuid())
+  userId              String
+  type                PaymentMethodType
+  stripePaymentMethodId String?          @unique
+  brand               String?            // Visa, Mastercard, etc.
+  last4               String
+  expiryMonth         Int?
+  expiryYear          Int?
+  isDefault           Boolean            @default(false)
+  billingDetails      Json?              // Address, name, email
+  metadata            Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([isDefault])
+  @@map("payment_methods")
+}
+
+model UsageRecord {
+  id                  String       @id @default(uuid())
+  subscriptionId      String
+  userId              String
+  type                UsageType
+  quantity            Decimal      @db.Decimal(15, 4)
+  unit                String       @default("unit") // unit, GB, MB, etc.
+  description         String?
+  recordedAt          DateTime     @default(now())
+  billingPeriodStart  DateTime
+  billingPeriodEnd    DateTime
+  invoiceId           String?
+  metadata            Json?
+  createdAt           DateTime     @default(now())
+
+  subscription        Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId, type])
+  @@index([userId])
+  @@index([recordedAt])
+  @@index([billingPeriodStart, billingPeriodEnd])
+  @@map("usage_records")
+}
+
+model Entitlement {
+  id                  String       @id @default(uuid())
+  subscriptionId      String
+  userId              String
+  feature             String       // Feature name/key
+  limit               Decimal?     @db.Decimal(15, 4) // null = unlimited
+  used                Decimal      @default(0) @db.Decimal(15, 4)
+  resetPeriod         String?      // monthly, daily, never
+  lastResetAt         DateTime?
+  nextResetAt         DateTime?
+  metadata            Json?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  subscription        Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([subscriptionId, feature])
+  @@index([userId, feature])
+  @@map("entitlements")
+}
+
+model PaymentAttempt {
+  id                  String       @id @default(uuid())
+  invoiceId           String
+  amount              Decimal      @db.Decimal(10, 2)
+  status              String       // succeeded, failed, pending
+  errorCode           String?
+  errorMessage        String?
+  paymentMethodId     String?
+  stripePaymentIntentId String?
+  attemptedAt         DateTime     @default(now())
+  metadata            Json?
+
+  invoice             Invoice      @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId])
+  @@index([status])
+  @@map("payment_attempts")
+}
+
+model BillingEvent {
+  id                  String       @id @default(uuid())
+  userId              String
+  subscriptionId      String?
+  invoiceId           String?
+  eventType           String       // subscription.created, payment.succeeded, etc.
+  eventData           Json
+  processedAt         DateTime?
+  stripeEventId       String?      @unique
+  createdAt           DateTime     @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("billing_events")
+}
+
+model Discount {
+  id                  String       @id @default(uuid())
+  code                String       @unique
+  type                String       // percentage, fixed
+  value               Decimal      @db.Decimal(10, 2)
+  currency            String?      @default("usd")
+  maxRedemptions      Int?
+  redemptions         Int          @default(0)
+  validFrom           DateTime
+  validUntil          DateTime?
+  applicablePlans     String[]     // Array of plan IDs
+  isActive            Boolean      @default(true)
+  stripeCouponId      String?
+  metadata            Json?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([code])
+  @@index([isActive])
+  @@map("discounts")
+}

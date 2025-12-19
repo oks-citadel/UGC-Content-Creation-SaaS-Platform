@@ -1,0 +1,152 @@
+{
+  "name": "GDPR Data Export - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "gdpr-export-request", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Data Export Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "gdpr-export",
+      "notes": "User requests data export under GDPR Article 15"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/users/{{ $json.userId }}/data",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-user-data",
+      "name": "Fetch User Profile Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Gets user profile and account data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/content/user/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-content",
+      "name": "Fetch User Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Gets all content created/uploaded by user"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/analytics/user/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-analytics",
+      "name": "Fetch Analytics Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Gets user activity and analytics data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge",
+      "name": "Merge All User Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "notes": "Combines all data sources"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\\nconst exportData = {\\n  exportDate: new Date().toISOString(),\\n  userId: items[0].json.userId,\\n  userProfile: items[0].json,\\n  content: items[1].json,\\n  analytics: items[2].json,\\n  metadata: {\\n    exportReason: 'GDPR Article 15 - Right of Access',\\n    dataRetentionPolicy: '30 days after account deletion',\\n    contactEmail: process.env.DPO_EMAIL\\n  }\\n};\\nreturn [{ json: exportData }];"
+      },
+      "id": "format",
+      "name": "Format Export Package",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "notes": "Formats data into GDPR-compliant export package"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/storage/upload",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ filename: `gdpr-export-${$json.userId}-${Date.now()}.json`, content: JSON.stringify($json, null, 2), contentType: 'application/json' }) }}"
+      },
+      "id": "upload",
+      "name": "Upload to Secure Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "notes": "Uploads export to secure S3 bucket with temporary access"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.DPO_EMAIL }}",
+        "toEmail": "={{ $json.userEmail }}",
+        "subject": "Your NEXUS Data Export is Ready",
+        "emailType": "html",
+        "message": "Dear {{ $json.userName }},\\n\\nYour personal data export is ready for download.\\n\\nThis secure link will expire in 72 hours:\\n{{ $json.downloadUrl }}\\n\\nThe export includes:\\n- Profile information\\n- Content and media\\n- Activity logs\\n- Analytics data\\n\\nIf you have questions, contact our Data Protection Officer at {{ $env.DPO_EMAIL }}.\\n\\nBest regards,\\nNEXUS Data Protection Team"
+      },
+      "id": "email",
+      "name": "Email Download Link",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/compliance/log",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ type: 'gdpr_export', userId: $json.userId, timestamp: new Date().toISOString(), status: 'completed' }) }}"
+      },
+      "id": "log",
+      "name": "Log Compliance Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 300],
+      "notes": "Logs export request for compliance audit trail"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Export will be sent to your email within 24 hours' }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    }
+  ],
+  "connections": {
+    "Data Export Request": {"main": [[{"node": "Fetch User Profile Data", "type": "main", "index": 0}, {"node": "Fetch User Content", "type": "main", "index": 0}, {"node": "Fetch Analytics Data", "type": "main", "index": 0}]]},
+    "Fetch User Profile Data": {"main": [[{"node": "Merge All User Data", "type": "main", "index": 0}]]},
+    "Fetch User Content": {"main": [[{"node": "Merge All User Data", "type": "main", "index": 1}]]},
+    "Fetch Analytics Data": {"main": [[{"node": "Merge All User Data", "type": "main", "index": 2}]]},
+    "Merge All User Data": {"main": [[{"node": "Format Export Package", "type": "main", "index": 0}]]},
+    "Format Export Package": {"main": [[{"node": "Upload to Secure Storage", "type": "main", "index": 0}]]},
+    "Upload to Secure Storage": {"main": [[{"node": "Email Download Link", "type": "main", "index": 0}]]},
+    "Email Download Link": {"main": [[{"node": "Log Compliance Activity", "type": "main", "index": 0}]]},
+    "Log Compliance Activity": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "8", "name": "Compliance"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

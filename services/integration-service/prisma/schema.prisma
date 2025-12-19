@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Integration {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  organizationId String? @map("organization_id") @db.Uuid
+  provider      IntegrationProvider
+  name          String
+  isActive      Boolean  @default(true) @map("is_active")
+  accessToken   String?  @map("access_token")
+  refreshToken  String?  @map("refresh_token")
+  tokenType     String?  @map("token_type")
+  expiresAt     DateTime? @map("expires_at")
+  scope         String[]
+  metadata      Json?
+  lastSyncAt    DateTime? @map("last_sync_at")
+  lastError     String?  @map("last_error")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  webhooks      Webhook[]
+  syncLogs      IntegrationSyncLog[]
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([provider])
+  @@index([organizationId])
+  @@map("integrations")
+}
+
+model Webhook {
+  id            String   @id @default(uuid()) @db.Uuid
+  integrationId String   @map("integration_id") @db.Uuid
+  url           String
+  events        String[]
+  secret        String
+  isActive      Boolean  @default(true) @map("is_active")
+  lastTriggeredAt DateTime? @map("last_triggered_at")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  deliveries    WebhookDelivery[]
+
+  @@index([integrationId])
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id          String   @id @default(uuid()) @db.Uuid
+  webhookId   String   @map("webhook_id") @db.Uuid
+  event       String
+  payload     Json
+  status      WebhookStatus
+  attempts    Int      @default(0)
+  response    Json?
+  error       String?
+  deliveredAt DateTime? @map("delivered_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  webhook     Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_deliveries")
+}
+
+model IntegrationSyncLog {
+  id            String   @id @default(uuid()) @db.Uuid
+  integrationId String   @map("integration_id") @db.Uuid
+  action        String
+  resourceType  String?  @map("resource_type")
+  resourceId    String?  @map("resource_id")
+  status        SyncStatus
+  itemsProcessed Int     @default(0) @map("items_processed")
+  itemsFailed   Int     @default(0) @map("items_failed")
+  error         String?
+  metadata      Json?
+  startedAt     DateTime @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("integration_sync_logs")
+}
+
+model OAuthState {
+  id          String   @id @default(uuid()) @db.Uuid
+  state       String   @unique
+  provider    IntegrationProvider
+  userId      String   @map("user_id") @db.Uuid
+  redirectUri String?  @map("redirect_uri")
+  metadata    Json?
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([state])
+  @@index([expiresAt])
+  @@map("oauth_states")
+}
+
+enum IntegrationProvider {
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+  YOUTUBE
+  TWITTER
+  LINKEDIN
+  HUBSPOT
+  SALESFORCE
+  SHOPIFY
+  WOOCOMMERCE
+  META_ADS
+  GOOGLE_ADS
+  TIKTOK_ADS
+  MAILCHIMP
+  SENDGRID
+  STRIPE
+  PAYPAL
+  ZAPIER
+  SLACK
+  DISCORD
+}
+
+enum WebhookStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  RETRYING
+}
+
+enum SyncStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}

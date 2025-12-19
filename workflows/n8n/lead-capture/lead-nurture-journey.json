@@ -1,0 +1,613 @@
+{
+  "name": "Lead Nurture Journey - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Check Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Runs every 6 hours to process leads in nurture campaign"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/leads/nurture/due",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-leads",
+      "name": "Fetch Leads Due for Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Retrieves leads that are due for next nurture touchpoint"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.leads?.length || 0 }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "check-leads",
+      "name": "Any Leads to Process?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "notes": "Checks if there are any leads to process"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "leads",
+        "options": {}
+      },
+      "id": "split-leads",
+      "name": "Split into Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 250],
+      "notes": "Splits lead array into individual items for processing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.touchpointNumber }}",
+              "operation": "equals",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "check-touchpoint-1",
+      "name": "Touchpoint 1?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 150],
+      "notes": "First touchpoint: Welcome email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.touchpointNumber }}",
+              "operation": "equals",
+              "value2": 2
+            }
+          ]
+        }
+      },
+      "id": "check-touchpoint-2",
+      "name": "Touchpoint 2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 250],
+      "notes": "Second touchpoint: Value proposition email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.touchpointNumber }}",
+              "operation": "equals",
+              "value2": 3
+            }
+          ]
+        }
+      },
+      "id": "check-touchpoint-3",
+      "name": "Touchpoint 3?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 350],
+      "notes": "Third touchpoint: Case study email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.touchpointNumber }}",
+              "operation": "equals",
+              "value2": 4
+            }
+          ]
+        }
+      },
+      "id": "check-touchpoint-4",
+      "name": "Touchpoint 4?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 450],
+      "notes": "Fourth touchpoint: Demo invitation"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Welcome to NEXUS - Let's Transform Your Content Strategy",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Welcome to NEXUS!</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.firstName }},</p>\n      \n      <p>Thanks for your interest in NEXUS! We're excited to help {{ $json.company || 'your company' }} transform how you create, manage, and distribute user-generated content.</p>\n      \n      <p><strong>What makes NEXUS different?</strong></p>\n      <ul>\n        <li>AI-powered content creation that saves 10+ hours per week</li>\n        <li>Automated workflows that eliminate manual tasks</li>\n        <li>Omnichannel distribution to maximize reach</li>\n        <li>Real-time analytics to optimize performance</li>\n      </ul>\n      \n      <p>Over the next few days, I'll share some insights on how brands like yours are leveraging UGC to drive engagement and sales.</p>\n      \n      <center>\n        <a href=\"{{ $env.APP_URL }}/resources/ugc-guide\" class=\"cta-button\">Download Our UGC Strategy Guide</a>\n      </center>\n      \n      <p>Have questions? Just reply to this email - I'm here to help!</p>\n      \n      <p>Best regards,<br>\n      The NEXUS Team</p>\n    </div>\n    <div class=\"footer\">\n      <p>NEXUS Platform | Transforming Content Marketing</p>\n      <p><a href=\"{{ $env.APP_URL }}/unsubscribe?email={{ $json.email }}\">Unsubscribe</a></p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-touchpoint-1",
+      "name": "Email: Welcome",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 100],
+      "credentials": {
+        "smtp": {
+          "id": "4",
+          "name": "SMTP Account"
+        }
+      },
+      "notes": "Sends welcome email with platform overview and value proposition"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "How {{ $json.company || 'Leading Brands' }} Are Scaling UGC",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .stat-box { background: white; padding: 20px; margin: 15px 0; border-left: 4px solid #667eea; }\n    .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>The UGC Advantage</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.firstName }},</p>\n      \n      <p>Did you know that user-generated content drives <strong>5x higher engagement</strong> than brand-created content?</p>\n      \n      <p>Here's what NEXUS customers are achieving:</p>\n      \n      <div class=\"stat-box\">\n        <h3>📈 3x Faster Content Production</h3>\n        <p>AI-powered workflows reduce time-to-publish from days to hours</p>\n      </div>\n      \n      <div class=\"stat-box\">\n        <h3>💰 67% Lower Cost Per Acquisition</h3>\n        <p>Authentic UGC converts better than traditional advertising</p>\n      </div>\n      \n      <div class=\"stat-box\">\n        <h3>🚀 10x ROI on Influencer Campaigns</h3>\n        <p>Automated outreach and tracking maximizes campaign performance</p>\n      </div>\n      \n      <center>\n        <a href=\"{{ $env.APP_URL }}/case-studies\" class=\"cta-button\">See Real Customer Results</a>\n      </center>\n      \n      <p>Want to discuss how NEXUS can drive similar results for {{ $json.company || 'your brand' }}?</p>\n      \n      <p>Best,<br>\n      The NEXUS Team</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-touchpoint-2",
+      "name": "Email: Value Proposition",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 200],
+      "credentials": {
+        "smtp": {
+          "id": "4",
+          "name": "SMTP Account"
+        }
+      },
+      "notes": "Sends email highlighting platform benefits and customer results"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Case Study: How Acme Corp Increased Conversions by 156%",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .quote { background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; font-style: italic; }\n    .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Real Results, Real Impact</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.firstName }},</p>\n      \n      <p>I wanted to share a story that resonates with many companies in the {{ $json.industry || 'marketing' }} space.</p>\n      \n      <p><strong>The Challenge:</strong> Acme Corp was spending $50K/month on content creation but seeing declining engagement and poor conversion rates.</p>\n      \n      <p><strong>The Solution:</strong> They implemented NEXUS to:</p>\n      <ul>\n        <li>Automate UGC collection and curation</li>\n        <li>Use AI to generate content variants for A/B testing</li>\n        <li>Deploy shoppable UGC galleries on product pages</li>\n        <li>Orchestrate influencer campaigns at scale</li>\n      </ul>\n      \n      <p><strong>The Results (in 90 days):</strong></p>\n      <ul>\n        <li>156% increase in conversion rates</li>\n        <li>89% reduction in content production costs</li>\n        <li>4.2x improvement in engagement rates</li>\n        <li>$340K in additional revenue attributed to UGC</li>\n      </ul>\n      \n      <div class=\"quote\">\n        \"NEXUS transformed our entire content marketing strategy. What used to take weeks now happens automatically.\"\n        <br><br>\n        <strong>- Sarah Johnson, CMO at Acme Corp</strong>\n      </div>\n      \n      <center>\n        <a href=\"{{ $env.APP_URL }}/case-study/acme-corp\" class=\"cta-button\">Read Full Case Study</a>\n      </center>\n      \n      <p>I'd love to explore how we can create similar results for {{ $json.company || 'your organization' }}.</p>\n      \n      <p>Best,<br>\n      The NEXUS Team</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-touchpoint-3",
+      "name": "Email: Case Study",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {
+        "smtp": {
+          "id": "4",
+          "name": "SMTP Account"
+        }
+      },
+      "notes": "Sends case study showcasing real customer success story"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "{{ $json.firstName }}, Ready to See NEXUS in Action?",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .cta-button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-size: 18px; }\n    .benefit { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Let's Talk!</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.firstName }},</p>\n      \n      <p>Over the past week, I've shared how NEXUS is helping brands like {{ $json.company || 'yours' }} scale content creation and drive measurable results.</p>\n      \n      <p>Now it's time to see it in action.</p>\n      \n      <p><strong>In a personalized 30-minute demo, you'll discover:</strong></p>\n      \n      <div class=\"benefit\">\n        ✅ How to automate your entire UGC workflow\n      </div>\n      <div class=\"benefit\">\n        ✅ AI-powered content generation tailored to your brand\n      </div>\n      <div class=\"benefit\">\n        ✅ Omnichannel distribution strategies that work\n      </div>\n      <div class=\"benefit\">\n        ✅ Analytics that prove ROI and inform strategy\n      </div>\n      \n      <p>Plus, I'll show you a custom roadmap for implementing NEXUS at {{ $json.company || 'your organization' }}.</p>\n      \n      <center>\n        <a href=\"{{ $env.APP_URL }}/book-demo?lead={{ $json.leadId }}\" class=\"cta-button\">Schedule Your Demo</a>\n      </center>\n      \n      <p>Or if you prefer, just reply to this email with your availability and I'll set it up.</p>\n      \n      <p>Looking forward to connecting!</p>\n      \n      <p>Best,<br>\n      The NEXUS Team</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-touchpoint-4",
+      "name": "Email: Demo Invitation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 400],
+      "credentials": {
+        "smtp": {
+          "id": "4",
+          "name": "SMTP Account"
+        }
+      },
+      "notes": "Sends demo invitation with scheduling link"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Last Chance: Exclusive UGC Strategy Session",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .cta-button { display: inline-block; background: #dc3545; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-size: 18px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Still Interested?</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.firstName }},</p>\n      \n      <p>I haven't heard back from you, so I wanted to make one final offer.</p>\n      \n      <p>If you're still exploring ways to improve your content marketing ROI, I'd like to offer you a <strong>complimentary UGC strategy session</strong> (value: $500).</p>\n      \n      <p>In this session, we'll:</p>\n      <ul>\n        <li>Audit your current content workflow</li>\n        <li>Identify automation opportunities</li>\n        <li>Create a custom UGC roadmap</li>\n        <li>Show you NEXUS in action (if relevant)</li>\n      </ul>\n      \n      <p><strong>No pressure, no obligation</strong> - just actionable insights you can implement right away.</p>\n      \n      <center>\n        <a href=\"{{ $env.APP_URL }}/book-strategy?lead={{ $json.leadId }}\" class=\"cta-button\">Claim Your Free Session</a>\n      </center>\n      \n      <p>If NEXUS isn't the right fit for you right now, no worries - I'll stop sending emails. Just click <a href=\"{{ $env.APP_URL }}/unsubscribe?email={{ $json.email }}\">here</a>.</p>\n      \n      <p>Best,<br>\n      The NEXUS Team</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-touchpoint-5",
+      "name": "Email: Final Offer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 500],
+      "credentials": {
+        "smtp": {
+          "id": "4",
+          "name": "SMTP Account"
+        }
+      },
+      "notes": "Sends final touchpoint with special offer before ending sequence"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/leads/{{ $json.leadId }}/touchpoint",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "touchpointNumber",
+              "value": "={{ $json.touchpointNumber }}"
+            },
+            {
+              "name": "type",
+              "value": "email"
+            },
+            {
+              "name": "status",
+              "value": "sent"
+            },
+            {
+              "name": "sentAt",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "nextTouchpoint",
+              "value": "={{ $json.touchpointNumber + 1 }}"
+            },
+            {
+              "name": "nextTouchpointDate",
+              "value": "={{ $now.plus({ days: 3 }).toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-crm",
+      "name": "Update CRM Touchpoint",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Updates CRM with touchpoint status and schedules next contact"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.touchpointNumber }}",
+              "operation": "largerEqual",
+              "value2": 5
+            }
+          ]
+        }
+      },
+      "id": "check-sequence-end",
+      "name": "Sequence Complete?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 300],
+      "notes": "Checks if lead has completed nurture sequence"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.CRM_API_URL }}/leads/{{ $json.leadId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "nurture_complete"
+            },
+            {
+              "name": "campaignId",
+              "value": "cold_lead_nurture"
+            },
+            {
+              "name": "completedAt",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "move-to-cold",
+      "name": "Move to Cold Pool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 250],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Moves lead to cold pool after completing nurture sequence"
+    },
+    {
+      "parameters": {},
+      "id": "no-action",
+      "name": "Continue Nurturing",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1850, 350],
+      "notes": "Lead continues in nurture sequence"
+    },
+    {
+      "parameters": {},
+      "id": "end-no-leads",
+      "name": "No Leads to Process",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "notes": "Workflow ends if no leads are due for processing"
+    }
+  ],
+  "connections": {
+    "Check Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Leads Due for Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Leads Due for Contact": {
+      "main": [
+        [
+          {
+            "node": "Any Leads to Process?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Any Leads to Process?": {
+      "main": [
+        [
+          {
+            "node": "Split into Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Leads to Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Items": {
+      "main": [
+        [
+          {
+            "node": "Touchpoint 1?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Touchpoint 2?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Touchpoint 3?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Touchpoint 4?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Touchpoint 1?": {
+      "main": [
+        [
+          {
+            "node": "Email: Welcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Touchpoint 2?": {
+      "main": [
+        [
+          {
+            "node": "Email: Value Proposition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Touchpoint 3?": {
+      "main": [
+        [
+          {
+            "node": "Email: Case Study",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Touchpoint 4?": {
+      "main": [
+        [
+          {
+            "node": "Email: Demo Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email: Final Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Welcome": {
+      "main": [
+        [
+          {
+            "node": "Update CRM Touchpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Value Proposition": {
+      "main": [
+        [
+          {
+            "node": "Update CRM Touchpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Case Study": {
+      "main": [
+        [
+          {
+            "node": "Update CRM Touchpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Demo Invitation": {
+      "main": [
+        [
+          {
+            "node": "Update CRM Touchpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Final Offer": {
+      "main": [
+        [
+          {
+            "node": "Update CRM Touchpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM Touchpoint": {
+      "main": [
+        [
+          {
+            "node": "Sequence Complete?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sequence Complete?": {
+      "main": [
+        [
+          {
+            "node": "Move to Cold Pool",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Continue Nurturing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "1",
+      "name": "Lead Capture"
+    },
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "2",
+      "name": "NEXUS"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "nexus-lead-nurture"
+  },
+  "active": true
+}

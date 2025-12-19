@@ -1,0 +1,48 @@
+```mermaid
+graph LR
+    subgraph "Synchronous Communication (REST/GraphQL)"
+        API[API Gateway]
+        API -->|HTTP/REST| UserSvc[User Service]
+        API -->|HTTP/REST| CampaignSvc[Campaign Service]
+        API -->|HTTP/REST| ContentSvc[Content Service]
+
+        CampaignSvc -->|HTTP| UserSvc
+        CampaignSvc -->|HTTP| CreatorSvc[Creator Service]
+        ContentSvc -->|HTTP| AISvc[AI Services]
+    end
+
+    subgraph "Asynchronous Communication (Events)"
+        Queue[Message Queue<br/>Redis/Kafka]
+
+        CampaignSvc -.->|Publish Event| Queue
+        ContentSvc -.->|Publish Event| Queue
+        BillingSvc[Billing Service] -.->|Publish Event| Queue
+
+        Queue -.->|Subscribe| CreatorSvc
+        Queue -.->|Subscribe| NotificationSvc[Notification Service]
+        Queue -.->|Subscribe| AnalyticsSvc[Analytics Service]
+        Queue -.->|Subscribe| Worker[Background Workers]
+    end
+
+    subgraph "Database Per Service"
+        UserSvc --> UserDB[(User DB)]
+        CampaignSvc --> CampaignDB[(Campaign DB)]
+        ContentSvc --> ContentDB[(Content DB)]
+        CreatorSvc --> CreatorDB[(Creator DB)]
+    end
+
+    subgraph "Shared Cache"
+        UserSvc --> Cache[(Redis Cache)]
+        CampaignSvc --> Cache
+        ContentSvc --> Cache
+        CreatorSvc --> Cache
+    end
+
+    classDef syncStyle fill:#bbdefb,stroke:#1976d2
+    classDef asyncStyle fill:#c8e6c9,stroke:#388e3c
+    classDef dataStyle fill:#f8bbd0,stroke:#c2185b
+
+    class API,UserSvc,CampaignSvc,ContentSvc,CreatorSvc,AISvc syncStyle
+    class Queue,NotificationSvc,AnalyticsSvc,Worker asyncStyle
+    class UserDB,CampaignDB,ContentDB,CreatorDB,Cache dataStyle
+```

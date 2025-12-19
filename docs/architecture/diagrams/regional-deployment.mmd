@@ -1,0 +1,111 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+graph TB
+    subgraph "Global Resources"
+        ACR[Azure Container Registry<br/>creatorbridge.azurecr.io<br/>Geo-Replicated]
+        FD[Azure Front Door<br/>creatorbridge.com]
+        TM[Traffic Manager<br/>Failover Routing]
+    end
+
+    subgraph "Americas Region - East US (Primary)"
+        subgraph "AKS Cluster - aks-americas"
+            GW_US[API Gateway]
+            SVC_US[17 Microservices]
+        end
+        PSQL_US[(PostgreSQL<br/>Americas)]
+        REDIS_US[(Redis<br/>Americas)]
+        BLOB_US[(Blob Storage<br/>Americas)]
+        MEDIA_US[Media Services]
+        KV_US[Key Vault]
+        AI_US[Log Analytics]
+    end
+
+    subgraph "Europe Region - West Europe"
+        subgraph "AKS Cluster - aks-europe"
+            GW_EU[API Gateway]
+            SVC_EU[17 Microservices]
+        end
+        PSQL_EU[(PostgreSQL<br/>Europe)]
+        REDIS_EU[(Redis<br/>Europe)]
+        BLOB_EU[(Blob Storage<br/>Europe)]
+        KV_EU[Key Vault]
+        AI_EU[Log Analytics]
+    end
+
+    subgraph "Asia Region - Southeast Asia"
+        subgraph "AKS Cluster - aks-asia"
+            GW_AS[API Gateway]
+            SVC_AS[17 Microservices]
+        end
+        PSQL_AS[(PostgreSQL<br/>Asia)]
+        REDIS_AS[(Redis<br/>Asia)]
+        BLOB_AS[(Blob Storage<br/>Asia)]
+        KV_AS[Key Vault]
+    end
+
+    subgraph "Africa Region - South Africa North"
+        subgraph "AKS Cluster - aks-africa"
+            GW_AF[API Gateway]
+            SVC_AF[17 Microservices]
+        end
+        PSQL_AF[(PostgreSQL<br/>Africa)]
+        REDIS_AF[(Redis<br/>Africa)]
+        BLOB_AF[(Blob Storage<br/>Africa)]
+        KV_AF[Key Vault]
+    end
+
+    subgraph "Compliance Zones"
+        GDPR[GDPR<br/>Europe]
+        CCPA[CCPA<br/>Americas]
+        PDPA[PDPA<br/>Asia]
+        POPIA[POPIA<br/>Africa]
+    end
+
+    %% Global routing
+    FD --> TM
+    TM --> GW_US
+    TM --> GW_EU
+    TM --> GW_AS
+    TM --> GW_AF
+
+    %% ACR to AKS
+    ACR -.->|Image Pull| GW_US
+    ACR -.->|Image Pull| GW_EU
+    ACR -.->|Image Pull| GW_AS
+    ACR -.->|Image Pull| GW_AF
+
+    %% Americas internal
+    GW_US --> SVC_US
+    SVC_US --> PSQL_US
+    SVC_US --> REDIS_US
+    SVC_US --> BLOB_US
+    SVC_US --> MEDIA_US
+    SVC_US --> KV_US
+    SVC_US --> AI_US
+
+    %% Europe internal
+    GW_EU --> SVC_EU
+    SVC_EU --> PSQL_EU
+    SVC_EU --> REDIS_EU
+    SVC_EU --> BLOB_EU
+    SVC_EU --> KV_EU
+    SVC_EU --> AI_EU
+
+    %% Asia internal
+    GW_AS --> SVC_AS
+    SVC_AS --> PSQL_AS
+    SVC_AS --> REDIS_AS
+    SVC_AS --> BLOB_AS
+    SVC_AS --> KV_AS
+
+    %% Africa internal
+    GW_AF --> SVC_AF
+    SVC_AF --> PSQL_AF
+    SVC_AF --> REDIS_AF
+    SVC_AF --> BLOB_AF
+    SVC_AF --> KV_AF
+
+    %% Compliance mapping
+    GDPR -.-> PSQL_EU
+    CCPA -.-> PSQL_US
+    PDPA -.-> PSQL_AS
+    POPIA -.-> PSQL_AF

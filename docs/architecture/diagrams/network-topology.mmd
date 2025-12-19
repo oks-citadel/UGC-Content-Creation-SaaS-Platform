@@ -1,0 +1,106 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+graph TB
+    subgraph "Internet"
+        USERS[Global Users<br/>Brands & Creators]
+        MOBILE[Mobile Apps]
+        WEB[Web Applications]
+    end
+
+    subgraph "Edge Layer"
+        DNS[Azure DNS<br/>creatorbridge.com]
+        FD[Azure Front Door<br/>Global Load Balancer]
+        WAF[Azure WAF<br/>OWASP Protection]
+        DDOS[Azure DDoS<br/>Protection Standard]
+    end
+
+    subgraph "CDN Layer"
+        CDN_US[CDN POP<br/>Americas]
+        CDN_EU[CDN POP<br/>Europe]
+        CDN_AS[CDN POP<br/>Asia]
+        CDN_AF[CDN POP<br/>Africa]
+    end
+
+    subgraph "Americas VNet - 10.1.0.0/16"
+        subgraph "AKS Subnet 10.1.0.0/20"
+            AKS_US[AKS Cluster<br/>Node Pool]
+            INGRESS_US[NGINX Ingress<br/>Controller]
+        end
+        subgraph "DB Subnet 10.1.16.0/24"
+            PSQL_US[(PostgreSQL<br/>Flexible Server)]
+            REDIS_US[(Redis Cache<br/>Enterprise)]
+        end
+        subgraph "Storage Subnet 10.1.17.0/24"
+            BLOB_US[(Blob Storage)]
+        end
+        PE_US[Private Endpoints]
+    end
+
+    subgraph "Europe VNet - 10.2.0.0/16"
+        subgraph "AKS Subnet EU"
+            AKS_EU[AKS Cluster]
+            INGRESS_EU[NGINX Ingress]
+        end
+        subgraph "DB Subnet EU"
+            PSQL_EU[(PostgreSQL)]
+            REDIS_EU[(Redis)]
+        end
+        PE_EU[Private Endpoints]
+    end
+
+    subgraph "Security Layer"
+        KV[Azure Key Vault<br/>Secrets]
+        NSG[Network Security Groups]
+        FW[Azure Firewall]
+    end
+
+    subgraph "Monitoring"
+        MON[Azure Monitor]
+        AI[Application Insights]
+        LA[Log Analytics]
+    end
+
+    %% User connections
+    USERS --> DNS
+    MOBILE --> DNS
+    WEB --> DNS
+    DNS --> FD
+
+    %% Front Door routing
+    FD --> WAF
+    WAF --> DDOS
+    DDOS --> INGRESS_US
+    DDOS --> INGRESS_EU
+
+    %% CDN routing
+    FD --> CDN_US
+    FD --> CDN_EU
+    FD --> CDN_AS
+    FD --> CDN_AF
+
+    %% CDN to storage
+    CDN_US --> BLOB_US
+
+    %% Internal networking
+    INGRESS_US --> AKS_US
+    AKS_US --> PE_US
+    PE_US --> PSQL_US
+    PE_US --> REDIS_US
+    PE_US --> BLOB_US
+
+    INGRESS_EU --> AKS_EU
+    AKS_EU --> PE_EU
+    PE_EU --> PSQL_EU
+    PE_EU --> REDIS_EU
+
+    %% Security
+    AKS_US --> NSG
+    AKS_EU --> NSG
+    NSG --> FW
+    AKS_US --> KV
+    AKS_EU --> KV
+
+    %% Monitoring
+    AKS_US --> MON
+    AKS_EU --> MON
+    MON --> AI
+    MON --> LA

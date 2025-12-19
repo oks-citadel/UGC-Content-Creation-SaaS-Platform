@@ -1,0 +1,367 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CreatorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  TIKTOK
+  YOUTUBE
+  TWITTER
+  FACEBOOK
+  LINKEDIN
+  TWITCH
+}
+
+enum PortfolioMediaType {
+  IMAGE
+  VIDEO
+  LINK
+}
+
+model Creator {
+  id                String             @id @default(cuid())
+  userId            String             @unique
+  email             String             @unique
+  firstName         String
+  lastName          String
+  displayName       String?
+  bio               String?            @db.Text
+  avatar            String?
+  coverImage        String?
+  location          String?
+  country           String?
+  timezone          String?
+
+  // Verification
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  isEmailVerified   Boolean            @default(false)
+  isPhoneVerified   Boolean            @default(false)
+
+  // Status
+  status            CreatorStatus      @default(ACTIVE)
+
+  // Niches/Categories
+  primaryNiche      String?
+  secondaryNiches   String[]           @default([])
+
+  // Social Media Handles
+  instagramHandle   String?
+  tiktokHandle      String?
+  youtubeHandle     String?
+  twitterHandle     String?
+  facebookHandle    String?
+  linkedinHandle    String?
+  twitchHandle      String?
+
+  // Professional Info
+  yearsOfExperience Int?
+  languages         String[]           @default([])
+  contentTypes      String[]           @default([])
+
+  // Preferences
+  preferredBrands   String[]           @default([])
+  unwillingToWorkWith String[]         @default([])
+  minCampaignBudget Decimal?           @db.Decimal(10, 2)
+
+  // Reputation
+  reputationScore   Decimal            @default(0) @db.Decimal(5, 2)
+  totalReviews      Int                @default(0)
+
+  // Relations
+  portfolio         CreatorPortfolio[]
+  metrics           CreatorMetrics?
+  earnings          CreatorEarnings?
+  reviews           CreatorReview[]
+  verification      CreatorVerification?
+  payouts           Payout[]
+
+  // Timestamps
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  lastActiveAt      DateTime?
+
+  @@index([verificationStatus])
+  @@index([status])
+  @@index([primaryNiche])
+  @@index([country])
+  @@index([reputationScore])
+  @@index([userId])
+  @@map("creators")
+}
+
+model CreatorPortfolio {
+  id          String              @id @default(cuid())
+  creatorId   String
+  creator     Creator             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?             @db.Text
+  mediaType   PortfolioMediaType
+  mediaUrl    String
+  thumbnailUrl String?
+
+  platform    SocialPlatform?
+  externalUrl String?
+
+  // Metrics for this piece
+  views       Int?
+  likes       Int?
+  comments    Int?
+  shares      Int?
+
+  // Tags and categories
+  tags        String[]            @default([])
+  niche       String?
+
+  // Featured
+  isFeatured  Boolean             @default(false)
+  order       Int                 @default(0)
+
+  // Timestamps
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  publishedAt DateTime?
+
+  @@index([creatorId])
+  @@index([isFeatured])
+  @@index([niche])
+  @@map("creator_portfolio")
+}
+
+model CreatorMetrics {
+  id                  String   @id @default(cuid())
+  creatorId           String   @unique
+  creator             Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Overall Followers
+  totalFollowers      Int      @default(0)
+
+  // Platform-specific followers
+  instagramFollowers  Int?
+  tiktokFollowers     Int?
+  youtubeSubscribers  Int?
+  twitterFollowers    Int?
+  facebookFollowers   Int?
+  linkedinFollowers   Int?
+  twitchFollowers     Int?
+
+  // Engagement Metrics
+  avgEngagementRate   Decimal  @default(0) @db.Decimal(5, 4)
+  avgLikesPerPost     Int?
+  avgCommentsPerPost  Int?
+  avgSharesPerPost    Int?
+  avgViews            Int?
+
+  // Reach & Impressions
+  avgReach            Int?
+  avgImpressions      Int?
+
+  // Audience Demographics
+  audienceAge         Json?    // {18-24: 30%, 25-34: 40%, ...}
+  audienceGender      Json?    // {male: 45%, female: 55%}
+  audienceLocation    Json?    // {US: 60%, UK: 20%, ...}
+
+  // Performance
+  completedCampaigns  Int      @default(0)
+  successRate         Decimal  @default(0) @db.Decimal(5, 2)
+  avgDeliveryTime     Int?     // in hours
+  responseRate        Decimal  @default(0) @db.Decimal(5, 2)
+
+  // Last updated
+  lastSyncedAt        DateTime?
+
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([totalFollowers])
+  @@index([avgEngagementRate])
+  @@map("creator_metrics")
+}
+
+model CreatorEarnings {
+  id                String   @id @default(cuid())
+  creatorId         String   @unique
+  creator           Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Balances
+  totalEarned       Decimal  @default(0) @db.Decimal(12, 2)
+  availableBalance  Decimal  @default(0) @db.Decimal(12, 2)
+  pendingBalance    Decimal  @default(0) @db.Decimal(12, 2)
+  withdrawnBalance  Decimal  @default(0) @db.Decimal(12, 2)
+
+  // Lifetime Stats
+  lifetimeEarnings  Decimal  @default(0) @db.Decimal(12, 2)
+  totalPayouts      Int      @default(0)
+
+  // Current Month
+  currentMonthEarnings Decimal @default(0) @db.Decimal(12, 2)
+
+  // Payout Settings
+  minPayoutAmount   Decimal  @default(50) @db.Decimal(10, 2)
+  payoutMethod      String?  // stripe, paypal, bank_transfer
+  payoutDetails     Json?    // Encrypted payout information
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastPayoutAt      DateTime?
+
+  @@map("creator_earnings")
+}
+
+model CreatorReview {
+  id            String   @id @default(cuid())
+  creatorId     String
+  creator       Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  brandId       String
+  campaignId    String?
+
+  // Rating (1-5 stars)
+  rating        Decimal  @db.Decimal(3, 2)
+
+  // Review Details
+  title         String?
+  comment       String?  @db.Text
+
+  // Specific Ratings
+  qualityRating       Decimal? @db.Decimal(3, 2)
+  communicationRating Decimal? @db.Decimal(3, 2)
+  timelinessRating    Decimal? @db.Decimal(3, 2)
+  professionalismRating Decimal? @db.Decimal(3, 2)
+
+  // Response
+  response      String?  @db.Text
+  respondedAt   DateTime?
+
+  // Verification
+  isVerified    Boolean  @default(false)
+
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([creatorId])
+  @@index([brandId])
+  @@index([rating])
+  @@map("creator_reviews")
+}
+
+model CreatorVerification {
+  id                String             @id @default(cuid())
+  creatorId         String             @unique
+  creator           Creator            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  // Identity Verification
+  identityStatus    VerificationStatus @default(UNVERIFIED)
+  idDocumentType    String?            // passport, drivers_license, national_id
+  idDocumentUrl     String?
+  idVerifiedAt      DateTime?
+
+  // Social Account Verification
+  instagramVerified Boolean            @default(false)
+  tiktokVerified    Boolean            @default(false)
+  youtubeVerified   Boolean            @default(false)
+  twitterVerified   Boolean            @default(false)
+
+  // Business Verification (optional)
+  businessName      String?
+  businessTaxId     String?
+  businessVerified  Boolean            @default(false)
+
+  // Address Verification
+  addressLine1      String?
+  addressLine2      String?
+  city              String?
+  state             String?
+  postalCode        String?
+  country           String?
+  addressVerified   Boolean            @default(false)
+
+  // Background Check
+  backgroundCheckStatus VerificationStatus @default(UNVERIFIED)
+  backgroundCheckDate   DateTime?
+
+  // Verification Notes
+  notes             String?            @db.Text
+  rejectionReason   String?            @db.Text
+
+  // Admin
+  verifiedBy        String?
+
+  // Timestamps
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  submittedAt       DateTime?
+
+  @@map("creator_verification")
+}
+
+model Payout {
+  id            String        @id @default(cuid())
+  creatorId     String
+  creator       Creator       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  amount        Decimal       @db.Decimal(12, 2)
+  currency      String        @default("USD")
+
+  status        PayoutStatus  @default(PENDING)
+
+  method        String        // stripe, paypal, bank_transfer
+  methodDetails Json?         // Masked account info
+
+  // Fees
+  processingFee Decimal       @default(0) @db.Decimal(10, 2)
+  netAmount     Decimal       @db.Decimal(12, 2)
+
+  // Transaction IDs
+  transactionId String?       @unique
+  externalId    String?       // From payment provider
+
+  // Notes
+  notes         String?       @db.Text
+  failureReason String?       @db.Text
+
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  processedAt   DateTime?
+  completedAt   DateTime?
+  failedAt      DateTime?
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payouts")
+}

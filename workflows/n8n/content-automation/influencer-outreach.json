@@ -1,0 +1,162 @@
+{
+  "name": "Influencer Outreach - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "weeks", "weeksInterval": 1}]
+        }
+      },
+      "id": "weekly-trigger",
+      "name": "Weekly Campaign Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Runs weekly to identify and reach out to potential influencers"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/influencers/discover",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "niche", "value": "={{ $env.TARGET_NICHE }}"},
+            {"name": "minFollowers", "value": "10000"},
+            {"name": "maxFollowers", "value": "500000"},
+            {"name": "engagementRate", "value": "3.5"},
+            {"name": "limit", "value": "20"}
+          ]
+        }
+      },
+      "id": "discover-influencers",
+      "name": "Discover Matching Influencers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Uses AI to identify influencers matching brand criteria"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Partnership Opportunity with {{ $env.BRAND_NAME }}",
+        "emailType": "html",
+        "message": "Hi {{ $json.name }},\n\nI love your content about {{ $json.niche }}! We'd like to explore a partnership with {{ $env.BRAND_NAME }}.\n\nWe're offering:\n- Competitive compensation\n- Creative freedom\n- Long-term collaboration potential\n\nInterested? Let's chat!\n\nBest,\nPartnership Team"
+      },
+      "id": "send-outreach",
+      "name": "Send Personalized Outreach",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP Account"}},
+      "notes": "Sends personalized outreach email to influencer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/influencer-outreach",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  influencerId: $json.influencerId,\n  name: $json.name,\n  email: $json.email,\n  platform: $json.platform,\n  followers: $json.followers,\n  engagementRate: $json.engagementRate,\n  status: 'outreach_sent',\n  sentAt: new Date().toISOString()\n}) }}"
+      },
+      "id": "log-outreach",
+      "name": "Log Outreach Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Logs outreach activity in CRM for tracking"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "days"
+      },
+      "id": "wait-follow-up",
+      "name": "Wait 3 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1050, 300],
+      "webhookId": "influencer-follow-up",
+      "notes": "Waits before sending follow-up if no response"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/influencer-outreach/{{ $json.outreachId }}/response",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "check-response",
+      "name": "Check for Response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Checks if influencer responded to initial outreach"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{"value1": "={{ $json.responded }}", "value2": false}]
+        }
+      },
+      "id": "no-response",
+      "name": "No Response?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "notes": "Checks if follow-up is needed"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Following up on partnership opportunity",
+        "message": "Hi {{ $json.name }},\n\nJust following up on my previous email. Still interested in exploring a collaboration?\n\nLet me know!\n\nBest,\nPartnership Team"
+      },
+      "id": "send-follow-up",
+      "name": "Send Follow-up Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1650, 250],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP Account"}},
+      "notes": "Sends gentle follow-up email"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: `📧 Influencer Outreach: ${$json.totalOutreach} influencers contacted this week`\n}) }}"
+      },
+      "id": "notify-team",
+      "name": "Weekly Summary to Team",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 300],
+      "notes": "Sends weekly summary to team"
+    }
+  ],
+  "connections": {
+    "Weekly Campaign Trigger": {"main": [[{"node": "Discover Matching Influencers", "type": "main", "index": 0}]]},
+    "Discover Matching Influencers": {"main": [[{"node": "Send Personalized Outreach", "type": "main", "index": 0}]]},
+    "Send Personalized Outreach": {"main": [[{"node": "Log Outreach Activity", "type": "main", "index": 0}]]},
+    "Log Outreach Activity": {"main": [[{"node": "Wait 3 Days", "type": "main", "index": 0}]]},
+    "Wait 3 Days": {"main": [[{"node": "Check for Response", "type": "main", "index": 0}]]},
+    "Check for Response": {"main": [[{"node": "No Response?", "type": "main", "index": 0}]]},
+    "No Response?": {"main": [[{"node": "Send Follow-up Email", "type": "main", "index": 0}]]},
+    "Send Follow-up Email": {"main": [[{"node": "Weekly Summary to Team", "type": "main", "index": 0}]]}
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "tags": [{"id": "3", "name": "Content Automation"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

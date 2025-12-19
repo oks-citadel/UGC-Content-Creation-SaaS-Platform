@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus-staging
+  labels:
+    name: nexus-staging
+    environment: staging
+    app.kubernetes.io/name: nexus-staging
+    app.kubernetes.io/part-of: nexus-platform

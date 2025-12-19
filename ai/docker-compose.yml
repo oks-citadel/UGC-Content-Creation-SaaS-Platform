@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nexus-ai-network
+
+  # Video Generator Service
+  video-generator:
+    build:
+      context: ./video-generator
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - S3_BUCKET=${S3_BUCKET}
+      - AWS_REGION=${AWS_REGION}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - video_temp:/tmp/video-generator
+    networks:
+      - nexus-ai-network
+    restart: unless-stopped
+
+  # Performance Predictor Service
+  performance-predictor:
+    build:
+      context: ./performance-predictor
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - predictor_models:/app/models
+      - predictor_cache:/app/cache
+    networks:
+      - nexus-ai-network
+    restart: unless-stopped
+
+  # Recommendation Engine Service
+  recommendation-engine:
+    build:
+      context: ./recommendation-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+      - PINECONE_ENVIRONMENT=${PINECONE_ENVIRONMENT}
+      - REDIS_URL=redis://redis:6379
+      - VECTOR_DB_TYPE=${VECTOR_DB_TYPE:-faiss}
+    depends_on:
+      - redis
+    volumes:
+      - recommendation_embeddings:/app/embeddings
+      - recommendation_cache:/app/cache
+    networks:
+      - nexus-ai-network
+    restart: unless-stopped
+
+  # Moderation Engine Service
+  moderation-engine:
+    build:
+      context: ./moderation-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      - moderation_models:/app/models
+      - moderation_cache:/app/cache
+    networks:
+      - nexus-ai-network
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  video_temp:
+  predictor_models:
+  predictor_cache:
+  recommendation_embeddings:
+  recommendation_cache:
+  moderation_models:
+  moderation_cache:
+
+networks:
+  nexus-ai-network:
+    driver: bridge

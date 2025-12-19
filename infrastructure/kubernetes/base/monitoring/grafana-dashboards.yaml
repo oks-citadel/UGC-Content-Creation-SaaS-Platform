@@ -1,0 +1,193 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nexus-grafana-dashboards
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: grafana-dashboards
+    app.kubernetes.io/part-of: nexus-platform
+    grafana_dashboard: "1"
+data:
+  nexus-overview.json: |
+    {
+      "dashboard": {
+        "title": "NEXUS Platform Overview",
+        "tags": ["nexus", "overview"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Request Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{namespace=\"nexus\"}[5m])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Response Time (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"nexus\"}[5m])) by (le, service))",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Error Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{namespace=\"nexus\",status=~\"5..\"}[5m])) by (service)",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "CPU Usage",
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"nexus\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Memory Usage",
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{namespace=\"nexus\"}) by (pod)",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Pod Status",
+            "targets": [
+              {
+                "expr": "kube_pod_status_phase{namespace=\"nexus\"}",
+                "legendFormat": "{{pod}} - {{phase}}"
+              }
+            ],
+            "type": "stat"
+          }
+        ],
+        "refresh": "30s"
+      }
+    }
+
+  nexus-services.json: |
+    {
+      "dashboard": {
+        "title": "NEXUS Services Detail",
+        "tags": ["nexus", "services"],
+        "timezone": "browser",
+        "templating": {
+          "list": [
+            {
+              "name": "service",
+              "type": "query",
+              "query": "label_values(http_requests_total{namespace=\"nexus\"}, service)",
+              "multi": false
+            }
+          ]
+        },
+        "panels": [
+          {
+            "title": "Request Rate - $service",
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{namespace=\"nexus\",service=\"$service\"}[5m])) by (method, status)",
+                "legendFormat": "{{method}} - {{status}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Response Time Distribution - $service",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"nexus\",service=\"$service\"}[5m])) by (le))",
+                "legendFormat": "p50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"nexus\",service=\"$service\"}[5m])) by (le))",
+                "legendFormat": "p95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"nexus\",service=\"$service\"}[5m])) by (le))",
+                "legendFormat": "p99"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Database Queries - $service",
+            "targets": [
+              {
+                "expr": "sum(rate(db_queries_total{namespace=\"nexus\",service=\"$service\"}[5m])) by (query_type)",
+                "legendFormat": "{{query_type}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ],
+        "refresh": "30s"
+      }
+    }
+
+  nexus-workers.json: |
+    {
+      "dashboard": {
+        "title": "NEXUS Workers",
+        "tags": ["nexus", "workers"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "title": "Queue Depth",
+            "targets": [
+              {
+                "expr": "rabbitmq_queue_messages{namespace=\"nexus\"}",
+                "legendFormat": "{{queue}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Jobs Processed",
+            "targets": [
+              {
+                "expr": "sum(rate(jobs_processed_total{namespace=\"nexus\"}[5m])) by (worker)",
+                "legendFormat": "{{worker}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Job Processing Time",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(job_duration_seconds_bucket{namespace=\"nexus\"}[5m])) by (le, worker))",
+                "legendFormat": "{{worker}} p95"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Worker CPU Usage",
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"nexus\",pod=~\".*worker.*\"}[5m])) by (pod)",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ],
+        "refresh": "30s"
+      }
+    }

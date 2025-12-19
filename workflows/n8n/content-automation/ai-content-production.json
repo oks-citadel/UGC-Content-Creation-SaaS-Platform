@@ -1,0 +1,473 @@
+{
+  "name": "AI Content Production - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-production",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Content Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nexus-content-production",
+      "notes": "Receives content production request with topic, tone, platform targets, and count"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "contentId",
+              "value": "={{ 'cnt-' + $now.toFormat('yyyyMMddHHmmss') + '-' + $runIndex }}"
+            },
+            {
+              "name": "topic",
+              "value": "={{ $json.body.topic }}"
+            },
+            {
+              "name": "tone",
+              "value": "={{ $json.body.tone || 'professional' }}"
+            },
+            {
+              "name": "platforms",
+              "value": "={{ JSON.stringify($json.body.platforms || ['instagram', 'twitter', 'linkedin']) }}"
+            },
+            {
+              "name": "variantCount",
+              "value": "={{ $json.body.variantCount || 5 }}"
+            },
+            {
+              "name": "brandVoice",
+              "value": "={{ $json.body.brandVoice || '' }}"
+            },
+            {
+              "name": "keywords",
+              "value": "={{ JSON.stringify($json.body.keywords || []) }}"
+            },
+            {
+              "name": "userId",
+              "value": "={{ $json.body.userId }}"
+            },
+            {
+              "name": "projectId",
+              "value": "={{ $json.body.projectId || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalize-request",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "notes": "Standardizes incoming content request data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/brand-voice/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-brand-voice",
+      "name": "Fetch Brand Voice Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Retrieves user's brand voice guidelines and previous content examples"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are an expert content creator for the NEXUS platform. Create engaging, platform-optimized content that drives engagement.\n\nBrand Voice Guidelines:\n{{ $('Fetch Brand Voice Profile').item.json.guidelines || 'Professional, authentic, and engaging' }}\n\nKey Brand Values:\n{{ JSON.stringify($('Fetch Brand Voice Profile').item.json.values || []) }}\n\nWriting Style:\n- Tone: {{ $json.tone }}\n- Voice: {{ $('Fetch Brand Voice Profile').item.json.voice || 'conversational yet professional' }}\n- Target Audience: {{ $('Fetch Brand Voice Profile').item.json.audience || 'marketing professionals' }}"
+            },
+            {
+              "role": "user",
+              "content": "Create {{ $json.variantCount }} unique content variants about: {{ $json.topic }}\n\nRequirements:\n- Optimized for platforms: {{ JSON.parse($json.platforms).join(', ') }}\n- Include these keywords naturally: {{ JSON.parse($json.keywords).join(', ') || 'none specified' }}\n- Each variant should have a different angle or hook\n- Include relevant hashtags for each platform\n- Keep character counts within platform limits\n- Make content actionable and engaging\n\nReturn a JSON array with this structure:\n[\n  {\n    \"variant\": 1,\n    \"platform\": \"instagram\",\n    \"content\": \"...\",\n    \"hashtags\": [\"#tag1\", \"#tag2\"],\n    \"hook\": \"brief description of the angle\",\n    \"cta\": \"call to action\"\n  }\n]\n\nCreate variants for each requested platform."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 2000
+        }
+      },
+      "id": "generate-content",
+      "name": "Generate Content Variants (AI)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "7",
+          "name": "OpenAI Account"
+        }
+      },
+      "notes": "Uses GPT-4 to generate multiple content variants optimized for different platforms"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and structure content variants\nconst response = $input.first().json.choices[0].message.content;\n\n// Extract JSON from response (AI sometimes wraps it in markdown)\nlet variants;\ntry {\n  const jsonMatch = response.match(/\\[\\s*\\{[\\s\\S]*\\}\\s*\\]/);\n  if (jsonMatch) {\n    variants = JSON.parse(jsonMatch[0]);\n  } else {\n    variants = JSON.parse(response);\n  }\n} catch (error) {\n  // Fallback if AI doesn't return valid JSON\n  variants = [{\n    variant: 1,\n    platform: 'general',\n    content: response,\n    hashtags: [],\n    hook: 'AI-generated content',\n    cta: 'Learn more'\n  }];\n}\n\n// Get original request data\nconst originalData = $('Normalize Request').item.json;\n\n// Enhance each variant with metadata\nconst enhancedVariants = variants.map((variant, index) => ({\n  json: {\n    contentId: `${originalData.contentId}-v${index + 1}`,\n    parentContentId: originalData.contentId,\n    variantNumber: index + 1,\n    platform: variant.platform,\n    content: variant.content,\n    hashtags: variant.hashtags || [],\n    hook: variant.hook,\n    cta: variant.cta,\n    topic: originalData.topic,\n    tone: originalData.tone,\n    userId: originalData.userId,\n    projectId: originalData.projectId,\n    characterCount: variant.content.length,\n    wordCount: variant.content.split(/\\s+/).length,\n    hashtagCount: (variant.hashtags || []).length,\n    status: 'draft',\n    createdAt: new Date().toISOString(),\n    aiGenerated: true,\n    model: 'gpt-4'\n  }\n}));\n\nreturn enhancedVariants;"
+      },
+      "id": "parse-variants",
+      "name": "Parse & Structure Variants",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300],
+      "notes": "Parses AI response and adds metadata to each content variant"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/analyze",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "platform",
+              "value": "={{ $json.platform }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "analyze-sentiment",
+      "name": "Analyze Sentiment & Tone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Analyzes sentiment, tone, and compliance of generated content"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  model: 'dall-e-3',\n  prompt: `Create a professional, eye-catching image for social media about: ${$json.topic}. Style: modern, clean, brand-appropriate. Context: ${$json.hook}`,\n  n: 1,\n  size: $json.platform === 'instagram' ? '1024x1024' : '1024x1792',\n  quality: 'standard'\n}) }}",
+        "options": {}
+      },
+      "id": "generate-image",
+      "name": "Generate AI Image (Optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 250],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8",
+          "name": "OpenAI API Key"
+        }
+      },
+      "notes": "Generates accompanying image using DALL-E 3 for visual platforms"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "imageUrl",
+              "value": "={{ $json.data?.[0]?.url || '' }}"
+            },
+            {
+              "name": "imageGenerated",
+              "value": "={{ $json.data?.[0]?.url ? 'true' : 'false' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "add-image-url",
+      "name": "Add Image URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1650, 250],
+      "notes": "Adds generated image URL to content data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge-analysis",
+      "name": "Merge Analysis Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1850, 300],
+      "notes": "Combines content, analysis, and image data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  contentId: $json.contentId,\n  parentContentId: $json.parentContentId,\n  variantNumber: $json.variantNumber,\n  platform: $json.platform,\n  content: $json.content,\n  hashtags: $json.hashtags,\n  hook: $json.hook,\n  cta: $json.cta,\n  imageUrl: $json.imageUrl,\n  topic: $json.topic,\n  tone: $json.tone,\n  userId: $json.userId,\n  projectId: $json.projectId,\n  metadata: {\n    characterCount: $json.characterCount,\n    wordCount: $json.wordCount,\n    hashtagCount: $json.hashtagCount,\n    sentiment: $json.sentiment,\n    sentimentScore: $json.sentimentScore,\n    toneMatch: $json.toneMatch,\n    complianceScore: $json.complianceScore,\n    aiGenerated: true,\n    model: 'gpt-4'\n  },\n  status: 'draft',\n  createdAt: $json.createdAt\n}) }}",
+        "options": {}
+      },
+      "id": "save-to-db",
+      "name": "Save to Content Library",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2050, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Saves content variant to database for review and scheduling"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate All Variants",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [2250, 300],
+      "notes": "Combines all saved variants for final response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate all content variants for response\nconst items = $input.all();\n\nconst contentBatch = {\n  batchId: items[0].json.parentContentId,\n  topic: items[0].json.topic,\n  totalVariants: items.length,\n  status: 'ready_for_review',\n  createdAt: items[0].json.createdAt,\n  variants: items.map(item => ({\n    contentId: item.json.contentId,\n    platform: item.json.platform,\n    content: item.json.content.substring(0, 100) + '...', // Preview\n    hashtags: item.json.hashtags,\n    imageUrl: item.json.imageUrl,\n    sentiment: item.json.sentiment,\n    complianceScore: item.json.complianceScore\n  })),\n  stats: {\n    avgSentimentScore: items.reduce((sum, item) => sum + (item.json.sentimentScore || 0), 0) / items.length,\n    avgComplianceScore: items.reduce((sum, item) => sum + (item.json.complianceScore || 0), 0) / items.length,\n    platformDistribution: items.reduce((acc, item) => {\n      acc[item.json.platform] = (acc[item.json.platform] || 0) + 1;\n      return acc;\n    }, {})\n  }\n};\n\nreturn [{ json: contentBatch }];"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 300],
+      "notes": "Formats final response with batch summary and variant previews"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: '✨ New Content Batch Ready',\n  blocks: [\n    {\n      type: 'header',\n      text: {\n        type: 'plain_text',\n        text: '✨ AI Content Production Complete'\n      }\n    },\n    {\n      type: 'section',\n      fields: [\n        { type: 'mrkdwn', text: `*Topic:*\\n${$json.topic}` },\n        { type: 'mrkdwn', text: `*Variants Created:*\\n${$json.totalVariants}` },\n        { type: 'mrkdwn', text: `*Avg Compliance:*\\n${($json.stats.avgComplianceScore * 100).toFixed(1)}%` },\n        { type: 'mrkdwn', text: `*Status:*\\nReady for Review` }\n      ]\n    },\n    {\n      type: 'section',\n      text: {\n        type: 'mrkdwn',\n        text: `*Platform Distribution:*\\n${Object.entries($json.stats.platformDistribution).map(([k,v]) => `• ${k}: ${v}`).join('\\n')}`\n      }\n    },\n    {\n      type: 'actions',\n      elements: [\n        {\n          type: 'button',\n          text: { type: 'plain_text', text: 'Review Content' },\n          url: `${$env.APP_URL}/content/batch/${$json.batchId}`,\n          style: 'primary'\n        }\n      ]\n    }\n  ]\n}) }}"
+      },
+      "id": "notify-team",
+      "name": "Notify Content Team",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2650, 300],
+      "notes": "Sends notification to content team for review"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  batchId: $json.batchId,\n  topic: $json.topic,\n  variantsCreated: $json.totalVariants,\n  status: $json.status,\n  reviewUrl: `${$env.APP_URL}/content/batch/${$json.batchId}`,\n  variants: $json.variants\n}) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2850, 300],
+      "notes": "Returns success response with batch details"
+    }
+  ],
+  "connections": {
+    "Content Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Fetch Brand Voice Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Brand Voice Profile": {
+      "main": [
+        [
+          {
+            "node": "Generate Content Variants (AI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content Variants (AI)": {
+      "main": [
+        [
+          {
+            "node": "Parse & Structure Variants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse & Structure Variants": {
+      "main": [
+        [
+          {
+            "node": "Analyze Sentiment & Tone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Sentiment & Tone": {
+      "main": [
+        [
+          {
+            "node": "Generate AI Image (Optional)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Image (Optional)": {
+      "main": [
+        [
+          {
+            "node": "Add Image URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Image URL": {
+      "main": [
+        [
+          {
+            "node": "Merge Analysis Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Analysis Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Content Library",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Content Library": {
+      "main": [
+        [
+          {
+            "node": "Aggregate All Variants",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate All Variants": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Notify Content Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Content Team": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "3",
+      "name": "Content Automation"
+    },
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "2",
+      "name": "NEXUS"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "nexus-ai-content-production"
+  },
+  "active": true
+}

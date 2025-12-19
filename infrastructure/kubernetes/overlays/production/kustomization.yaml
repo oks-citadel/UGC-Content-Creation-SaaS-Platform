@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nexus
+
+commonLabels:
+  environment: production
+
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - patches/configmap-patch.yaml
+  - patches/replica-patch.yaml
+  - patches/resource-patch.yaml
+  - patches/hpa-patch.yaml
+  - patches/ingress-patch.yaml
+
+images:
+  - name: nexusregistry.azurecr.io/api-gateway
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/auth-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/user-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/creator-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/campaign-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/content-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/commerce-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/analytics-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/billing-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/marketplace-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/notification-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/workflow-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/ai-service
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/video-processor
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/social-publisher
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/analytics-aggregator
+    newTag: v1.0.0
+  - name: nexusregistry.azurecr.io/notification-dispatcher
+    newTag: v1.0.0
+
+replicas:
+  - name: api-gateway
+    count: 5
+  - name: content-service
+    count: 5
+  - name: video-processor
+    count: 5

@@ -1,0 +1,83 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+graph LR
+    subgraph "API Gateway Layer"
+        GW[API Gateway<br/>Port 8080<br/>Rate Limiting<br/>Auth Validation<br/>Tier Enforcement]
+    end
+
+    subgraph "Core Platform Services"
+        AUTH[Auth Service<br/>Port 8081]
+        USER[User Service<br/>Port 8082]
+        BILLING[Billing Service<br/>Port 8083]
+        NOTIFY[Notification Service<br/>Port 8084]
+    end
+
+    subgraph "UGC Domain Services"
+        CAMPAIGN[Campaign Service<br/>Port 8085]
+        CREATOR[Creator Service<br/>Port 8086]
+        CONTENT[Content Service<br/>Port 8087]
+        ASSET[Asset Service<br/>Port 8088]
+        RIGHTS[Rights Service<br/>Port 8089]
+        ANALYTICS[Analytics Service<br/>Port 8090]
+        PAYOUT[Payout Service<br/>Port 8091]
+    end
+
+    subgraph "Extended Services"
+        MARKETPLACE[Marketplace Service]
+        COMMERCE[Commerce Service]
+        COMPLIANCE[Compliance Service]
+        INTEGRATION[Integration Service]
+        WORKFLOW[Workflow Service]
+    end
+
+    subgraph "Data Layer"
+        PG[(PostgreSQL)]
+        REDIS[(Redis Cache)]
+        BLOB[(Azure Blob Storage)]
+        QUEUE[(Service Bus Queue)]
+    end
+
+    subgraph "External Services"
+        STRIPE[Stripe<br/>Payments]
+        MODERATOR[Content Moderator<br/>AI Moderation]
+        MEDIA[Azure Media Services<br/>Transcoding]
+        SOCIAL[Social APIs<br/>TikTok, Instagram, etc.]
+    end
+
+    %% Gateway routing
+    GW --> AUTH
+    GW --> USER
+    GW --> BILLING
+    GW --> NOTIFY
+    GW --> CAMPAIGN
+    GW --> CREATOR
+    GW --> CONTENT
+    GW --> ASSET
+    GW --> RIGHTS
+    GW --> ANALYTICS
+    GW --> PAYOUT
+
+    %% Database connections
+    AUTH --> PG
+    USER --> PG
+    BILLING --> PG
+    CAMPAIGN --> PG
+    CREATOR --> PG
+    CONTENT --> PG
+    RIGHTS --> PG
+    ANALYTICS --> PG
+    PAYOUT --> PG
+
+    %% Redis connections
+    NOTIFY --> REDIS
+    ANALYTICS --> REDIS
+    AUTH --> REDIS
+
+    %% External service connections
+    BILLING --> STRIPE
+    PAYOUT --> STRIPE
+    CONTENT --> MODERATOR
+    ASSET --> MEDIA
+    ASSET --> BLOB
+    CONTENT --> QUEUE
+    CREATOR --> SOCIAL
+    INTEGRATION --> SOCIAL

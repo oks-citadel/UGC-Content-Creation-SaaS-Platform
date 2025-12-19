@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  passwordHash      String?   @map("password_hash")
+  firstName         String?   @map("first_name")
+  lastName          String?   @map("last_name")
+  avatarUrl         String?   @map("avatar_url")
+  emailVerified     Boolean   @default(false) @map("email_verified")
+  phoneNumber       String?   @map("phone_number")
+  phoneVerified     Boolean   @default(false) @map("phone_verified")
+  mfaEnabled        Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret         String?   @map("mfa_secret")
+  status            UserStatus @default(PENDING)
+  role              UserRole   @default(USER)
+  lastLoginAt       DateTime?  @map("last_login_at")
+  lastLoginIp       String?    @map("last_login_ip")
+  failedLoginAttempts Int      @default(0) @map("failed_login_attempts")
+  lockedUntil       DateTime?  @map("locked_until")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  sessions          Session[]
+  refreshTokens     RefreshToken[]
+  oauthAccounts     OAuthAccount[]
+  verificationCodes VerificationCode[]
+  passwordResets    PasswordReset[]
+  auditLogs         AuditLog[]
+
+  @@index([email])
+  @@index([status])
+  @@map("users")
+}
+
+model Session {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  token       String   @unique
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  lastActiveAt DateTime @default(now()) @map("last_active_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  token       String   @unique
+  family      String
+  expiresAt   DateTime @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([family])
+  @@map("refresh_tokens")
+}
+
+model OAuthAccount {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  provider        OAuthProvider
+  providerUserId  String   @map("provider_user_id")
+  accessToken     String?  @map("access_token")
+  refreshToken    String?  @map("refresh_token")
+  expiresAt       DateTime? @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  code      String
+  type      VerificationType
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([code, type])
+  @@map("verification_codes")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_resets")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String
+  resource  String?
+  resourceId String? @map("resource_id")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum UserRole {
+  USER
+  CREATOR
+  MARKETER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum OAuthProvider {
+  GOOGLE
+  FACEBOOK
+  APPLE
+  MICROSOFT
+}
+
+enum VerificationType {
+  EMAIL
+  PHONE
+  MFA
+}

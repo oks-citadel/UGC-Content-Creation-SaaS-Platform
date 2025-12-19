@@ -1,0 +1,291 @@
+{
+  "name": "UGC Review & Publish - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ugc-submitted",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "UGC Submission Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nexus-ugc-review",
+      "notes": "Receives new UGC submissions from users, influencers, or automated collection"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/moderation/content",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contentUrl",
+              "value": "={{ $json.body.contentUrl }}"
+            },
+            {
+              "name": "contentType",
+              "value": "={{ $json.body.contentType }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.body.caption || '' }}"
+            }
+          ]
+        }
+      },
+      "id": "moderate-content",
+      "name": "AI Moderation Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Checks content for compliance, brand safety, and appropriateness using AI"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.moderationScore }}",
+              "operation": "largerEqual",
+              "value2": 0.8
+            }
+          ]
+        }
+      },
+      "id": "check-moderation",
+      "name": "Passes Moderation?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "notes": "Checks if content passes automated moderation threshold"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/rights-requests",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{ $json.userId }}"
+            },
+            {
+              "name": "contentId",
+              "value": "={{ $json.contentId }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.userEmail }}"
+            }
+          ]
+        }
+      },
+      "id": "request-rights",
+      "name": "Send Rights Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 250],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Sends automated rights request email to content creator"
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "id": "wait-for-response",
+      "name": "Wait for Rights Response",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1050, 250],
+      "webhookId": "rights-wait",
+      "notes": "Waits up to 7 days for rights approval"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/rights-requests/{{ $json.requestId }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "check-rights-status",
+      "name": "Check Rights Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 250],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Checks if rights have been granted"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "approved"
+            }
+          ]
+        }
+      },
+      "id": "rights-approved",
+      "name": "Rights Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 250],
+      "notes": "Verifies rights approval before publishing"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/publish",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  contentId: $json.contentId,\n  platforms: $json.platforms || ['instagram', 'facebook', 'twitter'],\n  scheduleType: 'immediate',\n  caption: $json.caption,\n  hashtags: $json.hashtags,\n  contentUrl: $json.contentUrl,\n  rightsApproved: true\n}) }}"
+      },
+      "id": "publish-content",
+      "name": "Publish to Platforms",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1650, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Publishes approved UGC to selected social platforms"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: '✅ UGC Published',\n  blocks: [{\n    type: 'section',\n    text: {\n      type: 'mrkdwn',\n      text: `*UGC Content Published*\\nCreator: ${$json.userName}\\nPlatforms: ${$json.platforms.join(', ')}\\nEngagement tracking active.`\n    }\n  }]\n}) }}"
+      },
+      "id": "notify-success",
+      "name": "Notify Team (Success)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 200],
+      "notes": "Notifies team of successful publication"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/{{ $json.contentId }}/flag",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "reason",
+              "value": "moderation_failed"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.moderationScore }}"
+            },
+            {
+              "name": "flaggedFor",
+              "value": "manual_review"
+            }
+          ]
+        }
+      },
+      "id": "flag-content",
+      "name": "Flag for Manual Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "6",
+          "name": "NEXUS API"
+        }
+      },
+      "notes": "Flags content that fails automated moderation for manual review"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  contentId: $json.contentId,\n  status: 'published',\n  platforms: $json.platforms\n}) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2050, 200]
+    }
+  ],
+  "connections": {
+    "UGC Submission Webhook": {
+      "main": [[{"node": "AI Moderation Check", "type": "main", "index": 0}]]
+    },
+    "AI Moderation Check": {
+      "main": [[{"node": "Passes Moderation?", "type": "main", "index": 0}]]
+    },
+    "Passes Moderation?": {
+      "main": [
+        [{"node": "Send Rights Request", "type": "main", "index": 0}],
+        [{"node": "Flag for Manual Review", "type": "main", "index": 0}]
+      ]
+    },
+    "Send Rights Request": {
+      "main": [[{"node": "Wait for Rights Response", "type": "main", "index": 0}]]
+    },
+    "Wait for Rights Response": {
+      "main": [[{"node": "Check Rights Status", "type": "main", "index": 0}]]
+    },
+    "Check Rights Status": {
+      "main": [[{"node": "Rights Approved?", "type": "main", "index": 0}]]
+    },
+    "Rights Approved?": {
+      "main": [[{"node": "Publish to Platforms", "type": "main", "index": 0}]]
+    },
+    "Publish to Platforms": {
+      "main": [[{"node": "Notify Team (Success)", "type": "main", "index": 0}]]
+    },
+    "Notify Team (Success)": {
+      "main": [[{"node": "Respond Success", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [
+    {"id": "3", "name": "Content Automation"},
+    {"id": "2", "name": "NEXUS"}
+  ],
+  "active": true
+}

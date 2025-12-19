@@ -1,0 +1,73 @@
+{
+  "name": "Post-Purchase Upsell - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "purchase-complete", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Purchase Complete Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "purchase-complete",
+      "notes": "Triggered after successful purchase"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/recommendations/generate",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ userId: $json.userId, purchasedItems: $json.items, orderValue: $json.total, algorithm: 'collaborative_filtering' }) }}"
+      },
+      "id": "get-recommendations",
+      "name": "Get AI Recommendations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "AI generates personalized product recommendations"
+    },
+    {
+      "parameters": {"amount": 2, "unit": "days"},
+      "id": "wait",
+      "name": "Wait 2 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [650, 300],
+      "webhookId": "upsell-wait"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Complete your look with these recommendations",
+        "emailType": "html",
+        "message": "Hi {{ $json.firstName }},\\n\\nThank you for your recent purchase!\\n\\nBased on what you bought, you might also love:\\n\\n{{ $json.recommendations.map(r => `- ${r.name} - $${r.price}`).join('\\n') }}\\n\\nExclusive offer: Use code THANKS20 for 20% off your next order!\\n\\n[Shop Recommendations]({{ $env.SHOP_URL }}/recommended?user={{ $json.userId }})"
+      },
+      "id": "send-upsell",
+      "name": "Send Upsell Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [850, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, upsellScheduled: true }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Purchase Complete Trigger": {"main": [[{"node": "Get AI Recommendations", "type": "main", "index": 0}]]},
+    "Get AI Recommendations": {"main": [[{"node": "Wait 2 Days", "type": "main", "index": 0}]]},
+    "Wait 2 Days": {"main": [[{"node": "Send Upsell Email", "type": "main", "index": 0}]]},
+    "Send Upsell Email": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "5", "name": "Ecommerce"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

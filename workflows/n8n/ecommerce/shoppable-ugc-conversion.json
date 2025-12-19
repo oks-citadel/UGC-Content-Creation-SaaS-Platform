@@ -1,0 +1,80 @@
+{
+  "name": "Shoppable UGC Conversion - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "ugc-interaction", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "UGC Gallery Interaction",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "ugc-interaction",
+      "notes": "User interacts with shoppable UGC gallery"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/contacts/enrich",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ email: $json.email, productInterest: $json.productId, source: 'ugc_gallery', interactionType: $json.interactionType }) }}"
+      },
+      "id": "crm-update",
+      "name": "Update CRM Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Enriches CRM with product interest"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Special offer on {{ $json.productName }}",
+        "emailType": "html",
+        "message": "Hi {{ $json.firstName }},\\n\\nWe noticed you were checking out {{ $json.productName }}!\\n\\nHere's an exclusive 15% discount code just for you: UGC15\\n\\n[Shop Now]({{ $json.productUrl }}?discount=UGC15)"
+      },
+      "id": "email-offer",
+      "name": "Send Personalized Offer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}},
+      "notes": "Sends personalized product offer"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/analytics/conversion-event",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ eventType: 'ugc_interaction', userId: $json.userId, productId: $json.productId, offerSent: true, timestamp: $now.toISO() }) }}"
+      },
+      "id": "track",
+      "name": "Track Conversion Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "notes": "Tracks event for attribution"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, offerSent: true }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "UGC Gallery Interaction": {"main": [[{"node": "Update CRM Profile", "type": "main", "index": 0}]]},
+    "Update CRM Profile": {"main": [[{"node": "Send Personalized Offer", "type": "main", "index": 0}]]},
+    "Send Personalized Offer": {"main": [[{"node": "Track Conversion Event", "type": "main", "index": 0}]]},
+    "Track Conversion Event": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "5", "name": "Ecommerce"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

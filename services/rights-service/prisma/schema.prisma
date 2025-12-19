@@ -1,0 +1,415 @@
+// Prisma schema for CreatorBridge Rights Service
+// Manages licensing, usage rights, contracts, and digital signatures
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum RightsType {
+  EXCLUSIVE
+  NON_EXCLUSIVE
+  LIMITED
+  WORK_FOR_HIRE
+}
+
+enum RightsStatus {
+  DRAFT
+  PENDING_CREATOR_SIGNATURE
+  PENDING_BRAND_SIGNATURE
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  DISPUTED
+}
+
+enum UsageType {
+  ORGANIC_SOCIAL
+  PAID_SOCIAL
+  WEBSITE
+  EMAIL
+  DISPLAY_ADS
+  TV_COMMERCIAL
+  PRINT
+  OOH              // Out of Home (billboards, etc.)
+  PODCAST
+  STREAMING
+  ALL
+}
+
+enum LicenseTemplateType {
+  STANDARD_EXCLUSIVE
+  STANDARD_NON_EXCLUSIVE
+  LIMITED_SOCIAL
+  PAID_ADVERTISING
+  FULL_BUYOUT
+  CUSTOM
+}
+
+enum SignatureType {
+  ELECTRONIC
+  TYPED
+  DRAWN
+}
+
+enum TransferStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+// ============================================================================
+// MODELS
+// ============================================================================
+
+model ContentRights {
+  id              String        @id @default(uuid()) @db.Uuid
+  contentId       String        @map("content_id") @db.Uuid
+  campaignId      String?       @map("campaign_id") @db.Uuid
+  creatorId       String        @map("creator_id") @db.Uuid
+  brandId         String        @map("brand_id") @db.Uuid
+
+  // Rights definition
+  type            RightsType
+  status          RightsStatus  @default(DRAFT)
+
+  // Duration
+  startDate       DateTime      @map("start_date")
+  endDate         DateTime?     @map("end_date")
+  isPerpetual     Boolean       @default(false) @map("is_perpetual")
+  autoRenew       Boolean       @default(false) @map("auto_renew")
+  renewalTermDays Int?          @map("renewal_term_days")
+
+  // Geographic scope
+  territories     String[]      @default([])  // ISO country codes or "WORLDWIDE"
+  excludedTerritories String[]  @default([]) @map("excluded_territories")
+
+  // Platform scope
+  platforms       String[]      @default([])  // Platform identifiers
+  usageTypes      UsageType[]   @default([]) @map("usage_types")
+
+  // Restrictions
+  noEditing       Boolean       @default(false) @map("no_editing")
+  noDerivatives   Boolean       @default(false) @map("no_derivatives")
+  attributionRequired Boolean   @default(true) @map("attribution_required")
+  maxImpressions  BigInt?       @map("max_impressions")
+  maxUsageCount   Int?          @map("max_usage_count")
+  customRestrictions String?    @db.Text @map("custom_restrictions")
+
+  // Compensation
+  compensationType String       @map("compensation_type")  // flat_fee, royalty, hybrid
+  flatFeeAmount   Decimal?      @db.Decimal(12, 2) @map("flat_fee_amount")
+  royaltyPercentage Float?      @map("royalty_percentage")
+  royaltyCap      Decimal?      @db.Decimal(12, 2) @map("royalty_cap")
+  currency        String        @default("USD")
+
+  // Document references
+  templateId      String?       @map("template_id") @db.Uuid
+  documentUrl     String?       @map("document_url")
+  signedDocumentUrl String?     @map("signed_document_url")
+
+  // Metadata
+  notes           String?       @db.Text
+  metadata        Json?
+
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  activatedAt     DateTime?     @map("activated_at")
+  terminatedAt    DateTime?     @map("terminated_at")
+
+  // Relations
+  signatures      RightsSignature[]
+  history         RightsHistory[]
+  transfers       RightsTransfer[]
+  template        LicenseTemplate? @relation(fields: [templateId], references: [id])
+
+  @@unique([contentId, brandId])
+  @@index([contentId])
+  @@index([creatorId])
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([type])
+  @@index([endDate])
+  @@map("content_rights")
+}
+
+model RightsSignature {
+  id              String        @id @default(uuid()) @db.Uuid
+  rightsId        String        @map("rights_id") @db.Uuid
+
+  // Signer info
+  signerId        String        @map("signer_id") @db.Uuid
+  signerType      String        @map("signer_type")  // creator, brand, witness
+  signerName      String        @map("signer_name")
+  signerEmail     String        @map("signer_email")
+  signerTitle     String?       @map("signer_title")
+
+  // Signature details
+  signatureType   SignatureType @map("signature_type")
+  signatureData   String?       @db.Text @map("signature_data")  // Base64 for drawn signatures
+  signatureHash   String?       @map("signature_hash")
+
+  // Verification
+  ipAddress       String?       @map("ip_address")
+  userAgent       String?       @db.Text @map("user_agent")
+  geoLocation     Json?         @map("geo_location")
+
+  // Legal acceptance
+  acceptedTerms   Boolean       @default(false) @map("accepted_terms")
+  termsVersion    String?       @map("terms_version")
+
+  // Timestamps
+  signedAt        DateTime      @default(now()) @map("signed_at")
+
+  rights          ContentRights @relation(fields: [rightsId], references: [id], onDelete: Cascade)
+
+  @@index([rightsId])
+  @@index([signerId])
+  @@map("rights_signatures")
+}
+
+model RightsHistory {
+  id              String        @id @default(uuid()) @db.Uuid
+  rightsId        String        @map("rights_id") @db.Uuid
+
+  // Action details
+  action          String        // created, updated, signed, activated, terminated, etc.
+  previousStatus  RightsStatus? @map("previous_status")
+  newStatus       RightsStatus? @map("new_status")
+
+  // Change details
+  changedFields   String[]      @default([]) @map("changed_fields")
+  previousValues  Json?         @map("previous_values")
+  newValues       Json?         @map("new_values")
+
+  // Actor
+  performedBy     String        @map("performed_by") @db.Uuid
+  performedByType String        @map("performed_by_type") // user, system, automation
+
+  // Additional info
+  reason          String?
+  ipAddress       String?       @map("ip_address")
+  metadata        Json?
+
+  // Timestamp
+  performedAt     DateTime      @default(now()) @map("performed_at")
+
+  rights          ContentRights @relation(fields: [rightsId], references: [id], onDelete: Cascade)
+
+  @@index([rightsId])
+  @@index([performedAt])
+  @@index([action])
+  @@map("rights_history")
+}
+
+model RightsTransfer {
+  id              String        @id @default(uuid()) @db.Uuid
+  rightsId        String        @map("rights_id") @db.Uuid
+
+  // Transfer parties
+  fromBrandId     String        @map("from_brand_id") @db.Uuid
+  toBrandId       String        @map("to_brand_id") @db.Uuid
+  toBrandName     String        @map("to_brand_name")
+
+  // Transfer details
+  transferType    String        @map("transfer_type")  // full, sublicense
+  status          TransferStatus @default(PENDING_APPROVAL)
+  effectiveDate   DateTime      @map("effective_date")
+
+  // Compensation for transfer
+  transferFee     Decimal?      @db.Decimal(12, 2) @map("transfer_fee")
+  currency        String        @default("USD")
+
+  // Creator consent
+  creatorConsent  Boolean       @default(false) @map("creator_consent")
+  creatorConsentedAt DateTime?  @map("creator_consented_at")
+
+  // Approval workflow
+  approvedBy      String?       @map("approved_by") @db.Uuid
+  approvedAt      DateTime?     @map("approved_at")
+  rejectedBy      String?       @map("rejected_by") @db.Uuid
+  rejectedAt      DateTime?     @map("rejected_at")
+  rejectionReason String?       @map("rejection_reason")
+
+  // Document
+  transferDocUrl  String?       @map("transfer_doc_url")
+
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  completedAt     DateTime?     @map("completed_at")
+
+  rights          ContentRights @relation(fields: [rightsId], references: [id], onDelete: Cascade)
+
+  @@index([rightsId])
+  @@index([fromBrandId])
+  @@index([toBrandId])
+  @@index([status])
+  @@map("rights_transfers")
+}
+
+model LicenseTemplate {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String?             @map("organization_id") @db.Uuid
+
+  // Template info
+  name            String
+  description     String?             @db.Text
+  type            LicenseTemplateType
+  version         String              @default("1.0")
+
+  // Default values
+  defaultType     RightsType          @map("default_type")
+  defaultDuration Int?                @map("default_duration")  // Days
+  defaultPlatforms String[]           @default([]) @map("default_platforms")
+  defaultUsageTypes UsageType[]       @default([]) @map("default_usage_types")
+  defaultTerritories String[]         @default([]) @map("default_territories")
+
+  // Restrictions
+  defaultRestrictions Json?           @map("default_restrictions")
+
+  // Template content
+  htmlTemplate    String              @db.Text @map("html_template")
+  pdfTemplate     String?             @db.Text @map("pdf_template")
+  variables       String[]            @default([])  // Template variables like {{creator_name}}
+
+  // Custom clauses that can be added
+  optionalClauses Json?               @map("optional_clauses")
+
+  // Legal review
+  legalApproved   Boolean             @default(false) @map("legal_approved")
+  legalApprovedBy String?             @map("legal_approved_by") @db.Uuid
+  legalApprovedAt DateTime?           @map("legal_approved_at")
+
+  // Status
+  isActive        Boolean             @default(true) @map("is_active")
+  isDefault       Boolean             @default(false) @map("is_default")
+  isPublic        Boolean             @default(false) @map("is_public")
+
+  // Timestamps
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  createdBy       String              @map("created_by") @db.Uuid
+
+  // Relations
+  rights          ContentRights[]
+
+  @@unique([organizationId, name, version])
+  @@index([organizationId])
+  @@index([type])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("license_templates")
+}
+
+model GeneratedDocument {
+  id              String   @id @default(uuid()) @db.Uuid
+  rightsId        String?  @map("rights_id") @db.Uuid
+  templateId      String?  @map("template_id") @db.Uuid
+
+  // Document info
+  documentType    String   @map("document_type")  // license, amendment, termination
+  format          String   // pdf, html
+  version         Int      @default(1)
+
+  // Storage
+  url             String
+  blobName        String   @map("blob_name")
+  fileSize        Int      @map("file_size")
+  checksum        String
+
+  // Content snapshot
+  generatedFrom   Json     @map("generated_from")  // Snapshot of rights/template at generation time
+  variables       Json?    // Variables used in generation
+  customClauses   String[] @default([]) @map("custom_clauses")
+
+  // Signatures applied (references to RightsSignature)
+  isSigned        Boolean  @default(false) @map("is_signed")
+  signatureIds    String[] @default([]) @map("signature_ids")
+
+  // Timestamps
+  generatedAt     DateTime @default(now()) @map("generated_at")
+  expiresAt       DateTime? @map("expires_at")
+
+  @@index([rightsId])
+  @@index([templateId])
+  @@index([documentType])
+  @@map("generated_documents")
+}
+
+model UsageTracking {
+  id              String   @id @default(uuid()) @db.Uuid
+  rightsId        String   @map("rights_id") @db.Uuid
+
+  // Usage details
+  usageType       UsageType @map("usage_type")
+  platform        String?
+  territory       String?
+
+  // Metrics
+  impressions     BigInt   @default(0)
+  clicks          BigInt   @default(0)
+  conversions     BigInt   @default(0)
+
+  // Dates
+  usageDate       DateTime @map("usage_date")
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+
+  // Source
+  reportedBy      String?  @map("reported_by") @db.Uuid
+  verifiedBy      String?  @map("verified_by") @db.Uuid
+  verifiedAt      DateTime? @map("verified_at")
+
+  // External reference
+  externalCampaignId String? @map("external_campaign_id")
+  metadata        Json?
+
+  @@index([rightsId])
+  @@index([usageDate])
+  @@index([usageType])
+  @@map("usage_tracking")
+}
+
+model RightsDispute {
+  id              String   @id @default(uuid()) @db.Uuid
+  rightsId        String   @map("rights_id") @db.Uuid
+
+  // Dispute details
+  raisedBy        String   @map("raised_by") @db.Uuid
+  raisedByType    String   @map("raised_by_type")  // creator, brand
+  category        String   // unauthorized_use, payment, termination, etc.
+  description     String   @db.Text
+
+  // Status
+  status          String   @default("open")  // open, investigating, resolved, escalated
+  priority        String   @default("medium")  // low, medium, high, urgent
+
+  // Resolution
+  assignedTo      String?  @map("assigned_to") @db.Uuid
+  resolution      String?  @db.Text
+  resolvedBy      String?  @map("resolved_by") @db.Uuid
+  resolvedAt      DateTime? @map("resolved_at")
+
+  // Evidence
+  evidenceUrls    String[] @default([]) @map("evidence_urls")
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([rightsId])
+  @@index([status])
+  @@index([raisedBy])
+  @@map("rights_disputes")
+}

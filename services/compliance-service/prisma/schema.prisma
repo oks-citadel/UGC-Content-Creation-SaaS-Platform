@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Consent {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  type        ConsentType
+  purpose     String
+  version     String
+  granted     Boolean  @default(false)
+  grantedAt   DateTime? @map("granted_at")
+  revokedAt   DateTime? @map("revoked_at")
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([type])
+  @@map("consents")
+}
+
+model DataRequest {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  type        DataRequestType
+  status      RequestStatus
+  requestedAt DateTime @default(now()) @map("requested_at")
+  processedAt DateTime? @map("processed_at")
+  completedAt DateTime? @map("completed_at")
+  expiresAt   DateTime? @map("expires_at")
+  downloadUrl String?  @map("download_url")
+  metadata    Json?
+  notes       String?
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@map("data_requests")
+}
+
+model ContentRights {
+  id          String   @id @default(uuid()) @db.Uuid
+  contentId   String   @map("content_id") @db.Uuid
+  creatorId   String   @map("creator_id") @db.Uuid
+  brandId     String?  @map("brand_id") @db.Uuid
+  licenseType LicenseType @map("license_type")
+  usageRights String[] @map("usage_rights")
+  territory   String[] // Countries/regions
+  duration    String?  // e.g., "1 year", "perpetual"
+  exclusivity Boolean  @default(false)
+  canModify   Boolean  @default(false) @map("can_modify")
+  canResell   Boolean  @default(false) @map("can_resell")
+  attribution String?  // Required attribution
+  restrictions Json?   // Additional restrictions
+  signedAt    DateTime? @map("signed_at")
+  startsAt    DateTime? @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  documentUrl String?  @map("document_url")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([contentId])
+  @@index([creatorId])
+  @@index([brandId])
+  @@map("content_rights")
+}
+
+model Disclosure {
+  id          String   @id @default(uuid()) @db.Uuid
+  contentId   String   @map("content_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  type        DisclosureType
+  platform    String
+  text        String
+  isCompliant Boolean  @default(true) @map("is_compliant")
+  reviewedAt  DateTime? @map("reviewed_at")
+  reviewedBy  String?  @map("reviewed_by") @db.Uuid
+  notes       String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([contentId])
+  @@index([userId])
+  @@index([type])
+  @@map("disclosures")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String
+  resource    String
+  resourceId  String?  @map("resource_id")
+  changes     Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([resource])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+enum ConsentType {
+  MARKETING
+  ANALYTICS
+  THIRD_PARTY
+  DATA_PROCESSING
+  COOKIES
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  CONTENT_USAGE
+}
+
+enum DataRequestType {
+  EXPORT
+  DELETE
+  RECTIFY
+  RESTRICT
+  PORTABILITY
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum LicenseType {
+  EXCLUSIVE
+  NON_EXCLUSIVE
+  ROYALTY_FREE
+  RIGHTS_MANAGED
+  CREATIVE_COMMONS
+  CUSTOM
+}
+
+enum DisclosureType {
+  SPONSORED_CONTENT
+  PAID_PARTNERSHIP
+  GIFTED_PRODUCT
+  AFFILIATE_LINK
+  BRAND_AMBASSADOR
+  EMPLOYEE
+  OTHER
+}

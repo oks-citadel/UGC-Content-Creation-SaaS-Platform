@@ -1,0 +1,753 @@
+{
+  "name": "Smart Lead Intake - NEXUS",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-trigger",
+      "name": "Lead Intake Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "nexus-lead-intake",
+      "notes": "Receives lead data from forms, landing pages, or API calls. Expected fields: email, firstName, lastName, phone, company, source"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "leadId",
+              "value": "={{ $runIndex }}-{{ $now.toFormat('yyyyMMddHHmmss') }}"
+            },
+            {
+              "name": "captureTimestamp",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "name": "firstName",
+              "value": "={{ $json.body.firstName }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $json.body.lastName }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.body.phone || '' }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.body.company || '' }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.body.source || 'direct' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "normalize-data",
+      "name": "Normalize Lead Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "notes": "Standardizes incoming lead data format and adds tracking identifiers"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "{{ $env.LEADS_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": "Leads",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "log-to-sheet",
+      "name": "Log to Lead Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [650, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "1",
+          "name": "Google Sheets account"
+        }
+      },
+      "notes": "Logs all leads to Google Sheets for backup and manual review"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.clearbit.com/v2/combined/find",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "timeout": 10000
+        }
+      },
+      "id": "enrich-clearbit",
+      "name": "Enrich with Clearbit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Clearbit API"
+        }
+      },
+      "notes": "Enriches lead data with company information, social profiles, and demographic data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.statusCode }}",
+              "operation": "equals",
+              "value2": "200"
+            }
+          ]
+        }
+      },
+      "id": "check-enrichment",
+      "name": "Enrichment Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "notes": "Checks if Clearbit enrichment was successful"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "enrichedCompany",
+              "value": "={{ $json.company?.name || $('Normalize Lead Data').item.json.company }}"
+            },
+            {
+              "name": "industry",
+              "value": "={{ $json.company?.category?.industry || 'unknown' }}"
+            },
+            {
+              "name": "companySize",
+              "value": "={{ $json.company?.metrics?.employees || 0 }}"
+            },
+            {
+              "name": "revenue",
+              "value": "={{ $json.company?.metrics?.annualRevenue || 0 }}"
+            },
+            {
+              "name": "linkedInUrl",
+              "value": "={{ $json.person?.linkedin?.handle || '' }}"
+            },
+            {
+              "name": "twitterHandle",
+              "value": "={{ $json.person?.twitter?.handle || '' }}"
+            },
+            {
+              "name": "jobTitle",
+              "value": "={{ $json.person?.employment?.title || '' }}"
+            },
+            {
+              "name": "seniority",
+              "value": "={{ $json.person?.employment?.seniority || '' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-enrichment",
+      "name": "Merge Enriched Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1050, 250],
+      "notes": "Merges enriched data with original lead data"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "enrichmentStatus",
+              "value": "failed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark-no-enrichment",
+      "name": "Mark No Enrichment",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "notes": "Marks lead as not enriched for later retry"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge-paths",
+      "name": "Merge Enrichment Paths",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "notes": "Combines enriched and non-enriched lead paths"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lead Scoring Algorithm for NEXUS Platform\n// Scores based on: company size, revenue, industry fit, engagement, source quality\n\nconst items = $input.all();\nconst scoredItems = [];\n\nfor (const item of items) {\n  let score = 0;\n  const data = item.json;\n  \n  // Company Size Score (0-25 points)\n  const employees = parseInt(data.companySize) || 0;\n  if (employees > 1000) score += 25;\n  else if (employees > 500) score += 20;\n  else if (employees > 100) score += 15;\n  else if (employees > 50) score += 10;\n  else if (employees > 10) score += 5;\n  \n  // Revenue Score (0-25 points)\n  const revenue = parseInt(data.revenue) || 0;\n  if (revenue > 100000000) score += 25; // $100M+\n  else if (revenue > 50000000) score += 20;\n  else if (revenue > 10000000) score += 15;\n  else if (revenue > 1000000) score += 10;\n  else if (revenue > 100000) score += 5;\n  \n  // Industry Fit Score (0-20 points)\n  const targetIndustries = ['marketing', 'advertising', 'ecommerce', 'retail', 'saas', 'technology'];\n  const industry = (data.industry || '').toLowerCase();\n  if (targetIndustries.some(i => industry.includes(i))) {\n    score += 20;\n  } else if (industry) {\n    score += 5;\n  }\n  \n  // Seniority Score (0-15 points)\n  const seniority = (data.seniority || '').toLowerCase();\n  if (seniority.includes('c-level') || seniority.includes('executive')) score += 15;\n  else if (seniority.includes('vp') || seniority.includes('director')) score += 12;\n  else if (seniority.includes('manager')) score += 8;\n  else if (seniority.includes('senior')) score += 5;\n  \n  // Source Quality Score (0-15 points)\n  const source = (data.source || '').toLowerCase();\n  const sourceScores = {\n    'referral': 15,\n    'partner': 12,\n    'demo_request': 12,\n    'content_download': 10,\n    'webinar': 8,\n    'organic': 6,\n    'paid': 4,\n    'direct': 2\n  };\n  score += sourceScores[source] || 0;\n  \n  // Calculate lead grade\n  let grade = 'D';\n  if (score >= 80) grade = 'A';\n  else if (score >= 60) grade = 'B';\n  else if (score >= 40) grade = 'C';\n  \n  scoredItems.push({\n    json: {\n      ...data,\n      leadScore: score,\n      leadGrade: grade,\n      scoredAt: new Date().toISOString()\n    }\n  });\n}\n\nreturn scoredItems;"
+      },
+      "id": "score-lead",
+      "name": "Score Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 300],
+      "notes": "Assigns lead score (0-100) and grade (A-D) based on enrichment data and engagement signals"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.leadGrade }}",
+              "operation": "equals",
+              "value2": "A"
+            }
+          ]
+        }
+      },
+      "id": "route-grade-a",
+      "name": "Grade A?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 200],
+      "notes": "Routes Grade A leads to sales team immediately"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.leadGrade }}",
+              "operation": "equals",
+              "value2": "B"
+            }
+          ]
+        }
+      },
+      "id": "route-grade-b",
+      "name": "Grade B?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 350],
+      "notes": "Routes Grade B leads to nurture campaign"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "firstName",
+              "value": "={{ $json.firstName }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $json.lastName }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.enrichedCompany }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.leadScore }}"
+            },
+            {
+              "name": "grade",
+              "value": "={{ $json.leadGrade }}"
+            },
+            {
+              "name": "status",
+              "value": "hot_lead"
+            },
+            {
+              "name": "assignTo",
+              "value": "sales_team"
+            },
+            {
+              "name": "priority",
+              "value": "high"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "crm-hot-lead",
+      "name": "CRM: Hot Lead (Sales)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 150],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Creates hot lead in CRM and assigns to sales team for immediate follow-up"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: '🔥 Hot Lead Alert!',\n  blocks: [\n    {\n      type: 'header',\n      text: {\n        type: 'plain_text',\n        text: '🔥 Grade A Lead Captured!'\n      }\n    },\n    {\n      type: 'section',\n      fields: [\n        { type: 'mrkdwn', text: `*Name:*\\n${$json.firstName} ${$json.lastName}` },\n        { type: 'mrkdwn', text: `*Company:*\\n${$json.enrichedCompany}` },\n        { type: 'mrkdwn', text: `*Email:*\\n${$json.email}` },\n        { type: 'mrkdwn', text: `*Score:*\\n${$json.leadScore}/100` },\n        { type: 'mrkdwn', text: `*Title:*\\n${$json.jobTitle || 'N/A'}` },\n        { type: 'mrkdwn', text: `*Source:*\\n${$json.source}` }\n      ]\n    },\n    {\n      type: 'actions',\n      elements: [\n        {\n          type: 'button',\n          text: { type: 'plain_text', text: 'View in CRM' },\n          url: `${$env.CRM_URL}/leads/${$json.leadId}`,\n          style: 'primary'\n        }\n      ]\n    }\n  ]\n}) }}"
+      },
+      "id": "notify-sales",
+      "name": "Notify Sales Team (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2050, 150],
+      "notes": "Sends Slack notification to sales channel for immediate action"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "firstName",
+              "value": "="{{ $json.firstName }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $json.lastName }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.enrichedCompany }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.leadScore }}"
+            },
+            {
+              "name": "grade",
+              "value": "={{ $json.leadGrade }}"
+            },
+            {
+              "name": "status",
+              "value": "nurture"
+            },
+            {
+              "name": "campaignId",
+              "value": "nurture_b_leads"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "crm-nurture-lead",
+      "name": "CRM: Add to Nurture",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Adds Grade B leads to nurture campaign for automated email sequence"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "firstName",
+              "value": "={{ $json.firstName }}"
+            },
+            {
+              "name": "lastName",
+              "value": "={{ $json.lastName }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.enrichedCompany }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.leadScore }}"
+            },
+            {
+              "name": "grade",
+              "value": "={{ $json.leadGrade }}"
+            },
+            {
+              "name": "status",
+              "value": "cold"
+            },
+            {
+              "name": "campaignId",
+              "value": "cold_lead_nurture"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "crm-cold-lead",
+      "name": "CRM: Cold Lead Pool",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 450],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "CRM API"
+        }
+      },
+      "notes": "Adds Grade C/D leads to cold pool for long-term nurture"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  leadId: $json.leadId,\n  score: $json.leadScore,\n  grade: $json.leadGrade,\n  status: 'processed',\n  message: 'Lead successfully captured and routed'\n}) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 300],
+      "notes": "Returns success response to webhook caller"
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ $json.error?.message || 'An error occurred processing the lead' }}",
+        "options": {}
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [650, 500],
+      "notes": "Catches and handles any errors in the workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({\n  text: `⚠️ Lead Intake Error: ${$json.error?.message}`,\n  attachments: [{\n    color: 'danger',\n    fields: [\n      { title: 'Workflow', value: 'Smart Lead Intake', short: true },\n      { title: 'Node', value: $json.error?.node || 'Unknown', short: true },\n      { title: 'Time', value: new Date().toISOString(), short: true }\n    ]\n  }]\n}) }}"
+      },
+      "id": "notify-error",
+      "name": "Notify Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 500],
+      "notes": "Sends error notification to ops team"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: false,\n  error: 'Failed to process lead',\n  message: 'Please try again or contact support'\n}) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 500],
+      "notes": "Returns error response to webhook caller"
+    }
+  ],
+  "connections": {
+    "Lead Intake Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead Data": {
+      "main": [
+        [
+          {
+            "node": "Log to Lead Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enrich with Clearbit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich with Clearbit": {
+      "main": [
+        [
+          {
+            "node": "Enrichment Successful?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrichment Successful?": {
+      "main": [
+        [
+          {
+            "node": "Merge Enriched Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark No Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Enriched Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Enrichment Paths",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark No Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Merge Enrichment Paths",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Enrichment Paths": {
+      "main": [
+        [
+          {
+            "node": "Score Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Lead": {
+      "main": [
+        [
+          {
+            "node": "Grade A?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Grade B?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grade A?": {
+      "main": [
+        [
+          {
+            "node": "CRM: Hot Lead (Sales)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grade B?": {
+      "main": [
+        [
+          {
+            "node": "CRM: Add to Nurture",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CRM: Cold Lead Pool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM: Hot Lead (Sales)": {
+      "main": [
+        [
+          {
+            "node": "Notify Sales Team (Slack)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Sales Team (Slack)": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM: Add to Nurture": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM: Cold Lead Pool": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Notify Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "1",
+      "name": "Lead Capture"
+    },
+    {
+      "createdAt": "2025-01-15T10:00:00.000Z",
+      "updatedAt": "2025-01-15T10:00:00.000Z",
+      "id": "2",
+      "name": "NEXUS"
+    }
+  ],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "nexus-lead-intake"
+  },
+  "active": true
+}

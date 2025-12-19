@@ -1,0 +1,1653 @@
+// NEXUS Platform - Complete Database Schema
+// Prisma Schema for PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTH & USERS
+// ============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  BRAND_MANAGER
+  CREATOR
+  AGENCY
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+model User {
+  id                String            @id @default(cuid())
+  email             String            @unique
+  emailVerified     DateTime?
+  passwordHash      String
+  firstName         String?
+  lastName          String?
+  displayName       String?
+  avatar            String?
+  bio               String?
+  phone             String?
+  phoneVerified     DateTime?
+  role              UserRole          @default(CREATOR)
+  status            UserStatus        @default(PENDING_VERIFICATION)
+  mfaEnabled        Boolean           @default(false)
+  mfaSecret         String?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  failedLoginCount  Int               @default(0)
+  lockedUntil       DateTime?
+  timezone          String            @default("UTC")
+  locale            String            @default("en")
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+
+  // Relations
+  sessions                Session[]
+  refreshTokens           RefreshToken[]
+  verificationCodes       VerificationCode[]
+  passwordResets          PasswordReset[]
+  auditLogs               AuditLog[]
+  organizationMembers     OrganizationMember[]
+  organizationsOwned      Organization[]        @relation("OrganizationOwner")
+  organizationInvites     OrganizationInvite[]
+  apiKeys                 ApiKey[]
+  creator                 Creator?
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  consentRecords          ConsentRecord[]
+  dataExportRequests      DataExportRequest[]
+
+  @@index([email])
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id           String    @id @default(cuid())
+  userId       String
+  token        String    @unique
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model VerificationCode {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String
+  type      String   // EMAIL, PHONE, MFA
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([code])
+  @@map("verification_codes")
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("password_resets")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  resource    String
+  resourceId  String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// ORGANIZATIONS
+// ============================================================================
+
+enum OrganizationType {
+  BRAND
+  AGENCY
+  ENTERPRISE
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  CANCELLED
+}
+
+model Organization {
+  id              String              @id @default(cuid())
+  name            String
+  slug            String              @unique
+  type            OrganizationType
+  status          OrganizationStatus  @default(TRIAL)
+  logo            String?
+  website         String?
+  description     String?
+  industry        String?
+  size            String?
+  ownerId         String
+  billingEmail    String?
+  settings        Json?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  // Relations
+  owner              User                  @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  members            OrganizationMember[]
+  invites            OrganizationInvite[]
+  apiKeys            ApiKey[]
+  campaigns          Campaign[]
+  ambassadorPrograms AmbassadorProgram[]
+  subscriptions      Subscription[]
+  invoices           Invoice[]
+  paymentMethods     PaymentMethod[]
+  usageRecords       UsageRecord[]
+  dashboards         Dashboard[]
+  integrations       Integration[]
+  webhooks           Webhook[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@index([status])
+  @@map("organizations")
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+  BILLING
+  VIEWER
+}
+
+model OrganizationMember {
+  id             String      @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MemberRole  @default(MEMBER)
+  permissions    Json?
+  joinedAt       DateTime    @default(now())
+  invitedBy      String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model OrganizationInvite {
+  id             String        @id @default(cuid())
+  organizationId String
+  email          String
+  role           MemberRole    @default(MEMBER)
+  invitedBy      String
+  token          String        @unique
+  status         InviteStatus  @default(PENDING)
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime      @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation(fields: [invitedBy], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@index([organizationId])
+  @@map("organization_invites")
+}
+
+model ApiKey {
+  id             String        @id @default(cuid())
+  organizationId String
+  userId         String
+  name           String
+  key            String        @unique
+  keyHash        String
+  permissions    Json?
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime      @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([key])
+  @@index([organizationId])
+  @@map("api_keys")
+}
+
+// ============================================================================
+// CREATORS
+// ============================================================================
+
+enum CreatorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+model Creator {
+  id                String         @id @default(cuid())
+  userId            String         @unique
+  bio               String?
+  niche             String[]
+  verified          Boolean        @default(false)
+  verifiedAt        DateTime?
+  reputationScore   Float          @default(0)
+  completionRate    Float          @default(0)
+  avgResponseTime   Int?           // in minutes
+  totalEarnings     Decimal        @default(0) @db.Decimal(10, 2)
+  status            CreatorStatus  @default(PENDING_VERIFICATION)
+  socialHandles     Json?          // {instagram: "", tiktok: "", youtube: ""}
+  preferences       Json?
+  metadata          Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio            CreatorPortfolio[]
+  metrics              CreatorMetrics[]
+  earnings             CreatorEarnings[]
+  reviews              CreatorReview[]
+  verifications        CreatorVerification[]
+  applications         CreatorApplication[]
+  bids                 Bid[]
+  contracts            Contract[]
+  ambassadorships      Ambassador[]
+  content              Content[]
+
+  @@index([userId])
+  @@index([verified])
+  @@index([status])
+  @@index([reputationScore])
+  @@map("creators")
+}
+
+model CreatorPortfolio {
+  id          String   @id @default(cuid())
+  creatorId   String
+  title       String
+  description String?
+  url         String
+  thumbnail   String?
+  platform    String
+  metrics     Json?    // views, likes, engagement
+  featured    Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([featured])
+  @@map("creator_portfolio")
+}
+
+model CreatorMetrics {
+  id            String   @id @default(cuid())
+  creatorId     String
+  platform      String
+  followers     Int      @default(0)
+  engagement    Float    @default(0)
+  avgViews      Int      @default(0)
+  avgLikes      Int      @default(0)
+  avgComments   Int      @default(0)
+  avgShares     Int      @default(0)
+  audienceDemo  Json?
+  recordedAt    DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId, platform])
+  @@index([recordedAt])
+  @@map("creator_metrics")
+}
+
+model CreatorEarnings {
+  id            String   @id @default(cuid())
+  creatorId     String
+  amount        Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
+  source        String   // CAMPAIGN, AMBASSADOR, MARKETPLACE
+  sourceId      String
+  status        String   // PENDING, PROCESSING, PAID
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("creator_earnings")
+}
+
+model CreatorReview {
+  id         String   @id @default(cuid())
+  creatorId  String
+  campaignId String?
+  rating     Int      // 1-5
+  review     String?
+  reviewerId String
+  response   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([rating])
+  @@map("creator_reviews")
+}
+
+enum VerificationMethod {
+  SOCIAL_CONNECT
+  DOCUMENT_UPLOAD
+  VIDEO_VERIFICATION
+  PHONE_VERIFICATION
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CreatorVerification {
+  id         String              @id @default(cuid())
+  creatorId  String
+  method     VerificationMethod
+  status     VerificationStatus  @default(PENDING)
+  data       Json?
+  verifiedBy String?
+  notes      String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([creatorId])
+  @@index([status])
+  @@map("creator_verifications")
+}
+
+// ============================================================================
+// CAMPAIGNS
+// ============================================================================
+
+enum CampaignType {
+  UGC
+  BRAND_AMBASSADOR
+  PRODUCT_REVIEW
+  SOCIAL_MEDIA
+  INFLUENCER
+  EVENT
+  CUSTOM
+}
+
+enum CampaignStatus {
+  DRAFT
+  PUBLISHED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+model Campaign {
+  id             String          @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  type           CampaignType
+  status         CampaignStatus  @default(DRAFT)
+  description    String?
+  objectives     String[]
+  budget         Decimal         @db.Decimal(10, 2)
+  currency       String          @default("USD")
+  startDate      DateTime?
+  endDate        DateTime?
+  timeline       Json?
+  requirements   Json?
+  tags           String[]
+  visibility     String          @default("PUBLIC") // PUBLIC, PRIVATE, INVITE_ONLY
+  createdBy      String
+  settings       Json?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  briefs            CampaignBrief[]
+  deliverables      Deliverable[]
+  milestones        Milestone[]
+  applications      CreatorApplication[]
+  content           CampaignContent[]
+  opportunities     Opportunity[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model CampaignBrief {
+  id          String   @id @default(cuid())
+  campaignId  String
+  title       String
+  content     String
+  attachments Json?
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_briefs")
+}
+
+enum DeliverableType {
+  VIDEO
+  IMAGE
+  STORY
+  REEL
+  POST
+  ARTICLE
+  REVIEW
+  TESTIMONIAL
+  CUSTOM
+}
+
+enum DeliverableStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  REVISION_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+model Deliverable {
+  id             String             @id @default(cuid())
+  campaignId     String
+  name           String
+  description    String?
+  type           DeliverableType
+  status         DeliverableStatus  @default(PENDING)
+  requirements   Json?
+  dueDate        DateTime?
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  rejectionNotes String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  campaign Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  content  CampaignContent[]
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("deliverables")
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Milestone {
+  id          String          @id @default(cuid())
+  campaignId  String
+  name        String
+  description String?
+  status      MilestoneStatus @default(PENDING)
+  dueDate     DateTime?
+  completedAt DateTime?
+  order       Int
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@map("milestones")
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model CreatorApplication {
+  id          String            @id @default(cuid())
+  campaignId  String
+  creatorId   String
+  status      ApplicationStatus @default(PENDING)
+  pitch       String?
+  proposedRate Decimal?         @db.Decimal(10, 2)
+  portfolio   Json?
+  answers     Json?
+  reviewedBy  String?
+  reviewNotes String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creator  Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, creatorId])
+  @@index([campaignId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("creator_applications")
+}
+
+model CampaignContent {
+  id             String   @id @default(cuid())
+  campaignId     String
+  deliverableId  String?
+  contentId      String
+  submittedBy    String
+  submittedAt    DateTime @default(now())
+  approvedAt     DateTime?
+  approvedBy     String?
+  rejectedAt     DateTime?
+  rejectedBy     String?
+  rejectionNotes String?
+  metadata       Json?
+
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  deliverable  Deliverable? @relation(fields: [deliverableId], references: [id], onDelete: SetNull)
+  content      Content      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([contentId])
+  @@index([deliverableId])
+  @@map("campaign_content")
+}
+
+// ============================================================================
+// CONTENT
+// ============================================================================
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LINK
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+  REVIEWING
+}
+
+model Content {
+  id                String            @id @default(cuid())
+  creatorId         String
+  type              ContentType
+  title             String?
+  description       String?
+  url               String
+  thumbnail         String?
+  duration          Int?              // in seconds
+  fileSize          Int?              // in bytes
+  mimeType          String?
+  dimensions        Json?             // {width, height}
+  moderationStatus  ModerationStatus  @default(PENDING)
+  moderatedAt       DateTime?
+  moderatedBy       String?
+  moderationNotes   String?
+  metadata          Json?
+  isPublic          Boolean           @default(false)
+  downloadCount     Int               @default(0)
+  viewCount         Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Relations
+  creator         Creator           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  tags            ContentTag[]
+  rights          ContentRights[]
+  versions        ContentVersion[]
+  campaignContent CampaignContent[]
+  productTags     ProductTag[]
+
+  @@index([creatorId])
+  @@index([type])
+  @@index([moderationStatus])
+  @@index([createdAt])
+  @@map("content")
+}
+
+model ContentTag {
+  id        String   @id @default(cuid())
+  contentId String
+  tag       String
+  createdAt DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, tag])
+  @@index([tag])
+  @@map("content_tags")
+}
+
+enum RightsType {
+  EXCLUSIVE
+  NON_EXCLUSIVE
+  LIMITED
+  PERPETUAL
+}
+
+model ContentRights {
+  id           String     @id @default(cuid())
+  contentId    String
+  rightsType   RightsType
+  grantedTo    String?    // organization id
+  territory    String[]
+  channels     String[]
+  startDate    DateTime
+  endDate      DateTime?
+  restrictions Json?
+  createdAt    DateTime   @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@index([grantedTo])
+  @@map("content_rights")
+}
+
+model ContentVersion {
+  id        String   @id @default(cuid())
+  contentId String
+  version   Int
+  url       String
+  changes   String?
+  createdBy String
+  createdAt DateTime @default(now())
+
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, version])
+  @@index([contentId])
+  @@map("content_versions")
+}
+
+// ============================================================================
+// MARKETPLACE
+// ============================================================================
+
+enum OpportunityType {
+  ONE_TIME
+  RECURRING
+  PROJECT
+  RETAINER
+}
+
+enum OpportunityStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Opportunity {
+  id          String             @id @default(cuid())
+  campaignId  String?
+  title       String
+  description String
+  type        OpportunityType
+  status      OpportunityStatus  @default(DRAFT)
+  budget      Decimal            @db.Decimal(10, 2)
+  currency    String             @default("USD")
+  requirements Json?
+  deadline    DateTime?
+  publishedAt DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  campaign  Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  bids      Bid[]
+  contracts Contract[]
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([publishedAt])
+  @@map("opportunities")
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+model Bid {
+  id            String    @id @default(cuid())
+  opportunityId String
+  creatorId     String
+  amount        Decimal   @db.Decimal(10, 2)
+  currency      String    @default("USD")
+  proposal      String
+  timeline      String?
+  status        BidStatus @default(PENDING)
+  submittedAt   DateTime  @default(now())
+  respondedAt   DateTime?
+  responseNotes String?
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  creator     Creator     @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, creatorId])
+  @@index([opportunityId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("bids")
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  COMPLETED
+  TERMINATED
+  DISPUTED
+}
+
+model Contract {
+  id            String          @id @default(cuid())
+  opportunityId String?
+  creatorId     String
+  title         String
+  terms         String
+  amount        Decimal         @db.Decimal(10, 2)
+  currency      String          @default("USD")
+  status        ContractStatus  @default(DRAFT)
+  startDate     DateTime
+  endDate       DateTime?
+  signedAt      DateTime?
+  completedAt   DateTime?
+  terminatedAt  DateTime?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  opportunity Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  creator     Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  payouts     Payout[]
+  disputes    Dispute[]
+
+  @@index([opportunityId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("contracts")
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+model Payout {
+  id               String        @id @default(cuid())
+  contractId       String
+  amount           Decimal       @db.Decimal(10, 2)
+  currency         String        @default("USD")
+  status           PayoutStatus  @default(PENDING)
+  payoutMethodId   String?
+  transactionId    String?
+  scheduledFor     DateTime?
+  processedAt      DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  failureReason    String?
+  metadata         Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  contract      Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  payoutMethod  PayoutMethod?  @relation(fields: [payoutMethodId], references: [id], onDelete: SetNull)
+
+  @@index([contractId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("payouts")
+}
+
+enum PayoutMethodType {
+  BANK_ACCOUNT
+  PAYPAL
+  STRIPE
+  WISE
+  CRYPTO
+}
+
+model PayoutMethod {
+  id           String           @id @default(cuid())
+  userId       String
+  type         PayoutMethodType
+  details      Json             // encrypted
+  isDefault    Boolean          @default(false)
+  isVerified   Boolean          @default(false)
+  verifiedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  payouts Payout[]
+
+  @@index([userId])
+  @@map("payout_methods")
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+model Dispute {
+  id          String        @id @default(cuid())
+  contractId  String
+  raisedBy    String
+  reason      String
+  description String
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([status])
+  @@map("disputes")
+}
+
+model AmbassadorProgram {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  benefits        Json?
+  requirements    Json?
+  commission      Decimal  @db.Decimal(5, 2)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ambassadors  Ambassador[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@map("ambassador_programs")
+}
+
+enum AmbassadorStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model Ambassador {
+  id         String            @id @default(cuid())
+  programId  String
+  creatorId  String
+  status     AmbassadorStatus  @default(PENDING)
+  joinedAt   DateTime          @default(now())
+  metrics    Json?
+  updatedAt  DateTime          @updatedAt
+
+  program AmbassadorProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  creator Creator           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, creatorId])
+  @@index([programId])
+  @@index([creatorId])
+  @@map("ambassadors")
+}
+
+// ============================================================================
+// COMMERCE
+// ============================================================================
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sku         String?  @unique
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  images      String[]
+  url         String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tags     ProductTag[]
+  orders   Order[]
+
+  @@index([sku])
+  @@map("products")
+}
+
+model ProductTag {
+  id        String   @id @default(cuid())
+  productId String
+  contentId String
+  position  Json?    // {x, y} coordinates
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([contentId])
+  @@map("product_tags")
+}
+
+model ShoppableGallery {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  slug        String   @unique
+  contentIds  String[]
+  isPublic    Boolean  @default(false)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@map("shoppable_galleries")
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  productId    String
+  customerId   String?
+  quantity     Int
+  totalAmount  Decimal     @db.Decimal(10, 2)
+  currency     String      @default("USD")
+  status       OrderStatus @default(PENDING)
+  shippingInfo Json?
+  trackingUrl  String?
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@index([customerId])
+  @@index([status])
+  @@map("orders")
+}
+
+enum AttributionModel {
+  FIRST_CLICK
+  LAST_CLICK
+  LINEAR
+  TIME_DECAY
+  POSITION_BASED
+}
+
+model AttributionEvent {
+  id              String           @id @default(cuid())
+  contentId       String?
+  creatorId       String?
+  eventType       String           // VIEW, CLICK, CONVERSION
+  attributionModel AttributionModel @default(LAST_CLICK)
+  value           Decimal?         @db.Decimal(10, 2)
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  referrer        String?
+  createdAt       DateTime         @default(now())
+
+  @@index([contentId])
+  @@index([creatorId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("attribution_events")
+}
+
+// ============================================================================
+// BILLING & SUBSCRIPTIONS
+// ============================================================================
+
+enum PlanInterval {
+  MONTH
+  YEAR
+}
+
+enum PlanTier {
+  FREE
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+model Plan {
+  id            String       @id @default(cuid())
+  name          String
+  tier          PlanTier
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  currency      String       @default("USD")
+  interval      PlanInterval
+  features      Json
+  limits        Json         // {campaigns: 10, creators: 100, storage: "10GB"}
+  isActive      Boolean      @default(true)
+  trialDays     Int          @default(0)
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("plans")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIAL
+  PAUSED
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  organizationId    String
+  planId            String
+  status            SubscriptionStatus @default(TRIAL)
+  currentPeriodStart DateTime
+  currentPeriodEnd  DateTime
+  trialStart        DateTime?
+  trialEnd          DateTime?
+  cancelledAt       DateTime?
+  cancelAtPeriodEnd Boolean            @default(false)
+  metadata          Json?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan           Plan            @relation(fields: [planId], references: [id])
+  invoices       Invoice[]
+  usageRecords   UsageRecord[]
+  entitlements   Entitlement[]
+
+  @@index([organizationId])
+  @@index([planId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  organizationId  String
+  subscriptionId  String?
+  number          String        @unique
+  status          InvoiceStatus @default(OPEN)
+  subtotal        Decimal       @db.Decimal(10, 2)
+  tax             Decimal       @default(0) @db.Decimal(10, 2)
+  total           Decimal       @db.Decimal(10, 2)
+  currency        String        @default("USD")
+  dueDate         DateTime
+  paidAt          DateTime?
+  voidedAt        DateTime?
+  lineItems       Json
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([number])
+  @@map("invoices")
+}
+
+enum PaymentMethodTypeEnum {
+  CARD
+  BANK_ACCOUNT
+  PAYPAL
+  STRIPE
+}
+
+model PaymentMethod {
+  id              String                @id @default(cuid())
+  organizationId  String
+  type            PaymentMethodTypeEnum
+  last4           String?
+  brand           String?
+  expiryMonth     Int?
+  expiryYear      Int?
+  isDefault       Boolean               @default(false)
+  billingDetails  Json?
+  metadata        Json?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("payment_methods")
+}
+
+model UsageRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  subscriptionId String
+  metric         String   // campaigns_created, storage_used, api_calls
+  quantity       Int
+  timestamp      DateTime @default(now())
+  metadata       Json?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([subscriptionId, metric])
+  @@index([timestamp])
+  @@map("usage_records")
+}
+
+model Entitlement {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  feature        String
+  limit          Int?
+  isUnlimited    Boolean  @default(false)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, feature])
+  @@index([subscriptionId])
+  @@map("entitlements")
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model MetricSnapshot {
+  id         String   @id @default(cuid())
+  entityType String   // campaign, creator, content
+  entityId   String
+  metric     String
+  value      Decimal  @db.Decimal(15, 2)
+  dimensions Json?
+  timestamp  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([metric])
+  @@index([timestamp])
+  @@map("metric_snapshots")
+}
+
+model Dashboard {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  config         Json     // widget configurations
+  isDefault      Boolean  @default(false)
+  createdBy      String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("dashboards")
+}
+
+enum ReportType {
+  CAMPAIGN_PERFORMANCE
+  CREATOR_ANALYTICS
+  CONTENT_METRICS
+  FINANCIAL
+  CUSTOM
+}
+
+enum ReportStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+}
+
+model Report {
+  id          String        @id @default(cuid())
+  name        String
+  type        ReportType
+  status      ReportStatus  @default(PENDING)
+  parameters  Json
+  result      Json?
+  fileUrl     String?
+  generatedBy String
+  generatedAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([type])
+  @@index([status])
+  @@index([generatedBy])
+  @@map("reports")
+}
+
+enum AlertTrigger {
+  THRESHOLD_EXCEEDED
+  THRESHOLD_BELOW
+  ANOMALY_DETECTED
+  STATUS_CHANGE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  trigger     AlertTrigger
+  severity    AlertSeverity
+  conditions  Json
+  recipients  String[]
+  isActive    Boolean       @default(true)
+  lastFiredAt DateTime?
+  createdBy   String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([isActive])
+  @@index([severity])
+  @@map("alerts")
+}
+
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+enum NotificationType {
+  CAMPAIGN_UPDATE
+  APPLICATION_STATUS
+  CONTENT_APPROVED
+  CONTENT_REJECTED
+  PAYMENT_RECEIVED
+  MESSAGE
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel
+  title     String
+  message   String
+  data      Json?
+  readAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([readAt])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id      String  @id @default(cuid())
+  userId  String
+  type    NotificationType
+  email   Boolean @default(true)
+  sms     Boolean @default(false)
+  push    Boolean @default(true)
+  inApp   Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+enum IntegrationType {
+  SOCIAL_MEDIA
+  PAYMENT
+  ANALYTICS
+  STORAGE
+  CRM
+  EMAIL
+  CUSTOM
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  PENDING
+}
+
+model Integration {
+  id              String            @id @default(cuid())
+  organizationId  String
+  type            IntegrationType
+  provider        String            // instagram, stripe, google_analytics
+  status          IntegrationStatus @default(PENDING)
+  config          Json?
+  lastSyncAt      DateTime?
+  lastError       String?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  credentials  IntegrationCredential[]
+
+  @@index([organizationId])
+  @@index([provider])
+  @@index([status])
+  @@map("integrations")
+}
+
+model IntegrationCredential {
+  id            String   @id @default(cuid())
+  integrationId String
+  key           String
+  value         String   // encrypted
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, key])
+  @@index([integrationId])
+  @@map("integration_credentials")
+}
+
+enum WebhookEvent {
+  CAMPAIGN_CREATED
+  CAMPAIGN_UPDATED
+  APPLICATION_SUBMITTED
+  CONTENT_UPLOADED
+  PAYMENT_COMPLETED
+  ALL
+}
+
+model Webhook {
+  id             String        @id @default(cuid())
+  organizationId String
+  url            String
+  events         WebhookEvent[]
+  secret         String
+  isActive       Boolean       @default(true)
+  lastTriggeredAt DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         WebhookLog[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@map("webhooks")
+}
+
+enum WebhookLogStatus {
+  SUCCESS
+  FAILED
+  RETRY
+}
+
+model WebhookLog {
+  id         String           @id @default(cuid())
+  webhookId  String
+  event      WebhookEvent
+  payload    Json
+  response   Json?
+  status     WebhookLogStatus
+  statusCode Int?
+  attempts   Int              @default(1)
+  createdAt  DateTime         @default(now())
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("webhook_logs")
+}
+
+// ============================================================================
+// COMPLIANCE & DATA PRIVACY
+// ============================================================================
+
+enum ConsentType {
+  MARKETING
+  ANALYTICS
+  DATA_PROCESSING
+  THIRD_PARTY_SHARING
+}
+
+model ConsentRecord {
+  id         String      @id @default(cuid())
+  userId     String
+  type       ConsentType
+  granted    Boolean
+  version    String
+  ipAddress  String?
+  userAgent  String?
+  grantedAt  DateTime    @default(now())
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@map("consent_records")
+}
+
+enum DataExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model DataExportRequest {
+  id          String           @id @default(cuid())
+  userId      String
+  status      DataExportStatus @default(PENDING)
+  downloadUrl String?
+  expiresAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("data_export_requests")
+}
+
+enum RightsEventType {
+  GRANTED
+  REVOKED
+  TRANSFERRED
+  EXPIRED
+}
+
+model RightsLedgerEntry {
+  id         String           @id @default(cuid())
+  contentId  String
+  eventType  RightsEventType
+  from       String?
+  to         String?
+  rightsData Json
+  createdBy  String
+  createdAt  DateTime         @default(now())
+
+  @@index([contentId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("rights_ledger_entries")
+}

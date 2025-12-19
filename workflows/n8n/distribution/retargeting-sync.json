@@ -1,0 +1,88 @@
+{
+  "name": "Retargeting Audience Sync - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 6}]}},
+      "id": "schedule",
+      "name": "Sync Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Syncs audience segments to ad platforms every 6 hours"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/audiences/segments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "fetch-segments",
+      "name": "Fetch Audience Segments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Retrieves updated audience segments from database"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.FB_AD_ACCOUNT_ID }}/customaudiences",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {"name": "name", "value": "={{ $json.segmentName }}"},
+            {"name": "subtype", "value": "CUSTOM"},
+            {"name": "customer_file_source", "value": "USER_PROVIDED_ONLY"},
+            {"name": "access_token", "value": "={{ $env.FB_ACCESS_TOKEN }}"}
+          ]
+        }
+      },
+      "id": "sync-facebook",
+      "name": "Sync to Facebook Ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 250],
+      "notes": "Creates/updates custom audience in Facebook Ads"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://googleads.googleapis.com/v14/customers/{{ $env.GOOGLE_ADS_CUSTOMER_ID }}/userLists:mutate",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ operations: [{ create: { name: $json.segmentName, membershipLifeSpan: 540, membershipStatus: 'OPEN' }}] }) }}"
+      },
+      "id": "sync-google",
+      "name": "Sync to Google Ads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 350],
+      "notes": "Creates/updates audience list in Google Ads"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/analytics/audience-sync",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ segmentId: $json.segmentId, platforms: ['facebook', 'google'], syncedAt: $now.toISO(), audienceSize: $json.size }) }}"
+      },
+      "id": "log-sync",
+      "name": "Log Sync Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "notes": "Logs audience sync to analytics"
+    }
+  ],
+  "connections": {
+    "Sync Every 6 Hours": {"main": [[{"node": "Fetch Audience Segments", "type": "main", "index": 0}]]},
+    "Fetch Audience Segments": {"main": [[{"node": "Sync to Facebook Ads", "type": "main", "index": 0}, {"node": "Sync to Google Ads", "type": "main", "index": 0}]]},
+    "Sync to Facebook Ads": {"main": [[{"node": "Log Sync Activity", "type": "main", "index": 0}]]},
+    "Sync to Google Ads": {"main": [[{"node": "Log Sync Activity", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "4", "name": "Distribution"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

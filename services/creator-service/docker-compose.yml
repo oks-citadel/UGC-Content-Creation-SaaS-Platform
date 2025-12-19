@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus-creator-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus_password
+      POSTGRES_DB: nexus_creators
+    ports:
+      - '5434:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexus']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Creator Service
+  creator-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-creator-service
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: postgresql://nexus:nexus_password@postgres:5432/nexus_creators?schema=public
+      JWT_SECRET: dev-secret-key-change-in-production
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: info
+    ports:
+      - '3003:3003'
+    volumes:
+      - ./src:/app/src
+      - ./prisma:/app/prisma
+    command: npm run dev
+
+  # Prisma Studio (Database GUI)
+  prisma-studio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-creator-prisma-studio
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://nexus:nexus_password@postgres:5432/nexus_creators?schema=public
+    ports:
+      - '5555:5555'
+    volumes:
+      - ./prisma:/app/prisma
+    command: npx prisma studio --port 5555 --browser none
+
+volumes:
+  postgres_data:

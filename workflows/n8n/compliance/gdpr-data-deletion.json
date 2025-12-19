@@ -1,0 +1,140 @@
+{
+  "name": "GDPR Data Deletion - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "gdpr-delete-request", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Data Deletion Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "gdpr-delete",
+      "notes": "User requests data deletion under GDPR Article 17"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.API_URL }}/users/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "delete-user",
+      "name": "Delete User Account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Deletes user account and profile data"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.API_URL }}/content/user/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "delete-content",
+      "name": "Delete User Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Deletes all user-generated content"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.API_URL }}/analytics/user/{{ $json.userId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "delete-analytics",
+      "name": "Delete Analytics Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Deletes user analytics and activity logs"
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $env.STRIPE_API_URL }}/customers/{{ $json.stripeCustomerId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "delete-stripe",
+      "name": "Delete Stripe Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 500],
+      "credentials": {"httpHeaderAuth": {"id": "12", "name": "Stripe API"}},
+      "notes": "Deletes customer data from Stripe"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge",
+      "name": "Merge Deletion Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "notes": "Waits for all deletions to complete"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.DPO_EMAIL }}",
+        "toEmail": "={{ $json.userEmail }}",
+        "subject": "Your NEXUS Data Has Been Deleted",
+        "emailType": "html",
+        "message": "Dear {{ $json.userName }},\\n\\nYour personal data has been permanently deleted from NEXUS systems in accordance with GDPR Article 17 (Right to Erasure).\\n\\nDeleted data includes:\\n- User account and profile\\n- All content and media\\n- Analytics and activity logs\\n- Payment information\\n\\nSome data may be retained for legal compliance (invoices, tax records) as required by law.\\n\\nIf you have questions, contact {{ $env.DPO_EMAIL }}.\\n\\nBest regards,\\nNEXUS Data Protection Team"
+      },
+      "id": "email",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [850, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/compliance/log",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ type: 'gdpr_deletion', userId: $json.userId, timestamp: new Date().toISOString(), status: 'completed', retainedData: 'financial_records' }) }}"
+      },
+      "id": "log",
+      "name": "Log Deletion Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "notes": "Creates audit log of deletion"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'All user data has been permanently deleted' }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Data Deletion Request": {"main": [[{"node": "Delete User Account", "type": "main", "index": 0}, {"node": "Delete User Content", "type": "main", "index": 0}, {"node": "Delete Analytics Data", "type": "main", "index": 0}, {"node": "Delete Stripe Customer", "type": "main", "index": 0}]]},
+    "Delete User Account": {"main": [[{"node": "Merge Deletion Results", "type": "main", "index": 0}]]},
+    "Delete User Content": {"main": [[{"node": "Merge Deletion Results", "type": "main", "index": 1}]]},
+    "Delete Analytics Data": {"main": [[{"node": "Merge Deletion Results", "type": "main", "index": 2}]]},
+    "Delete Stripe Customer": {"main": [[{"node": "Merge Deletion Results", "type": "main", "index": 3}]]},
+    "Merge Deletion Results": {"main": [[{"node": "Send Confirmation Email", "type": "main", "index": 0}]]},
+    "Send Confirmation Email": {"main": [[{"node": "Log Deletion Activity", "type": "main", "index": 0}]]},
+    "Log Deletion Activity": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "8", "name": "Compliance"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

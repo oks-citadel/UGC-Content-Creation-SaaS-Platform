@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+spec:
+  tls:
+  - hosts:
+    - staging.nexus.example.com
+    - api.staging.nexus.example.com
+    - creators.staging.nexus.example.com
+    - brands.staging.nexus.example.com
+    - admin.staging.nexus.example.com
+    secretName: nexus-staging-tls
+  rules:
+  - host: api.staging.nexus.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: staging-api-gateway
+            port:
+              number: 80
+  - host: staging.nexus.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: staging-web-app
+            port:
+              number: 80

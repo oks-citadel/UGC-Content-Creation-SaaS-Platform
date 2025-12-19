@@ -1,0 +1,281 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "name": "CreatorBridge Alert Rules",
+    "description": "Azure Monitor alert rules for platform monitoring"
+  },
+  "parameters": {
+    "appInsightsId": {
+      "type": "string"
+    },
+    "aksClusterId": {
+      "type": "string"
+    },
+    "postgresId": {
+      "type": "string"
+    },
+    "actionGroupId": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "production"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-high-error-rate",
+      "location": "global",
+      "properties": {
+        "description": "Alert when error rate exceeds 5%",
+        "severity": 1,
+        "enabled": true,
+        "scopes": ["[parameters('appInsightsId')]"],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighErrorRate",
+              "metricName": "requests/failed",
+              "metricNamespace": "microsoft.insights/components",
+              "operator": "GreaterThan",
+              "threshold": 5,
+              "timeAggregation": "Percent",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]",
+            "webHookProperties": {
+              "alertType": "error-rate",
+              "environment": "[parameters('environment')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-high-latency",
+      "location": "global",
+      "properties": {
+        "description": "Alert when P95 latency exceeds 2 seconds",
+        "severity": 2,
+        "enabled": true,
+        "scopes": ["[parameters('appInsightsId')]"],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighLatency",
+              "metricName": "requests/duration",
+              "metricNamespace": "microsoft.insights/components",
+              "operator": "GreaterThan",
+              "threshold": 2000,
+              "timeAggregation": "percentile_95",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-aks-high-cpu",
+      "location": "global",
+      "properties": {
+        "description": "Alert when AKS node CPU exceeds 80%",
+        "severity": 2,
+        "enabled": true,
+        "scopes": ["[parameters('aksClusterId')]"],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighCPU",
+              "metricName": "node_cpu_usage_percentage",
+              "metricNamespace": "Microsoft.ContainerService/managedClusters",
+              "operator": "GreaterThan",
+              "threshold": 80,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-aks-high-memory",
+      "location": "global",
+      "properties": {
+        "description": "Alert when AKS node memory exceeds 85%",
+        "severity": 2,
+        "enabled": true,
+        "scopes": ["[parameters('aksClusterId')]"],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighMemory",
+              "metricName": "node_memory_rss_percentage",
+              "metricNamespace": "Microsoft.ContainerService/managedClusters",
+              "operator": "GreaterThan",
+              "threshold": 85,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-postgres-connections",
+      "location": "global",
+      "properties": {
+        "description": "Alert when PostgreSQL connection usage exceeds 80%",
+        "severity": 2,
+        "enabled": true,
+        "scopes": ["[parameters('postgresId')]"],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighConnections",
+              "metricName": "active_connections",
+              "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "operator": "GreaterThan",
+              "threshold": 80,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-postgres-storage",
+      "location": "global",
+      "properties": {
+        "description": "Alert when PostgreSQL storage exceeds 80%",
+        "severity": 2,
+        "enabled": true,
+        "scopes": ["[parameters('postgresId')]"],
+        "evaluationFrequency": "PT15M",
+        "windowSize": "PT1H",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighStorage",
+              "metricName": "storage_percent",
+              "metricNamespace": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "operator": "GreaterThan",
+              "threshold": 80,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "creatorbridge-zero-requests",
+      "location": "global",
+      "properties": {
+        "description": "Critical: No requests received (potential outage)",
+        "severity": 0,
+        "enabled": true,
+        "scopes": ["[parameters('appInsightsId')]"],
+        "evaluationFrequency": "PT1M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "ZeroRequests",
+              "metricName": "requests/count",
+              "metricNamespace": "microsoft.insights/components",
+              "operator": "LessThanOrEqual",
+              "threshold": 0,
+              "timeAggregation": "Total",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[parameters('actionGroupId')]",
+            "webHookProperties": {
+              "alertType": "outage",
+              "priority": "P0"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "alertRuleIds": {
+      "type": "array",
+      "value": [
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-high-error-rate')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-high-latency')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-aks-high-cpu')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-aks-high-memory')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-postgres-connections')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-postgres-storage')]",
+        "[resourceId('Microsoft.Insights/metricAlerts', 'creatorbridge-zero-requests')]"
+      ]
+    }
+  }
+}

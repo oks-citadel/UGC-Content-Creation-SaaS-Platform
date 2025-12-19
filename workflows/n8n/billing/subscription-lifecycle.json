@@ -1,0 +1,80 @@
+{
+  "name": "Subscription Lifecycle - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "days", "daysInterval": 1}]}, "triggerTimes": {"item": [{"hour": 8, "minute": 0}]}},
+      "id": "daily",
+      "name": "Daily Check at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Runs daily to manage subscription lifecycle"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/subscriptions/expiring-soon",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "days", "value": "7"}]}
+      },
+      "id": "fetch-expiring",
+      "name": "Fetch Expiring Subscriptions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Gets subscriptions expiring in 7 days"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your NEXUS subscription renews in 7 days",
+        "emailType": "html",
+        "message": "Hi {{ $json.name }},\\n\\nYour NEXUS subscription will renew on {{ $json.renewalDate }}.\\n\\nPlan: {{ $json.planName }}\\nAmount: ${{ $json.amount }}/{{ $json.interval }}\\n\\n[Manage Subscription]({{ $env.APP_URL }}/billing)"
+      },
+      "id": "renewal-reminder",
+      "name": "Send Renewal Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/subscriptions/cancelled",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "gracePeriod", "value": "true"}]}
+      },
+      "id": "fetch-cancelled",
+      "name": "Fetch Cancelled (Grace Period)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300],
+      "notes": "Gets cancelled subs still in grace period"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "We'd love to have you back",
+        "emailType": "html",
+        "message": "Hi {{ $json.name }},\\n\\nWe're sad to see you go. Before you leave, we'd like to offer:\\n\\n- 50% off for 3 months\\n- Free migration assistance\\n- Dedicated support\\n\\n[Reactivate Subscription]({{ $env.APP_URL }}/reactivate?token={{ $json.reactivationToken }})"
+      },
+      "id": "win-back",
+      "name": "Send Win-back Offer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    }
+  ],
+  "connections": {
+    "Daily Check at 8 AM": {"main": [[{"node": "Fetch Expiring Subscriptions", "type": "main", "index": 0}]]},
+    "Fetch Expiring Subscriptions": {"main": [[{"node": "Send Renewal Reminder", "type": "main", "index": 0}]]},
+    "Send Renewal Reminder": {"main": [[{"node": "Fetch Cancelled (Grace Period)", "type": "main", "index": 0}]]},
+    "Fetch Cancelled (Grace Period)": {"main": [[{"node": "Send Win-back Offer", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "6", "name": "Billing"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

@@ -1,0 +1,731 @@
+openapi: 3.0.3
+info:
+  title: CreatorBridge Rights Service API
+  description: |
+    API for managing content rights, licensing, and digital signatures.
+
+    ## Features
+    - Content rights definition and management
+    - License agreement generation (PDF/HTML)
+    - Digital signature workflows
+    - Rights transfer and sublicensing
+    - Usage tracking and compliance
+  version: 1.0.0
+  contact:
+    name: CreatorBridge API Support
+    email: api@creatorbridge.com
+
+servers:
+  - url: https://api.creatorbridge.com/v1
+    description: Production
+  - url: https://staging-api.creatorbridge.com/v1
+    description: Staging
+
+tags:
+  - name: Rights
+    description: Content rights management
+  - name: Licenses
+    description: License agreement operations
+  - name: Templates
+    description: License template management
+  - name: Transfers
+    description: Rights transfer operations
+
+paths:
+  /rights/content/{contentId}:
+    post:
+      tags: [Rights]
+      summary: Create content rights
+      description: Defines usage rights for approved content
+      operationId: createRights
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ContentIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRightsRequest'
+      responses:
+        '201':
+          description: Rights created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RightsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    get:
+      tags: [Rights]
+      summary: Get content rights
+      description: Retrieves rights information for content
+      operationId: getRights
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ContentIdParam'
+      responses:
+        '200':
+          description: Rights retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RightsDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /rights/{rightsId}/license:
+    post:
+      tags: [Licenses]
+      summary: Generate license agreement
+      description: Generates a license agreement document (PDF/HTML)
+      operationId: generateLicense
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RightsIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateLicenseRequest'
+      responses:
+        '200':
+          description: License generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LicenseDocumentResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /rights/{rightsId}/sign:
+    post:
+      tags: [Licenses]
+      summary: Sign license agreement
+      description: Digitally signs a license agreement
+      operationId: signLicense
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RightsIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignatureRequest'
+      responses:
+        '200':
+          description: License signed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignatureResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Not authorized to sign
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rights/{rightsId}/transfer:
+    post:
+      tags: [Transfers]
+      summary: Transfer rights
+      description: Transfers content rights to another brand/entity
+      operationId: transferRights
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RightsIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+      responses:
+        '200':
+          description: Transfer initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: Transfer not permitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /rights/templates:
+    get:
+      tags: [Templates]
+      summary: List license templates
+      description: Lists available license agreement templates
+      operationId: listTemplates
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [exclusive, non_exclusive, limited]
+          description: Filter by rights type
+      responses:
+        '200':
+          description: Templates retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesResponse'
+
+    post:
+      tags: [Templates]
+      summary: Create license template
+      description: Creates a custom license agreement template
+      operationId: createTemplate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Template created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+
+  /rights/{rightsId}/history:
+    get:
+      tags: [Rights]
+      summary: Get rights history
+      description: Retrieves the audit trail for content rights
+      operationId: getRightsHistory
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RightsIdParam'
+      responses:
+        '200':
+          description: History retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RightsHistoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ContentIdParam:
+      name: contentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Content ID
+
+    RightsIdParam:
+      name: rightsId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Rights ID
+
+  schemas:
+    CreateRightsRequest:
+      type: object
+      required:
+        - type
+        - duration
+        - territories
+        - platforms
+      properties:
+        type:
+          type: string
+          enum: [exclusive, non_exclusive, limited]
+        duration:
+          type: object
+          required:
+            - startDate
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+            perpetual:
+              type: boolean
+              default: false
+        territories:
+          type: array
+          items:
+            type: string
+          example: ["US", "CA", "UK", "EU"]
+        platforms:
+          type: array
+          items:
+            type: string
+          example: ["tiktok", "instagram", "facebook", "youtube", "website", "paid_ads"]
+        usageTypes:
+          type: array
+          items:
+            type: string
+            enum: [organic_social, paid_social, website, email, display_ads]
+        restrictions:
+          type: object
+          properties:
+            noEditing:
+              type: boolean
+            noDerivatives:
+              type: boolean
+            attributionRequired:
+              type: boolean
+            maxImpressions:
+              type: integer
+              format: int64
+        compensation:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [flat_fee, royalty, hybrid]
+            amount:
+              type: number
+            currency:
+              type: string
+              default: USD
+            royaltyPercentage:
+              type: number
+
+    RightsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            rightsId:
+              type: string
+              format: uuid
+            contentId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [pending_signature, active, expired, terminated]
+            type:
+              type: string
+            duration:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+            territories:
+              type: array
+              items:
+                type: string
+            platforms:
+              type: array
+              items:
+                type: string
+            licenseUrl:
+              type: string
+              format: uri
+            createdAt:
+              type: string
+              format: date-time
+
+    RightsDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            rightsId:
+              type: string
+              format: uuid
+            contentId:
+              type: string
+              format: uuid
+            status:
+              type: string
+            type:
+              type: string
+            duration:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                daysRemaining:
+                  type: integer
+            territories:
+              type: array
+              items:
+                type: string
+            platforms:
+              type: array
+              items:
+                type: string
+            usageTypes:
+              type: array
+              items:
+                type: string
+            signatures:
+              type: object
+              properties:
+                creator:
+                  $ref: '#/components/schemas/SignatureInfo'
+                brand:
+                  $ref: '#/components/schemas/SignatureInfo'
+            documents:
+              type: object
+              properties:
+                license:
+                  type: string
+                  format: uri
+                signedCopy:
+                  type: string
+                  format: uri
+            history:
+              type: array
+              items:
+                $ref: '#/components/schemas/HistoryEntry'
+
+    SignatureInfo:
+      type: object
+      properties:
+        signedBy:
+          type: string
+          format: uuid
+        signedAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+
+    HistoryEntry:
+      type: object
+      properties:
+        action:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        by:
+          type: string
+          format: uuid
+
+    GenerateLicenseRequest:
+      type: object
+      properties:
+        format:
+          type: string
+          enum: [pdf, html]
+          default: pdf
+        templateId:
+          type: string
+          format: uuid
+        customClauses:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+          default: en
+
+    LicenseDocumentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            documentId:
+              type: string
+              format: uuid
+            rightsId:
+              type: string
+              format: uuid
+            format:
+              type: string
+            url:
+              type: string
+              format: uri
+            previewUrl:
+              type: string
+              format: uri
+            expiresAt:
+              type: string
+              format: date-time
+            generatedAt:
+              type: string
+              format: date-time
+
+    SignatureRequest:
+      type: object
+      required:
+        - signatureType
+        - acceptTerms
+      properties:
+        signatureType:
+          type: string
+          enum: [electronic, typed]
+        signature:
+          type: string
+          description: Base64 encoded signature image or typed name
+        acceptTerms:
+          type: boolean
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+
+    SignatureResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            rightsId:
+              type: string
+              format: uuid
+            status:
+              type: string
+            signedAt:
+              type: string
+              format: date-time
+            signedDocument:
+              type: string
+              format: uri
+            allPartiesSigned:
+              type: boolean
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+
+    TransferRequest:
+      type: object
+      required:
+        - transferTo
+        - transferType
+        - effectiveDate
+      properties:
+        transferTo:
+          type: object
+          properties:
+            brandId:
+              type: string
+              format: uuid
+            name:
+              type: string
+        transferType:
+          type: string
+          enum: [full, sublicense]
+        effectiveDate:
+          type: string
+          format: date-time
+        compensation:
+          type: object
+          properties:
+            amount:
+              type: number
+            currency:
+              type: string
+        creatorConsent:
+          type: boolean
+
+    TransferResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            transferId:
+              type: string
+              format: uuid
+            rightsId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum: [pending_approval, approved, rejected, completed]
+            transferTo:
+              type: string
+              format: uuid
+            effectiveDate:
+              type: string
+              format: date-time
+            requiresCreatorApproval:
+              type: boolean
+
+    Template:
+      type: object
+      properties:
+        templateId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        defaultDuration:
+          type: integer
+        platforms:
+          oneOf:
+            - type: string
+              enum: [all]
+            - type: array
+              items:
+                type: string
+        isDefault:
+          type: boolean
+
+    TemplatesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Template'
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - type
+        - htmlTemplate
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [standard_exclusive, standard_non_exclusive, limited_social, paid_advertising, full_buyout, custom]
+        defaultType:
+          type: string
+          enum: [exclusive, non_exclusive, limited]
+        defaultDuration:
+          type: integer
+        defaultPlatforms:
+          type: array
+          items:
+            type: string
+        htmlTemplate:
+          type: string
+        variables:
+          type: array
+          items:
+            type: string
+
+    RightsHistoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              action:
+                type: string
+              previousStatus:
+                type: string
+              newStatus:
+                type: string
+              performedBy:
+                type: string
+                format: uuid
+              performedAt:
+                type: string
+                format: date-time
+              reason:
+                type: string
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

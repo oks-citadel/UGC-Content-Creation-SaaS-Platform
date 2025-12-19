@@ -1,0 +1,153 @@
+{
+  "name": "Failed Payment Recovery - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "payment-failed", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Payment Failed Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "payment-failed",
+      "notes": "Triggered when payment fails"
+    },
+    {
+      "parameters": {"amount": 1, "unit": "hours"},
+      "id": "wait-1h",
+      "name": "Wait 1 Hour",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "webhookId": "payment-retry-1h",
+      "notes": "Wait before first retry"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.STRIPE_API_URL }}/payment_intents/{{ $json.paymentIntentId }}/confirm",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "retry-1",
+      "name": "Retry Payment 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {"httpHeaderAuth": {"id": "12", "name": "Stripe API"}},
+      "notes": "First automatic retry"
+    },
+    {
+      "parameters": {
+        "conditions": {"string": [{"value1": "={{ $json.status }}", "operation": "notEquals", "value2": "succeeded"}]}
+      },
+      "id": "check-1",
+      "name": "Still Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Payment Issue - Action Required",
+        "emailType": "html",
+        "message": "Hi {{ $json.customerName }},\\n\\nWe had trouble processing your payment for NEXUS subscription.\\n\\nPlease update your payment method to avoid service interruption.\\n\\n[Update Payment Method]({{ $env.APP_URL }}/billing?update=true)"
+      },
+      "id": "email-1",
+      "name": "Email: Update Payment",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 250],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {"amount": 24, "unit": "hours"},
+      "id": "wait-24h",
+      "name": "Wait 24 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1250, 250],
+      "webhookId": "payment-retry-24h"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.STRIPE_API_URL }}/payment_intents/{{ $json.paymentIntentId }}/confirm",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "retry-2",
+      "name": "Retry Payment 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 250],
+      "credentials": {"httpHeaderAuth": {"id": "12", "name": "Stripe API"}}
+    },
+    {
+      "parameters": {
+        "conditions": {"string": [{"value1": "={{ $json.status }}", "operation": "notEquals", "value2": "succeeded"}]}
+      },
+      "id": "check-2",
+      "name": "Final Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1650, 250]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/subscriptions/{{ $json.subscriptionId }}/suspend",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ reason: 'payment_failed', gracePeriodDays: 3 }) }}"
+      },
+      "id": "suspend",
+      "name": "Suspend Subscription",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1850, 200],
+      "notes": "Suspends subscription with grace period"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "URGENT: Subscription Suspended",
+        "emailType": "html",
+        "message": "Hi {{ $json.customerName }},\\n\\nYour NEXUS subscription has been suspended due to payment failure.\\n\\nYou have 3 days to update your payment method before account closure.\\n\\n[Update Now]({{ $env.APP_URL }}/billing/urgent)"
+      },
+      "id": "email-urgent",
+      "name": "Email: Urgent Notice",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2050, 200],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, recoveryStarted: true }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2250, 300]
+    }
+  ],
+  "connections": {
+    "Payment Failed Trigger": {"main": [[{"node": "Wait 1 Hour", "type": "main", "index": 0}]]},
+    "Wait 1 Hour": {"main": [[{"node": "Retry Payment 1", "type": "main", "index": 0}]]},
+    "Retry Payment 1": {"main": [[{"node": "Still Failed?", "type": "main", "index": 0}]]},
+    "Still Failed?": {"main": [[{"node": "Email: Update Payment", "type": "main", "index": 0}]]},
+    "Email: Update Payment": {"main": [[{"node": "Wait 24 Hours", "type": "main", "index": 0}]]},
+    "Wait 24 Hours": {"main": [[{"node": "Retry Payment 2", "type": "main", "index": 0}]]},
+    "Retry Payment 2": {"main": [[{"node": "Final Check", "type": "main", "index": 0}]]},
+    "Final Check": {"main": [[{"node": "Suspend Subscription", "type": "main", "index": 0}]]},
+    "Suspend Subscription": {"main": [[{"node": "Email: Urgent Notice", "type": "main", "index": 0}]]},
+    "Email: Urgent Notice": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "6", "name": "Billing"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

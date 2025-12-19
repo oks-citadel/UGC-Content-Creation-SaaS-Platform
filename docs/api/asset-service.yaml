@@ -1,0 +1,576 @@
+openapi: 3.0.3
+info:
+  title: CreatorBridge Asset Service API
+  description: |
+    API for managing media assets, uploads, transcoding, and CDN delivery.
+
+    ## Features
+    - Presigned URL generation for direct uploads
+    - Automatic transcoding and variant generation
+    - CDN delivery integration
+    - Brand asset library management
+    - Content moderation integration
+  version: 1.0.0
+  contact:
+    name: CreatorBridge API Support
+    email: api@creatorbridge.com
+
+servers:
+  - url: https://api.creatorbridge.com/v1
+    description: Production
+  - url: https://staging-api.creatorbridge.com/v1
+    description: Staging
+
+tags:
+  - name: Assets
+    description: Asset upload and management
+  - name: Library
+    description: Brand asset library operations
+  - name: Processing
+    description: Asset processing jobs
+
+paths:
+  /assets/upload-url:
+    post:
+      tags: [Assets]
+      summary: Request upload URL
+      description: Generates a presigned URL for direct upload to Azure Blob Storage
+      operationId: requestUploadUrl
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Upload URL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: File size exceeds limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /assets/{assetId}:
+    get:
+      tags: [Assets]
+      summary: Get asset details
+      description: Retrieves asset metadata and CDN URLs
+      operationId: getAsset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AssetIdParam'
+      responses:
+        '200':
+          description: Asset details retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Asset'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Assets]
+      summary: Delete asset
+      description: Deletes an asset and all its variants
+      operationId: deleteAsset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AssetIdParam'
+      responses:
+        '200':
+          description: Asset deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Asset is in use and cannot be deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /assets/{assetId}/download:
+    get:
+      tags: [Assets]
+      summary: Get download URL
+      description: Generates a time-limited download URL for an asset
+      operationId: getDownloadUrl
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AssetIdParam'
+        - name: variant
+          in: query
+          schema:
+            type: string
+            enum: [original, hd, sd]
+            default: original
+          description: Asset variant to download
+      responses:
+        '200':
+          description: Download URL generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadUrlResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /assets/{assetId}/process:
+    post:
+      tags: [Processing]
+      summary: Trigger asset processing
+      description: Triggers reprocessing of an asset (transcoding, thumbnails, etc.)
+      operationId: processAsset
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AssetIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessingRequest'
+      responses:
+        '202':
+          description: Processing job queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessingJobResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /assets/library:
+    get:
+      tags: [Library]
+      summary: List brand asset library
+      description: Lists assets in the brand's asset library
+      operationId: listLibrary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: folderId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by folder
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [video, image, document]
+          description: Filter by asset type
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by filename or tags
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Library assets retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryResponse'
+
+  /assets/library/folders:
+    post:
+      tags: [Library]
+      summary: Create library folder
+      description: Creates a folder in the brand asset library
+      operationId: createFolder
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFolderRequest'
+      responses:
+        '201':
+          description: Folder created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Folder'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    AssetIdParam:
+      name: assetId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Asset ID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Items per page
+
+  schemas:
+    UploadUrlRequest:
+      type: object
+      required:
+        - filename
+        - contentType
+        - fileSize
+        - category
+      properties:
+        filename:
+          type: string
+          example: product-video.mp4
+        contentType:
+          type: string
+          example: video/mp4
+        fileSize:
+          type: integer
+          format: int64
+          example: 52428800
+        category:
+          type: string
+          enum: [content, brand-asset, portfolio]
+        metadata:
+          type: object
+          properties:
+            campaignId:
+              type: string
+              format: uuid
+            tags:
+              type: array
+              items:
+                type: string
+
+    UploadUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            uploadUrl:
+              type: string
+              format: uri
+            assetId:
+              type: string
+              format: uuid
+            expiresAt:
+              type: string
+              format: date-time
+            headers:
+              type: object
+              additionalProperties:
+                type: string
+
+    Asset:
+      type: object
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        filename:
+          type: string
+        originalFilename:
+          type: string
+        contentType:
+          type: string
+        fileSize:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [uploading, processing, ready, failed]
+        category:
+          type: string
+        urls:
+          type: object
+          properties:
+            original:
+              type: string
+              format: uri
+            hd:
+              type: string
+              format: uri
+            sd:
+              type: string
+              format: uri
+            thumbnail:
+              type: string
+              format: uri
+            preview:
+              type: string
+              format: uri
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetVariant'
+        metadata:
+          type: object
+          properties:
+            duration:
+              type: number
+            resolution:
+              type: string
+            fps:
+              type: number
+            codec:
+              type: string
+            bitrate:
+              type: integer
+        processing:
+          type: object
+          properties:
+            status:
+              type: string
+            transcodingComplete:
+              type: boolean
+            thumbnailsGenerated:
+              type: boolean
+            moderationPassed:
+              type: boolean
+        uploadedBy:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AssetVariant:
+      type: object
+      properties:
+        variantId:
+          type: string
+        name:
+          type: string
+        resolution:
+          type: string
+        fileSize:
+          type: integer
+          format: int64
+        url:
+          type: string
+          format: uri
+
+    DownloadUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            downloadUrl:
+              type: string
+              format: uri
+            expiresAt:
+              type: string
+              format: date-time
+            filename:
+              type: string
+            fileSize:
+              type: integer
+              format: int64
+
+    ProcessingRequest:
+      type: object
+      properties:
+        operations:
+          type: array
+          items:
+            type: string
+            enum: [transcode, thumbnails, moderation]
+        variants:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              resolution:
+                type: string
+
+    ProcessingJobResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            jobId:
+              type: string
+              format: uuid
+            assetId:
+              type: string
+              format: uuid
+            operations:
+              type: array
+              items:
+                type: string
+            status:
+              type: string
+            estimatedTime:
+              type: integer
+              description: Estimated time in seconds
+
+    LibraryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            assets:
+              type: array
+              items:
+                $ref: '#/components/schemas/Asset'
+            folders:
+              type: array
+              items:
+                $ref: '#/components/schemas/Folder'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Folder:
+      type: object
+      properties:
+        folderId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+        path:
+          type: string
+        assetCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateFolderRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        parentId:
+          type: string
+          format: uuid
+        description:
+          type: string
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        meta:
+          type: object
+          properties:
+            message:
+              type: string
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

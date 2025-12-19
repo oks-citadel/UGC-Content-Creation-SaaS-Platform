@@ -1,0 +1,83 @@
+# =============================================================================
+# Kustomize Production Overlay
+# =============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: creatorbridge-production
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+resources:
+  - ../base
+
+images:
+  - name: creatorbridge.azurecr.io/asset-service
+    newName: creatorbridge.azurecr.io/asset-service
+    newTag: stable
+  - name: creatorbridge.azurecr.io/rights-service
+    newName: creatorbridge.azurecr.io/rights-service
+    newTag: stable
+  - name: creatorbridge.azurecr.io/payout-service
+    newName: creatorbridge.azurecr.io/payout-service
+    newTag: stable
+
+replicas:
+  - name: asset-service
+    count: 3
+  - name: rights-service
+    count: 2
+  - name: payout-service
+    count: 2
+
+patches:
+  # Update resource limits for production
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 200m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 1000m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+    target:
+      kind: Deployment
+  # Update HPA for production traffic
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 20
+    target:
+      kind: HorizontalPodAutoscaler
+      name: asset-service
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+    target:
+      kind: HorizontalPodAutoscaler
+      name: rights-service
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 8
+    target:
+      kind: HorizontalPodAutoscaler
+      name: payout-service

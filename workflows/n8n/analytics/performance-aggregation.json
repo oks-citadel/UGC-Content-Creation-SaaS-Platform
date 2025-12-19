@@ -1,0 +1,150 @@
+{
+  "name": "Performance Aggregation - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 4}]}},
+      "id": "schedule",
+      "name": "Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 400],
+      "notes": "Aggregates performance data every 4 hours"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.IG_ACCOUNT_ID }}/media",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "fields", "value": "id,caption,like_count,comments_count,timestamp"}, {"name": "access_token", "value": "={{ $env.IG_ACCESS_TOKEN }}"}]}
+      },
+      "id": "fetch-instagram",
+      "name": "Fetch Instagram Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200],
+      "notes": "Gets Instagram performance data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.FB_PAGE_ID }}/posts",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "fields", "value": "id,message,reactions.summary(true),comments.summary(true),shares"}, {"name": "access_token", "value": "={{ $env.FB_ACCESS_TOKEN }}"}]}
+      },
+      "id": "fetch-facebook",
+      "name": "Fetch Facebook Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Gets Facebook performance data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.twitter.com/2/users/{{ $env.TWITTER_USER_ID }}/tweets",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "tweet.fields", "value": "public_metrics,created_at"}]}
+      },
+      "id": "fetch-twitter",
+      "name": "Fetch Twitter Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 400],
+      "notes": "Gets Twitter performance data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.linkedin.com/v2/organizationalEntityShareStatistics",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "q", "value": "organizationalEntity"}, {"name": "organizationalEntity", "value": "={{ $env.LINKEDIN_ORG_ID }}"}]}
+      },
+      "id": "fetch-linkedin",
+      "name": "Fetch LinkedIn Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 500],
+      "notes": "Gets LinkedIn performance data"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.tiktokapis.com/v2/research/video/query/",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "fields", "value": "id,video_description,like_count,comment_count,share_count,view_count"}]}
+      },
+      "id": "fetch-tiktok",
+      "name": "Fetch TikTok Metrics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 600],
+      "notes": "Gets TikTok performance data"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll"
+      },
+      "id": "merge",
+      "name": "Merge All Platform Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [650, 400],
+      "notes": "Combines data from all platforms"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\\nconst aggregated = {\\n  timestamp: new Date().toISOString(),\\n  platforms: {\\n    instagram: { posts: items[0]?.json?.data?.length || 0, totalLikes: 0, totalComments: 0 },\\n    facebook: { posts: items[1]?.json?.data?.length || 0, totalReactions: 0, totalComments: 0, totalShares: 0 },\\n    twitter: { tweets: items[2]?.json?.data?.length || 0, totalLikes: 0, totalRetweets: 0 },\\n    linkedin: { posts: items[3]?.json?.elements?.length || 0, totalLikes: 0, totalComments: 0 },\\n    tiktok: { videos: items[4]?.json?.data?.videos?.length || 0, totalViews: 0, totalLikes: 0 }\\n  },\\n  summary: {\\n    totalPosts: 0,\\n    totalEngagement: 0,\\n    avgEngagementRate: 0\\n  }\\n};\\n\\n// Calculate totals\\nif (items[0]?.json?.data) {\\n  items[0].json.data.forEach(post => {\\n    aggregated.platforms.instagram.totalLikes += post.like_count || 0;\\n    aggregated.platforms.instagram.totalComments += post.comments_count || 0;\\n  });\\n}\\n\\naggregated.summary.totalPosts = Object.values(aggregated.platforms).reduce((sum, p) => sum + p.posts, 0);\\n\\nreturn [{ json: aggregated }];"
+      },
+      "id": "aggregate",
+      "name": "Aggregate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 400],
+      "notes": "Aggregates and calculates summary metrics"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/analytics/performance",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}"
+      },
+      "id": "save",
+      "name": "Save to Analytics DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 400],
+      "notes": "Saves aggregated data to analytics database"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ text: `📊 Performance Update\\nTotal Posts: ${$json.summary.totalPosts}\\nTotal Engagement: ${$json.summary.totalEngagement}` }) }}"
+      },
+      "id": "notify",
+      "name": "Notify Team (Slack)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1250, 400],
+      "notes": "Sends summary to team Slack channel"
+    }
+  ],
+  "connections": {
+    "Every 4 Hours": {"main": [[{"node": "Fetch Instagram Metrics", "type": "main", "index": 0}, {"node": "Fetch Facebook Metrics", "type": "main", "index": 0}, {"node": "Fetch Twitter Metrics", "type": "main", "index": 0}, {"node": "Fetch LinkedIn Metrics", "type": "main", "index": 0}, {"node": "Fetch TikTok Metrics", "type": "main", "index": 0}]]},
+    "Fetch Instagram Metrics": {"main": [[{"node": "Merge All Platform Data", "type": "main", "index": 0}]]},
+    "Fetch Facebook Metrics": {"main": [[{"node": "Merge All Platform Data", "type": "main", "index": 1}]]},
+    "Fetch Twitter Metrics": {"main": [[{"node": "Merge All Platform Data", "type": "main", "index": 2}]]},
+    "Fetch LinkedIn Metrics": {"main": [[{"node": "Merge All Platform Data", "type": "main", "index": 3}]]},
+    "Fetch TikTok Metrics": {"main": [[{"node": "Merge All Platform Data", "type": "main", "index": 4}]]},
+    "Merge All Platform Data": {"main": [[{"node": "Aggregate Metrics", "type": "main", "index": 0}]]},
+    "Aggregate Metrics": {"main": [[{"node": "Save to Analytics DB", "type": "main", "index": 0}]]},
+    "Save to Analytics DB": {"main": [[{"node": "Notify Team (Slack)", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "7", "name": "Analytics"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

@@ -1,0 +1,117 @@
+{
+  "name": "Cart Abandonment Recovery - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "cart-abandoned", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Cart Abandonment Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "cart-abandonment",
+      "notes": "Triggered when user abandons cart"
+    },
+    {
+      "parameters": {"amount": 1, "unit": "hours"},
+      "id": "wait-1h",
+      "name": "Wait 1 Hour",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [450, 300],
+      "webhookId": "cart-wait-1h",
+      "notes": "Waits 1 hour before first reminder"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "You left something behind...",
+        "emailType": "html",
+        "message": "Hi {{ $json.firstName }},\\n\\nWe noticed you left items in your cart. Complete your purchase now!\\n\\nCart items:\\n{{ $json.cartItems.map(i => `- ${i.name} - $${i.price}`).join('\\n') }}\\n\\nTotal: ${{ $json.cartTotal }}\\n\\n[Complete Purchase]({{ $json.cartUrl }})"
+      },
+      "id": "email-1",
+      "name": "Send Email Reminder 1",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [650, 300],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}},
+      "notes": "First email reminder"
+    },
+    {
+      "parameters": {"amount": 6, "unit": "hours"},
+      "id": "wait-6h",
+      "name": "Wait 6 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [850, 300],
+      "webhookId": "cart-wait-6h"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TWILIO_API_URL }}/Messages.json",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "From", "value": "={{ $env.TWILIO_PHONE }}"},
+            {"name": "To", "value": "={{ $json.phone }}"},
+            {"name": "Body", "value": "Hi {{ $json.firstName }}! Your cart is waiting. Complete checkout & get 10% off: {{ $json.cartUrl }}?discount=CART10"}
+          ]
+        }
+      },
+      "id": "sms",
+      "name": "Send SMS with Discount",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 300],
+      "notes": "SMS reminder with discount code"
+    },
+    {
+      "parameters": {"amount": 18, "unit": "hours"},
+      "id": "wait-18h",
+      "name": "Wait 18 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1250, 300],
+      "webhookId": "cart-wait-18h"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/{{ $env.WHATSAPP_PHONE_ID }}/messages",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.phone, type: 'template', template: { name: 'cart_abandonment', language: { code: 'en' }, components: [{ type: 'body', parameters: [{ type: 'text', text: $json.firstName }, { type: 'text', text: $json.cartTotal }] }] } }) }}"
+      },
+      "id": "whatsapp",
+      "name": "WhatsApp Final Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 300],
+      "notes": "Final reminder via WhatsApp"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, sequence: 'started' }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1650, 300]
+    }
+  ],
+  "connections": {
+    "Cart Abandonment Trigger": {"main": [[{"node": "Wait 1 Hour", "type": "main", "index": 0}]]},
+    "Wait 1 Hour": {"main": [[{"node": "Send Email Reminder 1", "type": "main", "index": 0}]]},
+    "Send Email Reminder 1": {"main": [[{"node": "Wait 6 Hours", "type": "main", "index": 0}]]},
+    "Wait 6 Hours": {"main": [[{"node": "Send SMS with Discount", "type": "main", "index": 0}]]},
+    "Send SMS with Discount": {"main": [[{"node": "Wait 18 Hours", "type": "main", "index": 0}]]},
+    "Wait 18 Hours": {"main": [[{"node": "WhatsApp Final Reminder", "type": "main", "index": 0}]]},
+    "WhatsApp Final Reminder": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "5", "name": "Ecommerce"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

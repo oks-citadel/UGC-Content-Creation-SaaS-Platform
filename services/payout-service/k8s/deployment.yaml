@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payout-service
+  labels:
+    app: payout-service
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payout-service
+  template:
+    metadata:
+      labels:
+        app: payout-service
+        tier: backend
+    spec:
+      serviceAccountName: payout-service
+      containers:
+        - name: payout-service
+          image: ${ACR_LOGIN_SERVER}/payout-service:${IMAGE_TAG}
+          ports:
+            - containerPort: 8091
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8091"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql-secrets
+                  key: connection-string
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secrets
+                  key: url
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: secret-key
+            - name: STRIPE_CONNECT_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: connect-client-id
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: stripe-secrets
+                  key: webhook-secret
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8091
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payout-service
+  labels:
+    app: payout-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8091
+      targetPort: 8091
+      protocol: TCP
+  selector:
+    app: payout-service
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payout-service
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: payout-service-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payout-service
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

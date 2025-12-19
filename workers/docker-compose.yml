@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  video-processor:
+    build:
+      context: ./video-processor
+      dockerfile: Dockerfile
+    container_name: nexus-video-processor
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_CONCURRENCY=5
+      - MAX_RETRIES=3
+      - BACKOFF_DELAY=5000
+      - LOG_LEVEL=info
+      - HEALTH_CHECK_PORT=3001
+      - TEMP_DIR=/tmp/video-processing
+      - WATERMARK_ENABLED=false
+      - VIDEO_BITRATE=2000k
+      - AUDIO_BITRATE=128k
+      - FFMPEG_PRESET=medium
+      - STORAGE_PROVIDER=s3
+      - STORAGE_BUCKET=nexus-videos
+      - AWS_REGION=us-east-1
+    ports:
+      - "3001:3001"
+    volumes:
+      - video-temp:/tmp/video-processing
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  social-publisher:
+    build:
+      context: ./social-publisher
+      dockerfile: Dockerfile
+    container_name: nexus-social-publisher
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_CONCURRENCY=3
+      - MAX_RETRIES=3
+      - BACKOFF_DELAY=5000
+      - LOG_LEVEL=info
+      - HEALTH_CHECK_PORT=3002
+      - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID}
+      - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET}
+      - YOUTUBE_REDIRECT_URI=${YOUTUBE_REDIRECT_URI}
+    ports:
+      - "3002:3002"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  analytics-aggregator:
+    build:
+      context: ./analytics-aggregator
+      dockerfile: Dockerfile
+    container_name: nexus-analytics-aggregator
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_CONCURRENCY=5
+      - MAX_RETRIES=3
+      - BACKOFF_DELAY=5000
+      - LOG_LEVEL=info
+      - HEALTH_CHECK_PORT=3003
+      - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID}
+      - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET}
+      - YOUTUBE_REDIRECT_URI=${YOUTUBE_REDIRECT_URI}
+    ports:
+      - "3003:3003"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  notification-dispatcher:
+    build:
+      context: ./notification-dispatcher
+      dockerfile: Dockerfile
+    container_name: nexus-notification-dispatcher
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - WORKER_CONCURRENCY=10
+      - MAX_RETRIES=3
+      - BACKOFF_DELAY=3000
+      - LOG_LEVEL=info
+      - HEALTH_CHECK_PORT=3004
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-noreply@nexus.com}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - FIREBASE_SERVICE_ACCOUNT=${FIREBASE_SERVICE_ACCOUNT}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+    ports:
+      - "3004:3004"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # BullMQ Board - Web UI for monitoring queues
+  bullmq-board:
+    image: deadly0/bull-board:latest
+    container_name: nexus-bullmq-board
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BULL_PREFIX=bull
+    ports:
+      - "3005:3000"
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    driver: local
+  video-temp:
+    driver: local
+
+networks:
+  default:
+    name: nexus-workers

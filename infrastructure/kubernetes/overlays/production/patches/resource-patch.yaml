@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  template:
+    spec:
+      containers:
+      - name: api-gateway
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-service
+spec:
+  template:
+    spec:
+      containers:
+      - name: content-service
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1500m
+            memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+spec:
+  template:
+    spec:
+      containers:
+      - name: analytics-service
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1500m
+            memory: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+spec:
+  template:
+    spec:
+      containers:
+      - name: ai-service
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-processor
+spec:
+  template:
+    spec:
+      containers:
+      - name: video-processor
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi

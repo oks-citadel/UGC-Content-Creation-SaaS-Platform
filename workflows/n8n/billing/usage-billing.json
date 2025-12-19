@@ -1,0 +1,95 @@
+{
+  "name": "Usage-Based Billing - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "monthDays", "monthDaysInterval": 1}]}, "triggerTimes": {"item": [{"day": 1, "hour": 0, "minute": 0}]}},
+      "id": "monthly",
+      "name": "Monthly on 1st",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "notes": "Runs on first day of month"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.API_URL }}/usage/monthly-report",
+        "sendQuery": true,
+        "queryParameters": {"parameters": [{"name": "month", "value": "={{ $now.minus({ months: 1 }).toFormat('yyyy-MM') }}"}]}
+      },
+      "id": "fetch-usage",
+      "name": "Fetch Monthly Usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300],
+      "notes": "Gets usage data for previous month"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\\nconst results = items.map(item => {\\n  const data = item.json;\\n  const basePrice = data.planPrice || 0;\\n  const includedCredits = data.planCredits || 1000;\\n  const usedCredits = data.totalCredits || 0;\\n  const overageCredits = Math.max(0, usedCredits - includedCredits);\\n  const overageRate = 0.01; // $0.01 per credit\\n  const overageCharge = overageCredits * overageRate;\\n  const totalCharge = basePrice + overageCharge;\\n  \\n  return {\\n    json: {\\n      ...data,\\n      overageCredits,\\n      overageCharge,\\n      totalCharge,\\n      billingPeriod: $now.minus({ months: 1 }).toFormat('yyyy-MM')\\n    }\\n  };\\n});\\nreturn results;"
+      },
+      "id": "calculate",
+      "name": "Calculate Overage Charges",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notes": "Calculates overage charges"
+    },
+    {
+      "parameters": {
+        "conditions": {"number": [{"value1": "={{ $json.overageCharge }}", "operation": "larger", "value2": 0}]}
+      },
+      "id": "has-overage",
+      "name": "Has Overage?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.STRIPE_API_URL }}/invoiceitems",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {"name": "customer", "value": "={{ $json.stripeCustomerId }}"},
+            {"name": "amount", "value": "={{ Math.round($json.overageCharge * 100) }}"},
+            {"name": "currency", "value": "usd"},
+            {"name": "description", "value": "Overage charges for {{ $json.billingPeriod }} ({{ $json.overageCredits }} credits)"}
+          ]
+        }
+      },
+      "id": "create-invoice",
+      "name": "Create Stripe Invoice Item",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 250],
+      "credentials": {"httpHeaderAuth": {"id": "12", "name": "Stripe API"}}
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "NEXUS Usage Invoice - {{ $json.billingPeriod }}",
+        "emailType": "html",
+        "message": "Hi {{ $json.name }},\\n\\nYour NEXUS usage for {{ $json.billingPeriod }}:\\n\\nPlan: {{ $json.planName }}\\nIncluded Credits: {{ $json.planCredits }}\\nUsed Credits: {{ $json.totalCredits }}\\nOverage Credits: {{ $json.overageCredits }}\\n\\nBase Charge: ${{ $json.planPrice }}\\nOverage Charge: ${{ $json.overageCharge }}\\nTotal: ${{ $json.totalCharge }}\\n\\n[View Detailed Invoice]({{ $env.APP_URL }}/billing/invoice/{{ $json.invoiceId }})"
+      },
+      "id": "send-invoice",
+      "name": "Send Invoice Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 250],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    }
+  ],
+  "connections": {
+    "Monthly on 1st": {"main": [[{"node": "Fetch Monthly Usage", "type": "main", "index": 0}]]},
+    "Fetch Monthly Usage": {"main": [[{"node": "Calculate Overage Charges", "type": "main", "index": 0}]]},
+    "Calculate Overage Charges": {"main": [[{"node": "Has Overage?", "type": "main", "index": 0}]]},
+    "Has Overage?": {"main": [[{"node": "Create Stripe Invoice Item", "type": "main", "index": 0}]]},
+    "Create Stripe Invoice Item": {"main": [[{"node": "Send Invoice Email", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "6", "name": "Billing"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

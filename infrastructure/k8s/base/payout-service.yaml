@@ -1,0 +1,190 @@
+# =============================================================================
+# Payout Service - Kubernetes Manifests
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payout-service
+  namespace: creatorbridge
+  labels:
+    app: payout-service
+    app.kubernetes.io/name: payout-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: creatorbridge
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payout-service
+  template:
+    metadata:
+      labels:
+        app: payout-service
+        app.kubernetes.io/name: payout-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8091"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: payout-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: payout-service
+          image: creatorbridge.azurecr.io/payout-service:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8091
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "8091"
+            - name: SERVICE_NAME
+              value: "payout-service"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payout-service-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: shared-secrets
+                  key: redis-url
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: payout-service-secrets
+                  key: stripe-secret-key
+            - name: STRIPE_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: payout-service-secrets
+                  key: stripe-webhook-secret
+            - name: STRIPE_CONNECT_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: payout-service-secrets
+                  key: stripe-connect-client-id
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: payout-service
+                topologyKey: kubernetes.io/hostname
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: payout-service
+  namespace: creatorbridge
+  labels:
+    app: payout-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: payout-service
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: payout-service
+  namespace: creatorbridge
+  labels:
+    app: payout-service
+---
+# HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: payout-service
+  namespace: creatorbridge
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: payout-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payout-service
+  namespace: creatorbridge
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: payout-service

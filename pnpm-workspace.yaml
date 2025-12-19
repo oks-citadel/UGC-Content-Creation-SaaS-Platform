@@ -1,0 +1,16 @@
+packages:
+  # Applications
+  - "apps/*"
+  - "apps/mobile/*"
+
+  # Shared packages
+  - "packages/*"
+
+  # Backend services
+  - "services/*"
+
+  # AI/ML services (Node.js wrappers)
+  - "ai/*/node-wrapper"
+
+  # Background workers
+  - "workers/*"

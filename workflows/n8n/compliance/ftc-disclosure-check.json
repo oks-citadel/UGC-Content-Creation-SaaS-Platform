@@ -1,0 +1,123 @@
+{
+  "name": "FTC Disclosure Check - NEXUS",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "content-compliance-check", "responseMode": "responseNode"},
+      "id": "webhook",
+      "name": "Content Submission",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "ftc-check",
+      "notes": "Checks content for FTC compliance before publishing"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "messages": {
+          "values": [
+            {"role": "system", "content": "You are an FTC compliance expert. Analyze content for required disclosures per FTC guidelines for sponsored content, affiliate links, and endorsements."},
+            {"role": "user", "content": "Analyze this content for FTC compliance:\\n\\nContent: {{ $json.content }}\\n\\nCaption: {{ $json.caption }}\\n\\nHashtags: {{ $json.hashtags?.join(', ') }}\\n\\nIs this sponsored content? {{ $json.isSponsored }}\\nContains affiliate links? {{ $json.hasAffiliateLinks }}\\n\\nCheck for:\\n1. Clear and conspicuous disclosures\\n2. Proper disclosure placement\\n3. Correct disclosure language (#ad, #sponsored, etc.)\\n4. Material connection disclosure\\n\\nReturn JSON: { compliant: boolean, issues: string[], recommendations: string[], disclosurePresent: boolean, disclosureQuality: string }"}
+          ]
+        }
+      },
+      "id": "ai-check",
+      "name": "AI Compliance Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {"openAiApi": {"id": "7", "name": "OpenAI"}},
+      "notes": "Uses GPT-4 to analyze FTC compliance"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.choices[0].message.content;\\nlet analysis;\\ntry {\\n  const jsonMatch = response.match(/\\{[\\s\\S]*\\}/);\\n  analysis = JSON.parse(jsonMatch ? jsonMatch[0] : response);\\n} catch (e) {\\n  analysis = { compliant: false, issues: ['Failed to parse AI response'], recommendations: [], disclosurePresent: false };\\n}\\n\\nconst content = $('Content Submission').item.json;\\nreturn [{\\n  json: {\\n    ...content,\\n    compliance: {\\n      ...analysis,\\n      checkedAt: new Date().toISOString(),\\n      ftcGuidelines: '16 CFR Part 255'\\n    }\\n  }\\n}];"
+      },
+      "id": "parse",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "notes": "Parses and structures AI analysis"
+    },
+    {
+      "parameters": {
+        "conditions": {"boolean": [{"value1": "={{ $json.compliance.compliant }}", "value2": true}]}
+      },
+      "id": "check",
+      "name": "Is Compliant?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/approve",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ contentId: $json.contentId, status: 'approved', complianceCheck: $json.compliance }) }}"
+      },
+      "id": "approve",
+      "name": "Approve for Publishing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 250],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Approves compliant content"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/content/flag",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ contentId: $json.contentId, status: 'flagged', reason: 'ftc_compliance', issues: $json.compliance.issues, recommendations: $json.compliance.recommendations }) }}"
+      },
+      "id": "flag",
+      "name": "Flag for Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1050, 350],
+      "credentials": {"httpHeaderAuth": {"id": "6", "name": "NEXUS API"}},
+      "notes": "Flags non-compliant content"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.COMPLIANCE_EMAIL }}",
+        "toEmail": "={{ $json.creatorEmail }}",
+        "subject": "Content Flagged - FTC Compliance Issue",
+        "emailType": "html",
+        "message": "Hi {{ $json.creatorName }},\\n\\nYour content has been flagged for FTC compliance review.\\n\\n**Issues Found:**\\n{{ $json.compliance.issues.map(i => `- ${i}`).join('\\n') }}\\n\\n**Recommendations:**\\n{{ $json.compliance.recommendations.map(r => `- ${r}`).join('\\n') }}\\n\\nPlease update your content to include proper disclosures before publishing.\\n\\nLearn more: https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers\\n\\nCompliance Team"
+      },
+      "id": "notify",
+      "name": "Notify Creator",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 350],
+      "credentials": {"smtp": {"id": "4", "name": "SMTP"}}
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ compliant: $json.compliance.compliant, status: $json.compliance.compliant ? 'approved' : 'flagged', issues: $json.compliance.issues, recommendations: $json.compliance.recommendations }) }}"
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "Content Submission": {"main": [[{"node": "AI Compliance Analysis", "type": "main", "index": 0}]]},
+    "AI Compliance Analysis": {"main": [[{"node": "Parse AI Response", "type": "main", "index": 0}]]},
+    "Parse AI Response": {"main": [[{"node": "Is Compliant?", "type": "main", "index": 0}]]},
+    "Is Compliant?": {"main": [[{"node": "Approve for Publishing", "type": "main", "index": 0}], [{"node": "Flag for Review", "type": "main", "index": 0}]]},
+    "Approve for Publishing": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]},
+    "Flag for Review": {"main": [[{"node": "Notify Creator", "type": "main", "index": 0}]]},
+    "Notify Creator": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "tags": [{"id": "8", "name": "Compliance"}, {"id": "2", "name": "NEXUS"}],
+  "active": true
+}

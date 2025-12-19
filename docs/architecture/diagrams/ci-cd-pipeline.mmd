@@ -1,0 +1,103 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1a56db'}}}%%
+flowchart LR
+    subgraph "Development"
+        DEV[Developer]
+        CODE[Code Push]
+        PR[Pull Request]
+    end
+
+    subgraph "CI Pipeline - Pull Request"
+        LINT[ESLint<br/>Type Check]
+        UNIT[Unit Tests<br/>Vitest]
+        SEC[Security Scan<br/>CodeQL + Trivy]
+        CONTRACT[Contract Tests<br/>OpenAPI Validation]
+    end
+
+    subgraph "CI Pipeline - Merge to Main"
+        BUILD_PKG[Build Packages<br/>types, utils, ui]
+        BUILD_SVC[Build Services<br/>17 Microservices]
+        BUILD_IMG[Build Docker Images]
+        PUSH_ACR[Push to ACR<br/>Geo-Replicated]
+    end
+
+    subgraph "CD Pipeline - Staging"
+        DEPLOY_STG[Deploy to<br/>Staging AKS]
+        E2E[E2E Tests<br/>Playwright]
+        SMOKE[Smoke Tests]
+        PERF[Performance<br/>Baseline Check]
+    end
+
+    subgraph "CD Pipeline - Production"
+        APPROVE{Manual<br/>Approval}
+        TF_PLAN[Terraform Plan]
+        TF_APPLY[Terraform Apply]
+        DEPLOY_PROD[Deploy to<br/>Production AKS]
+        VERIFY[Verify Rollout]
+        ROLLBACK{Rollback<br/>on Failure}
+    end
+
+    subgraph "Regional Deployment"
+        US[Americas<br/>East US]
+        EU[Europe<br/>West Europe]
+        AS[Asia<br/>Southeast Asia]
+        AF[Africa<br/>South Africa North]
+    end
+
+    subgraph "Post-Deployment"
+        MONITOR[Azure Monitor<br/>App Insights]
+        ALERTS[Alerting<br/>PagerDuty/Slack]
+        LOGS[Log Analytics]
+    end
+
+    %% Development flow
+    DEV --> CODE --> PR
+
+    %% PR checks
+    PR --> LINT
+    PR --> UNIT
+    PR --> SEC
+    PR --> CONTRACT
+
+    %% Merge to main
+    LINT --> BUILD_PKG
+    UNIT --> BUILD_PKG
+    SEC --> BUILD_PKG
+    CONTRACT --> BUILD_PKG
+
+    BUILD_PKG --> BUILD_SVC
+    BUILD_SVC --> BUILD_IMG
+    BUILD_IMG --> PUSH_ACR
+
+    %% Staging deployment
+    PUSH_ACR --> DEPLOY_STG
+    DEPLOY_STG --> E2E
+    DEPLOY_STG --> SMOKE
+    DEPLOY_STG --> PERF
+
+    %% Production deployment
+    E2E --> APPROVE
+    SMOKE --> APPROVE
+    PERF --> APPROVE
+    APPROVE -->|Yes| TF_PLAN
+    TF_PLAN --> TF_APPLY
+    TF_APPLY --> DEPLOY_PROD
+
+    %% Multi-region
+    DEPLOY_PROD --> US
+    DEPLOY_PROD --> EU
+    DEPLOY_PROD --> AS
+    DEPLOY_PROD --> AF
+
+    %% Verification
+    US --> VERIFY
+    EU --> VERIFY
+    AS --> VERIFY
+    AF --> VERIFY
+
+    VERIFY -->|Success| MONITOR
+    VERIFY -->|Failure| ROLLBACK
+    ROLLBACK -->|Yes| DEPLOY_STG
+
+    %% Monitoring
+    MONITOR --> ALERTS
+    MONITOR --> LOGS

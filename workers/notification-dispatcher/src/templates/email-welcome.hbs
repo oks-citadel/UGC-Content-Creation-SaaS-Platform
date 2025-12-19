@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to NEXUS</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+      border-radius: 8px 8px 0 0;
+    }
+    .content {
+      background: #ffffff;
+      padding: 30px;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Welcome to NEXUS!</h1>
+  </div>
+  <div class="content">
+    <p>Hi {{name}},</p>
+    <p>Welcome to NEXUS, the ultimate UGC content creation platform! We're excited to have you on board.</p>
+    <p>With NEXUS, you can:</p>
+    <ul>
+      <li>Create engaging video content with AI-powered tools</li>
+      <li>Publish to multiple social media platforms simultaneously</li>
+      <li>Track analytics and optimize your content strategy</li>
+      <li>Collaborate with creators and manage campaigns</li>
+    </ul>
+    <p>Get started by exploring your dashboard:</p>
+    <a href="{{dashboardUrl}}" class="button">Go to Dashboard</a>
+    <p>If you have any questions, our support team is here to help!</p>
+    <p>Best regards,<br>The NEXUS Team</p>
+  </div>
+  <div class="footer">
+    <p>&copy; 2025 NEXUS. All rights reserved.</p>
+    <p><a href="{{unsubscribeUrl}}">Unsubscribe</a></p>
+  </div>
+</body>
+</html>

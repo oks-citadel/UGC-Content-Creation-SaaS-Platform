@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workflow {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  name        String
+  description String?
+  definition  Json     // n8n-compatible workflow definition
+  trigger     TriggerType
+  triggerConfig Json?  @map("trigger_config")
+  isActive    Boolean  @default(false) @map("is_active")
+  version     Int      @default(1)
+  tags        String[]
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  executions  WorkflowExecution[]
+  schedules   WorkflowSchedule[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id          String   @id @default(uuid()) @db.Uuid
+  workflowId  String   @map("workflow_id") @db.Uuid
+  status      ExecutionStatus
+  trigger     String?
+  input       Json?
+  output      Json?
+  error       String?
+  stepsExecuted Int    @default(0) @map("steps_executed")
+  stepsFailed   Int    @default(0) @map("steps_failed")
+  duration    Int?     // milliseconds
+  startedAt   DateTime @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  steps       ExecutionStep[]
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("workflow_executions")
+}
+
+model ExecutionStep {
+  id          String   @id @default(uuid()) @db.Uuid
+  executionId String   @map("execution_id") @db.Uuid
+  stepId      String   @map("step_id")
+  name        String
+  type        String
+  status      ExecutionStatus
+  input       Json?
+  output      Json?
+  error       String?
+  duration    Int?     // milliseconds
+  startedAt   DateTime @default(now()) @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  execution   WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+  @@map("execution_steps")
+}
+
+model WorkflowSchedule {
+  id          String   @id @default(uuid()) @db.Uuid
+  workflowId  String   @map("workflow_id") @db.Uuid
+  cronExpression String @map("cron_expression")
+  timezone    String   @default("UTC")
+  isActive    Boolean  @default(true) @map("is_active")
+  lastRunAt   DateTime? @map("last_run_at")
+  nextRunAt   DateTime? @map("next_run_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([nextRunAt])
+  @@map("workflow_schedules")
+}
+
+enum TriggerType {
+  MANUAL
+  SCHEDULE
+  WEBHOOK
+  EVENT
+  EMAIL
+  DATABASE
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}

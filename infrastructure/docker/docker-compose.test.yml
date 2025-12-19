@@ -1,0 +1,348 @@
+# =============================================================================
+# NEXUS Platform - Docker Compose Testing Stack
+# =============================================================================
+# Isolated testing environment for running integration and E2E tests
+#
+# Usage:
+#   Start test stack:    docker-compose -f docker-compose.test.yml up -d
+#   Run tests:           docker-compose -f docker-compose.test.yml run test-runner
+#   Cleanup:             docker-compose -f docker-compose.test.yml down -v
+#
+# =============================================================================
+
+version: '3.9'
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  nexus-test-network:
+    driver: bridge
+    name: nexus-test-network
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres-test-data:
+    name: nexus-postgres-test-data
+  mongodb-test-data:
+    name: nexus-mongodb-test-data
+  redis-test-data:
+    name: nexus-redis-test-data
+
+# =============================================================================
+# Services
+# =============================================================================
+services:
+  # ---------------------------------------------------------------------------
+  # Test Infrastructure
+  # ---------------------------------------------------------------------------
+
+  # PostgreSQL Test Database
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: nexus-postgres-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nexus_test
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_test
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    networks:
+      - nexus-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # MongoDB Test Database
+  mongodb-test:
+    image: mongo:7
+    container_name: nexus-mongodb-test
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo_test
+      MONGO_INITDB_DATABASE: nexus_test
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb-test-data:/data/db
+    networks:
+      - nexus-test-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Redis Test Cache
+  redis-test:
+    image: redis:7-alpine
+    container_name: nexus-redis-test
+    restart: unless-stopped
+    command: redis-server --appendonly no --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-test-data:/data
+    networks:
+      - nexus-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Test Runners
+  # ---------------------------------------------------------------------------
+
+  # Unit & Integration Test Runner
+  test-runner:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/images/node.Dockerfile
+      target: development
+    container_name: nexus-test-runner
+    working_dir: /app
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - MONGODB_URI=mongodb://mongo:mongo_test@mongodb-test:27017/nexus_test?authSource=admin
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-jwt-secret
+      - LOG_LEVEL=error
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mongodb-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    command: pnpm test
+
+  # Integration Test Runner
+  integration-test-runner:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/images/node.Dockerfile
+      target: development
+    container_name: nexus-integration-test-runner
+    working_dir: /app
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - MONGODB_URI=mongodb://mongo:mongo_test@mongodb-test:27017/nexus_test?authSource=admin
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-jwt-secret
+      - LOG_LEVEL=error
+      - API_GATEWAY_URL=http://api-gateway-test:4000
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mongodb-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      api-gateway-test:
+        condition: service_healthy
+    command: pnpm test:integration
+
+  # E2E Test Runner
+  e2e-test-runner:
+    build:
+      context: ../../
+      dockerfile: infrastructure/docker/images/node.Dockerfile
+      target: development
+    container_name: nexus-e2e-test-runner
+    working_dir: /app
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - MONGODB_URI=mongodb://mongo:mongo_test@mongodb-test:27017/nexus_test?authSource=admin
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-jwt-secret
+      - LOG_LEVEL=error
+      - APP_URL=http://web-test:3000
+      - API_URL=http://api-gateway-test:4000
+      - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+    volumes:
+      - ../../:/app
+      - /app/node_modules
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mongodb-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      api-gateway-test:
+        condition: service_healthy
+      web-test:
+        condition: service_started
+    command: pnpm test:e2e
+
+  # ---------------------------------------------------------------------------
+  # Test Services (Minimal Set)
+  # ---------------------------------------------------------------------------
+
+  # API Gateway for Testing
+  api-gateway-test:
+    build:
+      context: ../../
+      dockerfile: services/api-gateway/Dockerfile
+      target: runner
+    container_name: nexus-api-gateway-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=test
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - REDIS_URL=redis://redis-test:6379
+      - LOG_LEVEL=error
+      - AUTH_SERVICE_URL=http://auth-service-test:4001
+      - USER_SERVICE_URL=http://user-service-test:4002
+      - CONTENT_SERVICE_URL=http://content-service-test:4003
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Auth Service for Testing
+  auth-service-test:
+    build:
+      context: ../../
+      dockerfile: services/auth-service/Dockerfile
+      target: runner
+    container_name: nexus-auth-service-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=test
+      - PORT=4001
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - REDIS_URL=redis://redis-test:6379
+      - JWT_SECRET=test-jwt-secret
+      - LOG_LEVEL=error
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # User Service for Testing
+  user-service-test:
+    build:
+      context: ../../
+      dockerfile: services/user-service/Dockerfile
+      target: runner
+    container_name: nexus-user-service-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=test
+      - PORT=4002
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - REDIS_URL=redis://redis-test:6379
+      - LOG_LEVEL=error
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Content Service for Testing
+  content-service-test:
+    build:
+      context: ../../
+      dockerfile: services/content-service/Dockerfile
+      target: runner
+    container_name: nexus-content-service-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=test
+      - PORT=4003
+      - DATABASE_URL=postgresql://postgres:postgres_test@postgres-test:5432/nexus_test
+      - MONGODB_URI=mongodb://mongo:mongo_test@mongodb-test:27017/nexus_test?authSource=admin
+      - REDIS_URL=redis://redis-test:6379
+      - LOG_LEVEL=error
+    networks:
+      - nexus-test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      mongodb-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Web App for E2E Testing
+  web-test:
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: nexus-web-test
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://api-gateway-test:4000
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=test-nextauth-secret
+    networks:
+      - nexus-test-network
+    depends_on:
+      api-gateway-test:
+        condition: service_healthy

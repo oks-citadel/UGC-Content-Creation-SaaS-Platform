@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  marketplace-service:
+    build: .
+    container_name: nexus-marketplace-service
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - PORT=3006
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - PAYSTACK_SECRET_KEY=${PAYSTACK_SECRET_KEY}
+      - FLUTTERWAVE_SECRET_KEY=${FLUTTERWAVE_SECRET_KEY}
+      - DOCUSIGN_INTEGRATION_KEY=${DOCUSIGN_INTEGRATION_KEY}
+      - DOCUSIGN_USER_ID=${DOCUSIGN_USER_ID}
+      - DOCUSIGN_ACCOUNT_ID=${DOCUSIGN_ACCOUNT_ID}
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./logs:/app/logs
+      - ./keys:/app/keys:ro
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: nexus-marketplace-db
+    environment:
+      - POSTGRES_DB=nexus_marketplace
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+    ports:
+      - "5436:5432"
+    volumes:
+      - marketplace-db-data:/var/lib/postgresql/data
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexus-marketplace-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - marketplace-redis-data:/data
+    networks:
+      - nexus-network
+    restart: unless-stopped
+
+volumes:
+  marketplace-db-data:
+  marketplace-redis-data:
+
+networks:
+  nexus-network:
+    driver: bridge
