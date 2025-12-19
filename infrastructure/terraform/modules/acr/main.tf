@@ -3,7 +3,8 @@
 # =============================================================================
 
 resource "azurerm_container_registry" "main" {
-  name                = "acr${var.project}${var.environment}${var.name_suffix}"
+  # ACR names: 5-50 alphanumeric characters only, globally unique
+  name                = "acrmkt${var.environment}${var.name_suffix}"
   resource_group_name = var.resource_group_name
   location            = var.location
   sku                 = var.sku

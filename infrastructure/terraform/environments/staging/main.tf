@@ -43,7 +43,7 @@ provider "azurerm" {
 
 locals {
   environment = "staging"
-  project     = "creatorbridge"
+  project     = "marketing"
   location    = var.location
   suffix      = random_string.resource_suffix.result
 
@@ -180,7 +180,7 @@ module "postgresql" {
   subnet_id           = module.networking.data_subnet_id
   private_dns_zone_id = module.networking.postgresql_private_dns_zone_id
 
-  database_name       = "creatorbridge"
+  database_name       = "marketing"
   create_analytics_db = true
 
   # Staging-specific settings
@@ -222,7 +222,7 @@ resource "random_string" "storage_suffix" {
 }
 
 resource "azurerm_storage_account" "main" {
-  name                     = "cbstaging${random_string.storage_suffix.result}"
+  name                     = "mktstg${random_string.storage_suffix.result}"
   resource_group_name      = azurerm_resource_group.main.name
   location                 = azurerm_resource_group.main.location
   account_tier             = "Standard"
