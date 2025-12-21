@@ -57,7 +57,7 @@ router.post('/:contentId/rights', async (req: Request, res: Response) => {
     const { contentId } = contentIdSchema.parse(req.params);
     const body = createRightsSchema.parse({ ...req.body, contentId });
 
-    const rights = await rightsService.createContentRights(body);
+    const rights = await rightsService.createContentRights(body as any);
 
     res.status(201).json(rights);
   } catch (error) {
@@ -98,7 +98,7 @@ router.post('/:contentId/license/sign', async (req: Request, res: Response) => {
     // In production, extract creatorId from authenticated user
     const creatorId = req.headers['x-creator-id'] as string || 'default-creator';
 
-    const signedLicense = await rightsService.signLicense(contentId, creatorId, signatureData);
+    const signedLicense = await rightsService.signLicense(contentId, creatorId, signatureData as any);
 
     res.json(signedLicense);
   } catch (error) {

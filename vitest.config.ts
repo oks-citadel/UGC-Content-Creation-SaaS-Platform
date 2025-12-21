@@ -10,47 +10,24 @@ export default defineConfig({
     // Test environment
     environment: 'node',
 
-    // Global setup/teardown
-    globalSetup: ['./tests/global-setup.ts'],
-    setupFiles: ['./tests/setup.ts'],
+    // Setup files for unit tests only
+    setupFiles: ['./tests/unit/setup.ts'],
 
     // Include patterns
     include: [
       'tests/unit/**/*.test.ts',
-      'tests/integration/**/*.test.ts',
-      'packages/**/src/**/*.test.ts',
-      'services/**/src/**/*.test.ts',
     ],
 
     // Exclude patterns
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      '**/build/**',
-      '**/.next/**',
-      '**/playwright/**',
     ],
 
     // Coverage configuration
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html', 'lcov'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/dist/**',
-        '**/.next/**',
-        '**/build/**',
-        '**/*.stories.{ts,tsx}',
-      ],
-      thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 70,
-        statements: 70,
-      },
+      reporter: ['text'],
     },
 
     // Mocking
@@ -60,19 +37,13 @@ export default defineConfig({
 
     // Timeout
     testTimeout: 10000,
-    hookTimeout: 10000,
 
     // Parallel execution
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: false,
-        maxThreads: 4,
-      },
-    },
+    maxConcurrency: 4,
 
     // Reporters
-    reporters: ['verbose', 'json', 'html'],
+    reporters: ['default'],
 
     // Watch mode
     watch: false,

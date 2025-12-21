@@ -130,8 +130,8 @@ worker.on('stalled', (jobId: string) => {
 // Health check server
 const app = express();
 
-app.get('/health', (req, res) => {
-  const isHealthy = !worker.closing && !worker.closed;
+app.get('/health', (_req, res) => {
+  const isHealthy = !worker.closing;
 
   if (isHealthy) {
     res.status(200).json({
@@ -148,9 +148,12 @@ app.get('/health', (req, res) => {
   }
 });
 
-app.get('/metrics', async (req, res) => {
-  const metrics = await worker.getMetrics('completed', 0, -1);
-  res.json(metrics);
+app.get('/metrics', async (_req, res) => {
+  res.json({
+    worker: 'video-processor',
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+  });
 });
 
 const server = app.listen(CONFIG.healthCheck.port, () => {

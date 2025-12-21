@@ -4,6 +4,12 @@ interface ApiOptions extends RequestInit {
   token?: string;
 }
 
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: any;
+}
+
 class ApiClient {
   private baseUrl: string;
 
@@ -17,9 +23,8 @@ class ApiClient {
   ): Promise<T> {
     const { token, ...fetchOptions } = options;
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(options.headers as HeadersInit),
     };
 
     if (token) {
@@ -42,8 +47,8 @@ class ApiClient {
   }
 
   // Auth
-  async login(email: string, password: string) {
-    return this.request('/auth/login', {
+  async login(email: string, password: string): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -56,8 +61,8 @@ class ApiClient {
     niche: string;
     socialHandle: string;
     platform: string;
-  }) {
-    return this.request('/auth/register', {
+  }): Promise<AuthResponse> {
+    return this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });

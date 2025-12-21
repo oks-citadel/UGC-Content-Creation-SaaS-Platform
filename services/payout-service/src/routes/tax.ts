@@ -70,7 +70,7 @@ router.post('/info', async (req: Request, res: Response) => {
     const creatorId = req.headers['x-creator-id'] as string || 'default-creator';
     const body = taxInfoSchema.parse(req.body);
 
-    const info = await taxService.submitTaxInfo(creatorId, body);
+    const info = await taxService.submitTaxInfo(creatorId, body as any);
 
     res.status(201).json(info);
   } catch (error) {

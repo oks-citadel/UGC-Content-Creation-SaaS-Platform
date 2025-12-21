@@ -32,19 +32,25 @@
     "deploy:dev": "turbo run deploy --filter=!@nexus/mobile-* -- --env=dev",
     "deploy:staging": "turbo run deploy --filter=!@nexus/mobile-* -- --env=staging",
     "deploy:prod": "turbo run deploy --filter=!@nexus/mobile-* -- --env=prod",
+    "pre-pr": "pnpm lint && pnpm type-check && pnpm build",
     "prepare": "husky install",
     "postinstall": "turbo run build --filter=@nexus/types --filter=@nexus/utils --filter=@nexus/config"
   },
   "devDependencies": {
     "@commitlint/cli": "^18.4.0",
     "@commitlint/config-conventional": "^18.4.0",
+    "@playwright/test": "^1.57.0",
     "@types/node": "^20.10.0",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
+    "dotenv": "^17.2.3",
     "eslint": "^8.55.0",
     "husky": "^8.0.3",
     "lint-staged": "^15.2.0",
     "prettier": "^3.1.0",
     "turbo": "^1.11.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.16"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

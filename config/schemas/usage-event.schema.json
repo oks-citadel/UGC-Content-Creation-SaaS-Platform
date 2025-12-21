@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/usage-event.v1.json",
+  "title": "Usage Event Schema",
+  "description": "Canonical schema for tracking platform usage against subscription limits",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "metricType",
+    "value",
+    "timestamp"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "subscriptionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "metricType": {
+      "type": "string",
+      "enum": [
+        "seats",
+        "brands",
+        "creators",
+        "assets_uploaded",
+        "assets_processed",
+        "storage_bytes",
+        "cdp_events",
+        "emails_sent",
+        "sms_sent",
+        "push_notifications",
+        "journeys_active",
+        "segments_created",
+        "integrations_connected",
+        "whitelisting_requests",
+        "api_calls",
+        "video_minutes_processed",
+        "ai_requests",
+        "exports",
+        "reports_generated"
+      ]
+    },
+    "value": {
+      "type": "number",
+      "description": "The usage value (count, bytes, etc.)"
+    },
+    "unit": {
+      "type": "string",
+      "enum": ["count", "bytes", "minutes", "requests"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "period": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["hourly", "daily", "weekly", "monthly", "billing_cycle"]
+        },
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "serviceId": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "entityId": {
+          "type": "string"
+        },
+        "entityType": {
+          "type": "string"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "current": {
+          "type": "number",
+          "description": "Current usage for the period"
+        },
+        "limit": {
+          "type": "number",
+          "description": "Limit for the tier"
+        },
+        "remaining": {
+          "type": "number",
+          "description": "Remaining allowance"
+        },
+        "percentUsed": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "overageAllowed": {
+          "type": "boolean"
+        },
+        "overageRate": {
+          "type": "number",
+          "description": "Cost per unit overage"
+        }
+      }
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "approaching_limit",
+              "limit_reached",
+              "overage",
+              "spike_detected"
+            ]
+          },
+          "threshold": {
+            "type": "number"
+          },
+          "triggered": {
+            "type": "boolean"
+          },
+          "triggeredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "source": {
+      "type": "string",
+      "enum": ["api", "webhook", "worker", "cron", "manual"]
+    },
+    "immutable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Usage events are immutable once recorded"
+    }
+  },
+  "additionalProperties": false
+}

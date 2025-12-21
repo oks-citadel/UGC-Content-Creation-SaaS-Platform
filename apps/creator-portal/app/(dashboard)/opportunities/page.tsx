@@ -8,7 +8,7 @@ import { Search, Filter, SlidersHorizontal } from 'lucide-react';
 export default function OpportunitiesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNiche, setSelectedNiche] = useState('all');
-  const { opportunities, isLoading } = useOpportunities();
+  const { data: opportunities, isLoading } = useOpportunities();
 
   const niches = ['all', 'fashion', 'fitness', 'food', 'tech', 'travel', 'lifestyle'];
 
@@ -67,13 +67,13 @@ export default function OpportunitiesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {opportunities?.map((opportunity) => (
+          {(opportunities as any[])?.map((opportunity) => (
             <OpportunityCard key={opportunity.id} opportunity={opportunity} />
           ))}
         </div>
       )}
 
-      {!isLoading && opportunities?.length === 0 && (
+      {!isLoading && (opportunities as any[])?.length === 0 && (
         <div className="card text-center py-12">
           <p className="text-gray-500">No opportunities found</p>
           <p className="text-sm text-gray-400 mt-1">

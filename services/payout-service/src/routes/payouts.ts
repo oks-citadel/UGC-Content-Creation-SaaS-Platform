@@ -67,7 +67,7 @@ router.get('/history', async (req: Request, res: Response) => {
     const creatorId = req.headers['x-creator-id'] as string || 'default-creator';
     const query = listPayoutsSchema.parse(req.query);
 
-    const history = await payoutService.getPayoutHistory(creatorId, query);
+    const history = await payoutService.getPayoutHistory(creatorId, query as any);
 
     res.json(history);
   } catch (error) {

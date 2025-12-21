@@ -1,0 +1,358 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/performance-event.v1.json",
+  "title": "Performance Event Schema",
+  "description": "Canonical schema for tracking performance events",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "eventType",
+    "entityType",
+    "entityId",
+    "timestamp"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique event identifier"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant/organization identifier"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Correlation ID for tracing"
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "view",
+        "impression",
+        "click",
+        "engagement",
+        "share",
+        "save",
+        "comment",
+        "like",
+        "follow",
+        "purchase",
+        "add_to_cart",
+        "checkout_started",
+        "conversion",
+        "lead",
+        "signup",
+        "video_start",
+        "video_25",
+        "video_50",
+        "video_75",
+        "video_complete",
+        "scroll_depth",
+        "time_on_page",
+        "bounce",
+        "exit"
+      ],
+      "description": "Type of performance event"
+    },
+    "entityType": {
+      "type": "string",
+      "enum": [
+        "asset",
+        "campaign",
+        "creator",
+        "product",
+        "page",
+        "email",
+        "sms",
+        "ad"
+      ],
+      "description": "Type of entity this event relates to"
+    },
+    "entityId": {
+      "type": "string",
+      "description": "ID of the related entity"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "type": "string",
+          "enum": [
+            "web",
+            "mobile_ios",
+            "mobile_android",
+            "email",
+            "sms",
+            "api",
+            "webhook",
+            "tiktok",
+            "instagram",
+            "youtube",
+            "facebook",
+            "twitter"
+          ]
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "organic",
+            "paid",
+            "email",
+            "sms",
+            "push",
+            "direct",
+            "referral",
+            "social"
+          ]
+        },
+        "medium": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "term": {
+          "type": "string"
+        },
+        "referrer": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": ["string", "null"],
+          "description": "Identified user ID"
+        },
+        "anonymousId": {
+          "type": "string",
+          "description": "Anonymous tracking ID"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "traits": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "ip": {
+          "type": "string"
+        },
+        "userAgent": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "screen": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer"
+            },
+            "height": {
+              "type": "integer"
+            },
+            "density": {
+              "type": "number"
+            }
+          }
+        },
+        "page": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "path": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          }
+        },
+        "device": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["desktop", "mobile", "tablet", "tv", "bot"]
+            },
+            "manufacturer": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            }
+          }
+        },
+        "os": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "browser": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "geo": {
+          "type": "object",
+          "properties": {
+            "country": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "region": {
+              "type": "string"
+            },
+            "city": {
+              "type": "string"
+            },
+            "postalCode": {
+              "type": "string"
+            },
+            "latitude": {
+              "type": "number"
+            },
+            "longitude": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "properties": {
+      "type": "object",
+      "description": "Event-specific properties",
+      "additionalProperties": true
+    },
+    "value": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "description": "Monetary value if applicable"
+    },
+    "attribution": {
+      "type": "object",
+      "properties": {
+        "firstTouch": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "medium": {
+              "type": "string"
+            },
+            "campaign": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "lastTouch": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "medium": {
+              "type": "string"
+            },
+            "campaign": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "touchpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "medium": {
+                "type": "string"
+              },
+              "campaign": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "position": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "receivedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event was received by the server"
+    },
+    "processedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event was processed"
+    }
+  },
+  "additionalProperties": false
+}

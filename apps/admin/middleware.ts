@@ -77,7 +77,8 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Verify JWT token
-    const payload = await verifyJWT(token, process.env.ADMIN_JWT_SECRET!);
+    const jwtPayload = await verifyJWT(token, process.env.ADMIN_JWT_SECRET!);
+    const payload = jwtPayload as { adminId: string; role: string; email?: string };
 
     if (!payload || !payload.adminId || !payload.role) {
       throw new Error('Invalid token payload');

@@ -1,5 +1,5 @@
 import pino from 'pino';
-import { startOfDay, endOfDay, subDays, subWeeks } from 'date-fns';
+import { startOfDay, endOfDay, subWeeks } from 'date-fns';
 import * as stats from 'simple-statistics';
 import { TikTokCollector } from './collectors/tiktok-collector';
 import { InstagramCollector } from './collectors/instagram-collector';

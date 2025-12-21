@@ -106,7 +106,7 @@ export function BriefBuilder({ campaignId }: { campaignId: string }) {
       {/* Do's and Don'ts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-green-900 mb-4">Do's</h3>
+          <h3 className="text-lg font-semibold text-green-900 mb-4">Do&apos;s</h3>
           <ul className="space-y-2">
             {dosAndDonts.dos.map((item, index) => (
               <li key={index} className="flex items-start text-sm text-gray-700">
@@ -117,7 +117,7 @@ export function BriefBuilder({ campaignId }: { campaignId: string }) {
           </ul>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-red-900 mb-4">Don'ts</h3>
+          <h3 className="text-lg font-semibold text-red-900 mb-4">Don&apos;ts</h3>
           <ul className="space-y-2">
             {dosAndDonts.donts.map((item, index) => (
               <li key={index} className="flex items-start text-sm text-gray-700">

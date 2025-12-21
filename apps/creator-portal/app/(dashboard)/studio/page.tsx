@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Image, Video, FileText, Download, Share2, Edit } from 'lucide-react';
+import { Upload, Image as ImageIcon, Video, FileText, Download, Share2, Edit } from 'lucide-react';
 
 export default function StudioPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -34,7 +34,7 @@ export default function StudioPage() {
     {
       name: 'Image Editor',
       description: 'Edit and enhance your photos',
-      icon: Image,
+      icon: ImageIcon,
       color: 'blue',
     },
     {
@@ -115,7 +115,7 @@ export default function StudioPage() {
                 {project.type === 'video' ? (
                   <Video className="h-12 w-12 text-gray-400" />
                 ) : (
-                  <Image className="h-12 w-12 text-gray-400" />
+                  <ImageIcon className="h-12 w-12 text-gray-400" />
                 )}
               </div>
               <div className="p-4">

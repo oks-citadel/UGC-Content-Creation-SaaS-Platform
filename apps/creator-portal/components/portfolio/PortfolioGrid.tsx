@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, Heart, MessageCircle, MoreVertical, Image, Video } from 'lucide-react';
+import { Eye, Heart, MessageCircle, MoreVertical, Image as ImageIcon, Video } from 'lucide-react';
 
 interface PortfolioGridProps {
   filter: string;
@@ -82,7 +82,7 @@ export default function PortfolioGrid({ filter }: PortfolioGridProps) {
                 {item.type === 'video' || item.type === 'reel' ? (
                   <Video className="h-12 w-12 text-gray-400" />
                 ) : (
-                  <Image className="h-12 w-12 text-gray-400" />
+                  <ImageIcon className="h-12 w-12 text-gray-400" />
                 )}
                 <div className="absolute top-2 right-2">
                   <button className="p-2 bg-white/80 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">

@@ -1,0 +1,363 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/ugc-asset.v1.json",
+  "title": "UGC Asset Schema",
+  "description": "Canonical schema for User Generated Content assets",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "creatorId",
+    "type",
+    "status",
+    "sourceUrl",
+    "createdAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique asset identifier"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tenant/organization identifier"
+    },
+    "creatorId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Creator who produced this content"
+    },
+    "campaignId": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "Associated campaign if any"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["video", "image", "carousel", "story", "reel", "short", "live"],
+      "description": "Content type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_moderation",
+        "approved",
+        "rejected",
+        "published",
+        "archived",
+        "deleted"
+      ],
+      "description": "Current asset status"
+    },
+    "sourceUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Original source URL"
+    },
+    "cdnUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "CDN-served URL"
+    },
+    "thumbnailUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "Thumbnail image URL"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50
+        },
+        "duration": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Duration in seconds for video content"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "fileSize": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "aspectRatio": {
+          "type": "string",
+          "pattern": "^\\d+:\\d+$"
+        }
+      }
+    },
+    "sourcePlatform": {
+      "type": "string",
+      "enum": [
+        "tiktok",
+        "instagram",
+        "youtube",
+        "facebook",
+        "twitter",
+        "pinterest",
+        "upload",
+        "generated"
+      ],
+      "description": "Platform where content originated"
+    },
+    "externalId": {
+      "type": ["string", "null"],
+      "description": "ID on source platform"
+    },
+    "rights": {
+      "type": "object",
+      "properties": {
+        "licenseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "usageRights": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "organic_social",
+              "paid_social",
+              "website",
+              "email",
+              "print",
+              "broadcast",
+              "ooh",
+              "retail"
+            ]
+          }
+        },
+        "territories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$|^GLOBAL$"
+          }
+        },
+        "duration": {
+          "type": "object",
+          "properties": {
+            "startDate": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "endDate": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "perpetual": {
+              "type": "boolean"
+            }
+          }
+        },
+        "exclusivity": {
+          "type": "boolean"
+        }
+      }
+    },
+    "moderation": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "flagged"]
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "nsfw",
+                  "violence",
+                  "hate_speech",
+                  "copyright",
+                  "brand_safety",
+                  "spam"
+                ]
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "details": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "reviewedBy": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "reviewedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "views": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "likes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "comments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shares": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "saves": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "engagementRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "reach": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "impressions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastSyncedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["original", "compressed", "thumbnail", "preview", "watermarked"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "width": {
+            "type": "integer"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "fileSize": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "aiAnalysis": {
+      "type": "object",
+      "properties": {
+        "predictedPerformance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "sentiment": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"]
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transcript": {
+          "type": "string"
+        },
+        "captions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "start": {
+                "type": "number"
+              },
+              "end": {
+                "type": "number"
+              },
+              "text": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "publishedAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "archivedAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

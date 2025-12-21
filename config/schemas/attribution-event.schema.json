@@ -1,0 +1,291 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/attribution-event.v1.json",
+  "title": "Attribution Event Schema",
+  "description": "Canonical schema for attribution tracking events",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "conversionId",
+    "conversionType",
+    "timestamp"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "conversionId": {
+      "type": "string",
+      "description": "Unique identifier for this conversion"
+    },
+    "conversionType": {
+      "type": "string",
+      "enum": [
+        "purchase",
+        "lead",
+        "signup",
+        "subscription",
+        "app_install",
+        "add_to_cart",
+        "checkout",
+        "form_submit",
+        "download",
+        "custom"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "value": {
+      "type": "object",
+      "required": ["amount", "currency"],
+      "properties": {
+        "amount": {
+          "type": "number",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "anonymousId": {
+          "type": "string"
+        }
+      }
+    },
+    "attribution": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "enum": [
+            "first_touch",
+            "last_touch",
+            "linear",
+            "time_decay",
+            "position_based",
+            "data_driven"
+          ]
+        },
+        "window": {
+          "type": "object",
+          "properties": {
+            "clickthrough": {
+              "type": "integer",
+              "description": "Days for click attribution"
+            },
+            "viewthrough": {
+              "type": "integer",
+              "description": "Days for view attribution"
+            }
+          }
+        },
+        "touchpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["timestamp", "source", "medium"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["click", "view", "engagement"]
+              },
+              "source": {
+                "type": "string"
+              },
+              "medium": {
+                "type": "string"
+              },
+              "campaign": {
+                "type": "string"
+              },
+              "content": {
+                "type": "string"
+              },
+              "term": {
+                "type": "string"
+              },
+              "assetId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "creatorId": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "position": {
+                "type": "integer",
+                "description": "Position in the journey (1 = first)"
+              },
+              "credit": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Attribution credit (0-1)"
+              },
+              "creditValue": {
+                "type": "number",
+                "description": "Attributed value based on credit"
+              }
+            }
+          }
+        },
+        "firstTouch": {
+          "type": "object",
+          "properties": {
+            "touchpointId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "source": {
+              "type": "string"
+            },
+            "medium": {
+              "type": "string"
+            },
+            "campaign": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "lastTouch": {
+          "type": "object",
+          "properties": {
+            "touchpointId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "source": {
+              "type": "string"
+            },
+            "medium": {
+              "type": "string"
+            },
+            "campaign": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "ugcAttribution": {
+      "type": "object",
+      "description": "UGC-specific attribution data",
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "creatorId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "campaignId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "activationId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "embedLocation": {
+          "type": "string",
+          "format": "uri"
+        },
+        "credit": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "order": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "quantity": {
+                "type": "integer"
+              },
+              "price": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "tax": {
+          "type": "number"
+        },
+        "shipping": {
+          "type": "number"
+        },
+        "discount": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        }
+      }
+    },
+    "processedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

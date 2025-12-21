@@ -1,0 +1,385 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/rights-license.v1.json",
+  "title": "Rights License Schema",
+  "description": "Canonical schema for content rights and licensing",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "assetId",
+    "creatorId",
+    "status",
+    "terms",
+    "createdAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "assetId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "creatorId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "campaignId": {
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending_creator_signature",
+        "pending_brand_signature",
+        "active",
+        "expired",
+        "revoked",
+        "disputed"
+      ]
+    },
+    "terms": {
+      "type": "object",
+      "required": ["usageRights", "territories", "duration"],
+      "properties": {
+        "usageRights": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "organic_social",
+              "paid_social",
+              "paid_media",
+              "website",
+              "landing_page",
+              "email",
+              "newsletter",
+              "print",
+              "broadcast",
+              "ooh",
+              "retail",
+              "packaging",
+              "events",
+              "internal",
+              "whitelisting",
+              "spark_ads",
+              "partnership_ads",
+              "influencer_boost"
+            ]
+          }
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "tiktok",
+              "instagram",
+              "facebook",
+              "youtube",
+              "twitter",
+              "pinterest",
+              "linkedin",
+              "snapchat",
+              "all"
+            ]
+          }
+        },
+        "territories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country codes or 'GLOBAL'"
+          }
+        },
+        "duration": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["fixed", "perpetual", "campaign_duration"]
+            },
+            "startDate": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "endDate": {
+              "type": ["string", "null"],
+              "format": "date-time"
+            },
+            "durationDays": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "exclusivity": {
+          "type": "object",
+          "properties": {
+            "isExclusive": {
+              "type": "boolean"
+            },
+            "scope": {
+              "type": "string",
+              "enum": ["category", "brand", "platform", "full"]
+            },
+            "category": {
+              "type": "string"
+            },
+            "competitors": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "modifications": {
+          "type": "object",
+          "properties": {
+            "allowEditing": {
+              "type": "boolean"
+            },
+            "allowCropping": {
+              "type": "boolean"
+            },
+            "allowOverlays": {
+              "type": "boolean"
+            },
+            "allowVoiceover": {
+              "type": "boolean"
+            },
+            "allowTranslation": {
+              "type": "boolean"
+            },
+            "allowAIEnhancement": {
+              "type": "boolean"
+            },
+            "requireApproval": {
+              "type": "boolean"
+            }
+          }
+        },
+        "attribution": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "format": {
+              "type": "string"
+            },
+            "placement": {
+              "type": "string",
+              "enum": ["visible", "caption", "bio", "none"]
+            }
+          }
+        }
+      }
+    },
+    "compensation": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "flat_fee",
+            "performance_based",
+            "hybrid",
+            "product_only",
+            "revenue_share"
+          ]
+        },
+        "flatFee": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            }
+          }
+        },
+        "performanceBonus": {
+          "type": "object",
+          "properties": {
+            "metric": {
+              "type": "string",
+              "enum": ["views", "engagements", "clicks", "conversions", "revenue"]
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "bonusAmount": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            }
+          }
+        },
+        "revenueShare": {
+          "type": "object",
+          "properties": {
+            "percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "cap": {
+              "type": "number"
+            }
+          }
+        },
+        "paymentSchedule": {
+          "type": "string",
+          "enum": ["upfront", "on_delivery", "milestone", "monthly", "performance"]
+        }
+      }
+    },
+    "disclosures": {
+      "type": "object",
+      "properties": {
+        "ftcRequired": {
+          "type": "boolean"
+        },
+        "disclosureText": {
+          "type": "string"
+        },
+        "hashtags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "placement": {
+          "type": "string",
+          "enum": ["first_line", "visible", "hashtags_only"]
+        }
+      }
+    },
+    "signatures": {
+      "type": "object",
+      "properties": {
+        "creator": {
+          "type": "object",
+          "properties": {
+            "signedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "signatureHash": {
+              "type": "string"
+            },
+            "ip": {
+              "type": "string"
+            },
+            "userAgent": {
+              "type": "string"
+            }
+          }
+        },
+        "brand": {
+          "type": "object",
+          "properties": {
+            "signedAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "signedBy": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "signatureHash": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["contract", "addendum", "release", "nda"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "version": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "created",
+              "updated",
+              "signed_creator",
+              "signed_brand",
+              "activated",
+              "expired",
+              "revoked",
+              "disputed"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "details": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

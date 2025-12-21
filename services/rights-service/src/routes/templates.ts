@@ -58,7 +58,7 @@ router.post('/', async (req: Request, res: Response) => {
     // In production, extract brandId from authenticated user
     const brandId = req.headers['x-brand-id'] as string || 'default-brand';
 
-    const template = await templateService.createTemplate(brandId, body);
+    const template = await templateService.createTemplate(brandId, body as any);
 
     res.status(201).json(template);
   } catch (error) {

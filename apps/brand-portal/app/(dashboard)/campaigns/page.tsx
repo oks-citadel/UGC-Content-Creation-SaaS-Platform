@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'use client'
+import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Filter, Calendar, MoreVertical, Users, Image, DollarSign } from 'lucide-react'
+import { Plus, Search, Filter, Calendar, MoreVertical, Users, Image as ImageIcon, DollarSign } from 'lucide-react'
 import { useCampaigns } from '@/hooks/useCampaigns'
 
 const statusColors = {
@@ -167,7 +167,7 @@ export default function CampaignsPage() {
                 </div>
                 <div>
                   <div className="flex items-center text-sm text-gray-500 mb-1">
-                    <Image className="w-4 h-4 mr-1" />
+                    <ImageIcon className="w-4 h-4 mr-1" />
                     Content
                   </div>
                   <p className="text-xl font-semibold text-gray-900">{campaign.content}</p>

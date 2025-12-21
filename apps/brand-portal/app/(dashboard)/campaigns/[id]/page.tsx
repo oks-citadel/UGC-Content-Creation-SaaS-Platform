@@ -6,7 +6,7 @@ import {
   ArrowLeft,
   Calendar,
   Users,
-  Image,
+  Image as ImageIcon,
   BarChart3,
   FileText,
   DollarSign,
@@ -36,7 +36,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
 
   const stats = [
     { label: 'Total Creators', value: '24', icon: Users },
-    { label: 'Content Pieces', value: '86', icon: Image },
+    { label: 'Content Pieces', value: '86', icon: ImageIcon },
     { label: 'Total Reach', value: '1.2M', icon: Eye },
     { label: 'Engagement Rate', value: '4.2%', icon: Heart },
   ]
@@ -130,7 +130,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
           href={`/campaigns/${id}/content`}
           className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow group"
         >
-          <Image className="w-8 h-8 text-primary-600 mb-3 group-hover:scale-110 transition-transform" />
+          <ImageIcon className="w-8 h-8 text-primary-600 mb-3 group-hover:scale-110 transition-transform" />
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Content</h3>
           <p className="text-sm text-gray-500">Review submissions</p>
         </Link>

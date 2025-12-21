@@ -127,7 +127,7 @@ export class ShoppableGallery extends EventEmitter {
     if (item.type === 'video') {
       const video = document.createElement('video');
       video.src = item.url;
-      video.poster = item.thumbnail;
+      video.poster = item.thumbnail || '';
       video.className = 'nexus-gallery-media';
       video.controls = false;
       video.muted = true;

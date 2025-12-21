@@ -34,7 +34,7 @@ router.get('/', async (req: Request, res: Response) => {
     // In production, extract brandId from authenticated user
     const brandId = req.headers['x-brand-id'] as string || 'default-brand';
 
-    const result = await libraryService.listAssets(brandId, query);
+    const result = await libraryService.listAssets(brandId, query as any);
 
     res.json(result);
   } catch (error) {
@@ -64,7 +64,7 @@ router.post('/folders', async (req: Request, res: Response) => {
     const body = createFolderSchema.parse(req.body);
     const brandId = req.headers['x-brand-id'] as string || 'default-brand';
 
-    const folder = await libraryService.createFolder(brandId, body);
+    const folder = await libraryService.createFolder(brandId, body as any);
 
     res.status(201).json(folder);
   } catch (error) {

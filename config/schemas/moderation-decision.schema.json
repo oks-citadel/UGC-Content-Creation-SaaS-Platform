@@ -1,0 +1,404 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nexusugc.com/schemas/moderation-decision.v1.json",
+  "title": "Moderation Decision Schema",
+  "description": "Canonical schema for content moderation decisions",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "tenantId",
+    "assetId",
+    "status",
+    "source",
+    "createdAt"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tenantId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "assetId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "auto_approved",
+        "auto_rejected",
+        "manual_review",
+        "approved",
+        "rejected",
+        "escalated"
+      ]
+    },
+    "source": {
+      "type": "string",
+      "enum": ["ai", "human", "rule_engine", "api"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "AI confidence score"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "nsfw_nudity",
+              "nsfw_sexual",
+              "violence_graphic",
+              "violence_threat",
+              "hate_speech",
+              "harassment",
+              "self_harm",
+              "illegal_activity",
+              "spam",
+              "misinformation",
+              "copyright_infringement",
+              "trademark_violation",
+              "brand_safety",
+              "competitor_mention",
+              "off_brand",
+              "low_quality",
+              "policy_violation"
+            ]
+          },
+          "detected": {
+            "type": "boolean"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "details": {
+            "type": "string"
+          },
+          "timestamps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "number"
+                },
+                "end": {
+                  "type": "number"
+                }
+              }
+            },
+            "description": "Video timestamps where issue was detected"
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
+                },
+                "height": {
+                  "type": "number"
+                }
+              }
+            },
+            "description": "Image regions where issue was detected"
+          }
+        }
+      }
+    },
+    "brandSafety": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["safe", "low_risk", "medium_risk", "high_risk", "unsafe"]
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "qualityScore": {
+      "type": "object",
+      "properties": {
+        "overall": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "visual": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "audio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "engagement": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "textAnalysis": {
+      "type": "object",
+      "properties": {
+        "transcript": {
+          "type": "string"
+        },
+        "captions": {
+          "type": "string"
+        },
+        "hashtags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sentiment": {
+          "type": "string",
+          "enum": ["positive", "neutral", "negative"]
+        },
+        "toxicity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "flaggedPhrases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "phrase": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "position": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    },
+    "complianceChecks": {
+      "type": "object",
+      "properties": {
+        "ftcDisclosure": {
+          "type": "object",
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "present": {
+              "type": "boolean"
+            },
+            "valid": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "string"
+            }
+          }
+        },
+        "coppa": {
+          "type": "object",
+          "properties": {
+            "applicable": {
+              "type": "boolean"
+            },
+            "compliant": {
+              "type": "boolean"
+            }
+          }
+        },
+        "gdpr": {
+          "type": "object",
+          "properties": {
+            "applicable": {
+              "type": "boolean"
+            },
+            "compliant": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"]
+        },
+        "assignedTo": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reviewedBy": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["approved", "rejected", "needs_changes"]
+        },
+        "notes": {
+          "type": "string"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "oldValue": {},
+              "newValue": {}
+            }
+          }
+        }
+      }
+    },
+    "appeals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "approved", "rejected"]
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "rejected",
+              "flagged",
+              "blurred",
+              "muted",
+              "cropped",
+              "watermarked",
+              "deleted"
+            ]
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "triggeredBy": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "processedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

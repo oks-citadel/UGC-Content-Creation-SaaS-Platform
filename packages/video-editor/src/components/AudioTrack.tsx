@@ -112,7 +112,7 @@ export const AudioTrack: React.FC<AudioTrackProps> = ({
   return (
     <div className="audio-track">
       <div className="audio-track-header">
-        <span className="audio-track-name">{clip.file.name || 'Audio Track'}</span>
+        <span className="audio-track-name">{(clip.file as File).name || 'Audio Track'}</span>
         <button
           onClick={() => onRemove?.(clip.id)}
           className="audio-track-remove"

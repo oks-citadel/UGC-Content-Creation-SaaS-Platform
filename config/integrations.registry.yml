@@ -1,0 +1,362 @@
+# NEXUS Platform - Integrations Registry
+# Status: connected | available | research_required | rejected
+# Last Updated: 2025-12-21
+
+version: "1.0"
+
+social_platforms:
+  tiktok:
+    status: connected
+    api_version: "v2"
+    features:
+      - content_publishing
+      - analytics
+      - creator_marketplace
+      - spark_ads
+    auth_method: oauth2
+    rate_limits:
+      requests_per_minute: 100
+      daily_quota: 10000
+    documentation: "https://developers.tiktok.com/doc"
+
+  instagram:
+    status: connected
+    api_version: "v18.0"
+    features:
+      - content_publishing
+      - analytics
+      - stories
+      - reels
+      - shopping
+    auth_method: oauth2
+    rate_limits:
+      requests_per_hour: 200
+    documentation: "https://developers.facebook.com/docs/instagram-api"
+
+  facebook:
+    status: connected
+    api_version: "v18.0"
+    features:
+      - page_publishing
+      - analytics
+      - ads_management
+      - messenger
+    auth_method: oauth2
+    documentation: "https://developers.facebook.com/docs/graph-api"
+
+  youtube:
+    status: connected
+    api_version: "v3"
+    features:
+      - video_upload
+      - analytics
+      - live_streaming
+      - shorts
+    auth_method: oauth2
+    rate_limits:
+      quota_per_day: 10000
+    documentation: "https://developers.google.com/youtube/v3"
+
+  twitter_x:
+    status: connected
+    api_version: "v2"
+    features:
+      - tweet_publishing
+      - analytics
+      - spaces
+    auth_method: oauth2
+    rate_limits:
+      tweets_per_day: 300
+    documentation: "https://developer.twitter.com/en/docs"
+
+  pinterest:
+    status: available
+    api_version: "v5"
+    features:
+      - pin_creation
+      - analytics
+      - shopping
+    auth_method: oauth2
+    documentation: "https://developers.pinterest.com/docs"
+
+  linkedin:
+    status: available
+    api_version: "v2"
+    features:
+      - post_publishing
+      - analytics
+      - company_pages
+    auth_method: oauth2
+    documentation: "https://learn.microsoft.com/en-us/linkedin/marketing"
+
+  snapchat:
+    status: research_required
+    notes: "Snap Kit integration pending review"
+    documentation: "https://developers.snap.com"
+
+commerce_platforms:
+  shopify:
+    status: connected
+    api_version: "2024-01"
+    features:
+      - product_sync
+      - order_webhooks
+      - checkout_integration
+      - storefront_api
+    auth_method: oauth2
+    documentation: "https://shopify.dev/docs/api"
+
+  woocommerce:
+    status: connected
+    api_version: "v3"
+    features:
+      - product_sync
+      - order_webhooks
+      - checkout_integration
+    auth_method: api_key
+    documentation: "https://woocommerce.github.io/woocommerce-rest-api-docs"
+
+  bigcommerce:
+    status: available
+    api_version: "v3"
+    features:
+      - product_sync
+      - order_webhooks
+    auth_method: oauth2
+    documentation: "https://developer.bigcommerce.com"
+
+  magento:
+    status: available
+    api_version: "v2"
+    features:
+      - product_sync
+      - order_webhooks
+    auth_method: oauth2
+    documentation: "https://developer.adobe.com/commerce"
+
+  stripe:
+    status: connected
+    api_version: "2023-10-16"
+    features:
+      - payments
+      - subscriptions
+      - invoicing
+      - connect
+      - webhooks
+    auth_method: api_key
+    documentation: "https://stripe.com/docs/api"
+
+  paystack:
+    status: connected
+    features:
+      - payments
+      - subscriptions
+      - transfers
+    auth_method: api_key
+    regions:
+      - nigeria
+      - ghana
+      - south_africa
+      - kenya
+    documentation: "https://paystack.com/docs/api"
+
+ads_platforms:
+  meta_ads:
+    status: connected
+    api_version: "v18.0"
+    features:
+      - campaign_management
+      - audience_targeting
+      - conversion_tracking
+      - spark_ads_whitelisting
+    auth_method: oauth2
+    documentation: "https://developers.facebook.com/docs/marketing-apis"
+
+  google_ads:
+    status: connected
+    api_version: "v15"
+    features:
+      - campaign_management
+      - keyword_targeting
+      - conversion_tracking
+    auth_method: oauth2
+    documentation: "https://developers.google.com/google-ads/api"
+
+  tiktok_ads:
+    status: connected
+    api_version: "v1.3"
+    features:
+      - campaign_management
+      - spark_ads
+      - audience_targeting
+    auth_method: oauth2
+    documentation: "https://business-api.tiktok.com/portal/docs"
+
+  pinterest_ads:
+    status: available
+    features:
+      - campaign_management
+      - shopping_ads
+    auth_method: oauth2
+    documentation: "https://developers.pinterest.com/docs/ads"
+
+analytics_platforms:
+  google_analytics:
+    status: connected
+    api_version: "v1"
+    features:
+      - event_tracking
+      - conversion_tracking
+      - audience_export
+    auth_method: oauth2
+    documentation: "https://developers.google.com/analytics"
+
+  mixpanel:
+    status: connected
+    features:
+      - event_tracking
+      - user_profiles
+      - funnels
+    auth_method: api_key
+    documentation: "https://developer.mixpanel.com"
+
+  amplitude:
+    status: connected
+    features:
+      - event_tracking
+      - user_profiles
+      - cohorts
+    auth_method: api_key
+    documentation: "https://www.docs.developers.amplitude.com"
+
+  segment:
+    status: available
+    features:
+      - event_routing
+      - identity_resolution
+    auth_method: api_key
+    documentation: "https://segment.com/docs"
+
+communication:
+  sendgrid:
+    status: connected
+    features:
+      - transactional_email
+      - marketing_email
+      - templates
+      - webhooks
+    auth_method: api_key
+    documentation: "https://docs.sendgrid.com"
+
+  twilio:
+    status: connected
+    features:
+      - sms
+      - whatsapp
+      - voice
+      - verify
+    auth_method: api_key
+    documentation: "https://www.twilio.com/docs"
+
+  azure_communication_services:
+    status: connected
+    features:
+      - email
+      - sms
+      - chat
+    auth_method: connection_string
+    documentation: "https://learn.microsoft.com/en-us/azure/communication-services"
+
+  mailchimp:
+    status: available
+    features:
+      - email_marketing
+      - automations
+      - audiences
+    auth_method: oauth2
+    documentation: "https://mailchimp.com/developer"
+
+  klaviyo:
+    status: available
+    features:
+      - email_marketing
+      - sms
+      - flows
+    auth_method: api_key
+    documentation: "https://developers.klaviyo.com"
+
+ai_services:
+  openai:
+    status: connected
+    features:
+      - gpt4
+      - gpt4o
+      - embeddings
+      - whisper
+      - dalle
+    auth_method: api_key
+    documentation: "https://platform.openai.com/docs"
+
+  azure_openai:
+    status: connected
+    features:
+      - gpt4
+      - gpt4o
+      - embeddings
+    auth_method: api_key
+    documentation: "https://learn.microsoft.com/en-us/azure/ai-services/openai"
+
+  azure_cognitive_services:
+    status: connected
+    features:
+      - content_moderation
+      - vision
+      - speech
+      - language
+    auth_method: api_key
+    documentation: "https://learn.microsoft.com/en-us/azure/cognitive-services"
+
+  pinecone:
+    status: connected
+    features:
+      - vector_storage
+      - similarity_search
+    auth_method: api_key
+    documentation: "https://docs.pinecone.io"
+
+crm_platforms:
+  salesforce:
+    status: available
+    features:
+      - contact_sync
+      - opportunity_tracking
+      - campaign_attribution
+    auth_method: oauth2
+    documentation: "https://developer.salesforce.com/docs"
+
+  hubspot:
+    status: available
+    features:
+      - contact_sync
+      - deal_tracking
+      - marketing_automation
+    auth_method: oauth2
+    documentation: "https://developers.hubspot.com"
+
+rejected_integrations:
+  tiktok_unofficial_api:
+    status: rejected
+    reason: "Violates TikTok Terms of Service"
+    evidence: "https://www.tiktok.com/legal/terms-of-service"
+    date_rejected: "2024-01-15"
+
+  instagram_scraper:
+    status: rejected
+    reason: "Violates Meta Platform Terms"
+    evidence: "https://developers.facebook.com/terms"
+    date_rejected: "2024-01-15"
+
+  youtube_dl_integration:
+    status: rejected
+    reason: "Copyright concerns, use official API instead"
+    date_rejected: "2024-02-01"

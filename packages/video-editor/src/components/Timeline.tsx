@@ -93,7 +93,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Draw clip name (truncated)
       ctx.fillStyle = '#fff';
       ctx.font = '12px sans-serif';
-      ctx.fillText(clip.file.name || 'Video Clip', x + 5, y + 20, clipWidth - 10);
+      ctx.fillText((clip.file as File).name || 'Video Clip', x + 5, y + 20, clipWidth - 10);
 
       // Draw duration
       ctx.font = '10px sans-serif';

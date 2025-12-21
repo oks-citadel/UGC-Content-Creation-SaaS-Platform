@@ -91,7 +91,7 @@ export class AnalyticsTracker extends EventEmitter {
       properties,
       timestamp: Date.now(),
       sessionId: this.session.getSessionId(),
-      userId: this.identity.getUserId(),
+      userId: this.identity.getUserId() ?? undefined,
       anonymousId: this.identity.getAnonymousId(),
     };
 

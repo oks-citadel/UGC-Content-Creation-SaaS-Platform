@@ -201,7 +201,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="font-semibold text-green-900 mb-3">Do's</h4>
+                  <h4 className="font-semibold text-green-900 mb-3">Do&apos;s</h4>
                   <ul className="space-y-2">
                     {campaign.brief.dos.map((item, index) => (
                       <li key={index} className="text-sm text-green-800 flex items-start gap-2">
@@ -212,7 +212,7 @@ export default function CampaignDetailPage({ params }: { params: { id: string } 
                   </ul>
                 </div>
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h4 className="font-semibold text-red-900 mb-3">Don'ts</h4>
+                  <h4 className="font-semibold text-red-900 mb-3">Don&apos;ts</h4>
                   <ul className="space-y-2">
                     {campaign.brief.donts.map((item, index) => (
                       <li key={index} className="text-sm text-red-800 flex items-start gap-2">

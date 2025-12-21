@@ -1,0 +1,437 @@
+# NEXUS Platform - Subscription Tier Entitlements
+# Server-side enforcement ONLY - Never trust client
+# Version: 1.0.0
+# Last Updated: 2025-12-21
+
+version: "1.0"
+
+tiers:
+  # ============================================================================
+  # T0 - FREE TIER
+  # ============================================================================
+  free:
+    id: "tier_free"
+    name: "Free"
+    description: "Get started with basic UGC management"
+    pricing:
+      monthly: 0
+      annual: 0
+      currency: "USD"
+
+    limits:
+      # Team & Organization
+      seats: 1
+      brands: 1
+      workspaces: 1
+
+      # Creators & Content
+      creators: 5
+      assets_per_month: 10
+      storage_gb: 1
+
+      # CDP & Events
+      cdp_events_per_month: 1000
+      profiles: 100
+      segments: 3
+
+      # Marketing Automation
+      emails_per_month: 100
+      sms_per_month: 0
+      journeys: 1
+      automation_steps: 5
+
+      # Integrations
+      integrations: 2
+      webhooks: 1
+      api_calls_per_day: 100
+
+      # Commerce
+      products: 0
+      shoppable_galleries: 0
+
+      # Analytics
+      data_retention_days: 7
+      custom_reports: 0
+
+      # AI Features
+      ai_requests_per_month: 10
+      video_minutes_processed: 0
+
+      # Whitelisting & Paid Distribution
+      whitelisting_requests: 0
+      spark_ads: false
+
+    features:
+      # Security
+      sso: false
+      scim: false
+      two_factor: false
+      ip_allowlist: false
+      audit_log: false
+
+      # Support
+      support_tier: "community"
+      response_time_hours: null
+
+      # Compliance
+      gdpr_tools: false
+      data_export: false
+      custom_dpa: false
+
+      # Advanced Features
+      white_label: false
+      custom_domain: false
+      api_access: "read_only"
+      bulk_operations: false
+      advanced_analytics: false
+      attribution_models: ["last_touch"]
+
+    sla:
+      uptime_guarantee: null
+      support_hours: "community"
+
+  # ============================================================================
+  # T1 - STARTER TIER
+  # ============================================================================
+  starter:
+    id: "tier_starter"
+    name: "Starter"
+    description: "For small teams getting started with UGC marketing"
+    pricing:
+      monthly: 49
+      annual: 470  # 2 months free
+      currency: "USD"
+
+    limits:
+      seats: 3
+      brands: 1
+      workspaces: 1
+      creators: 25
+      assets_per_month: 50
+      storage_gb: 10
+      cdp_events_per_month: 10000
+      profiles: 1000
+      segments: 10
+      emails_per_month: 1000
+      sms_per_month: 100
+      journeys: 3
+      automation_steps: 10
+      integrations: 5
+      webhooks: 3
+      api_calls_per_day: 1000
+      products: 50
+      shoppable_galleries: 3
+      data_retention_days: 30
+      custom_reports: 3
+      ai_requests_per_month: 100
+      video_minutes_processed: 30
+      whitelisting_requests: 5
+      spark_ads: false
+
+    features:
+      sso: false
+      scim: false
+      two_factor: true
+      ip_allowlist: false
+      audit_log: false
+      support_tier: "email"
+      response_time_hours: 48
+      gdpr_tools: true
+      data_export: true
+      custom_dpa: false
+      white_label: false
+      custom_domain: false
+      api_access: "read_write"
+      bulk_operations: false
+      advanced_analytics: false
+      attribution_models: ["first_touch", "last_touch"]
+
+    sla:
+      uptime_guarantee: 99.0
+      support_hours: "business"
+
+  # ============================================================================
+  # T2 - GROWTH TIER
+  # ============================================================================
+  growth:
+    id: "tier_growth"
+    name: "Growth"
+    description: "For growing teams scaling their UGC operations"
+    pricing:
+      monthly: 149
+      annual: 1430  # 2 months free
+      currency: "USD"
+
+    limits:
+      seats: 10
+      brands: 3
+      workspaces: 3
+      creators: 100
+      assets_per_month: 200
+      storage_gb: 50
+      cdp_events_per_month: 100000
+      profiles: 10000
+      segments: 50
+      emails_per_month: 10000
+      sms_per_month: 1000
+      journeys: 10
+      automation_steps: 25
+      integrations: 10
+      webhooks: 10
+      api_calls_per_day: 10000
+      products: 500
+      shoppable_galleries: 20
+      data_retention_days: 90
+      custom_reports: 10
+      ai_requests_per_month: 500
+      video_minutes_processed: 120
+      whitelisting_requests: 25
+      spark_ads: true
+
+    features:
+      sso: false
+      scim: false
+      two_factor: true
+      ip_allowlist: false
+      audit_log: true
+      support_tier: "priority_email"
+      response_time_hours: 24
+      gdpr_tools: true
+      data_export: true
+      custom_dpa: false
+      white_label: false
+      custom_domain: false
+      api_access: "read_write"
+      bulk_operations: true
+      advanced_analytics: true
+      attribution_models: ["first_touch", "last_touch", "linear"]
+
+    sla:
+      uptime_guarantee: 99.5
+      support_hours: "business"
+
+  # ============================================================================
+  # T3 - PRO TIER
+  # ============================================================================
+  pro:
+    id: "tier_pro"
+    name: "Pro"
+    description: "For professional teams with advanced needs"
+    pricing:
+      monthly: 399
+      annual: 3830  # 2 months free
+      currency: "USD"
+
+    limits:
+      seats: 25
+      brands: 10
+      workspaces: 10
+      creators: 500
+      assets_per_month: 1000
+      storage_gb: 200
+      cdp_events_per_month: 500000
+      profiles: 100000
+      segments: 200
+      emails_per_month: 50000
+      sms_per_month: 5000
+      journeys: 50
+      automation_steps: 50
+      integrations: 25
+      webhooks: 50
+      api_calls_per_day: 50000
+      products: 5000
+      shoppable_galleries: 100
+      data_retention_days: 180
+      custom_reports: 50
+      ai_requests_per_month: 2000
+      video_minutes_processed: 500
+      whitelisting_requests: 100
+      spark_ads: true
+
+    features:
+      sso: true
+      scim: false
+      two_factor: true
+      ip_allowlist: true
+      audit_log: true
+      support_tier: "priority"
+      response_time_hours: 8
+      gdpr_tools: true
+      data_export: true
+      custom_dpa: true
+      white_label: false
+      custom_domain: true
+      api_access: "full"
+      bulk_operations: true
+      advanced_analytics: true
+      attribution_models: ["first_touch", "last_touch", "linear", "time_decay"]
+
+    sla:
+      uptime_guarantee: 99.9
+      support_hours: "extended"
+
+  # ============================================================================
+  # T4 - BUSINESS TIER
+  # ============================================================================
+  business:
+    id: "tier_business"
+    name: "Business"
+    description: "For large teams and agencies with enterprise needs"
+    pricing:
+      monthly: 999
+      annual: 9590  # 2 months free
+      currency: "USD"
+
+    limits:
+      seats: 100
+      brands: 50
+      workspaces: 50
+      creators: 2000
+      assets_per_month: 5000
+      storage_gb: 1000
+      cdp_events_per_month: 2000000
+      profiles: 500000
+      segments: 1000
+      emails_per_month: 200000
+      sms_per_month: 20000
+      journeys: 200
+      automation_steps: 100
+      integrations: 50
+      webhooks: 200
+      api_calls_per_day: 200000
+      products: 50000
+      shoppable_galleries: 500
+      data_retention_days: 365
+      custom_reports: 200
+      ai_requests_per_month: 10000
+      video_minutes_processed: 2000
+      whitelisting_requests: 500
+      spark_ads: true
+
+    features:
+      sso: true
+      scim: true
+      two_factor: true
+      ip_allowlist: true
+      audit_log: true
+      support_tier: "dedicated"
+      response_time_hours: 4
+      gdpr_tools: true
+      data_export: true
+      custom_dpa: true
+      white_label: true
+      custom_domain: true
+      api_access: "full"
+      bulk_operations: true
+      advanced_analytics: true
+      attribution_models: ["first_touch", "last_touch", "linear", "time_decay", "position_based"]
+
+    sla:
+      uptime_guarantee: 99.95
+      support_hours: "24x5"
+
+  # ============================================================================
+  # T5 - ENTERPRISE TIER
+  # ============================================================================
+  enterprise:
+    id: "tier_enterprise"
+    name: "Enterprise"
+    description: "Custom solutions for enterprise organizations"
+    pricing:
+      monthly: null  # Custom pricing
+      annual: null
+      currency: "USD"
+      contact_sales: true
+
+    limits:
+      seats: -1  # Unlimited (-1 = unlimited)
+      brands: -1
+      workspaces: -1
+      creators: -1
+      assets_per_month: -1
+      storage_gb: -1
+      cdp_events_per_month: -1
+      profiles: -1
+      segments: -1
+      emails_per_month: -1
+      sms_per_month: -1
+      journeys: -1
+      automation_steps: -1
+      integrations: -1
+      webhooks: -1
+      api_calls_per_day: -1
+      products: -1
+      shoppable_galleries: -1
+      data_retention_days: -1  # Custom retention
+      custom_reports: -1
+      ai_requests_per_month: -1
+      video_minutes_processed: -1
+      whitelisting_requests: -1
+      spark_ads: true
+
+    features:
+      sso: true
+      scim: true
+      two_factor: true
+      ip_allowlist: true
+      audit_log: true
+      support_tier: "enterprise"
+      response_time_hours: 1
+      gdpr_tools: true
+      data_export: true
+      custom_dpa: true
+      white_label: true
+      custom_domain: true
+      api_access: "full"
+      bulk_operations: true
+      advanced_analytics: true
+      attribution_models: ["first_touch", "last_touch", "linear", "time_decay", "position_based", "data_driven"]
+      custom_integrations: true
+      dedicated_infrastructure: true
+      custom_sla: true
+
+    sla:
+      uptime_guarantee: 99.99
+      support_hours: "24x7"
+      dedicated_csm: true
+      quarterly_reviews: true
+
+# ============================================================================
+# ENFORCEMENT CONFIGURATION
+# ============================================================================
+enforcement:
+  # Error codes returned when limits are exceeded
+  error_codes:
+    entitlement_denied: "ENTITLEMENT_DENIED"
+    limit_exceeded: "LIMIT_EXCEEDED"
+    upgrade_required: "UPGRADE_REQUIRED"
+    feature_unavailable: "FEATURE_UNAVAILABLE"
+
+  # Grace period before hard enforcement (in percent overage)
+  soft_limit_threshold: 110  # 10% overage allowed before hard block
+
+  # Alert thresholds (percent of limit)
+  alert_thresholds:
+    - 75
+    - 90
+    - 100
+    - 110
+
+  # Usage tracking
+  tracking:
+    granularity: "hourly"
+    aggregation: "daily"
+    storage: "immutable"
+
+  # Overage billing (for tiers that allow it)
+  overage:
+    enabled_tiers: ["pro", "business", "enterprise"]
+    rates:
+      seats: 10  # per seat per month
+      storage_gb: 0.10  # per GB per month
+      cdp_events: 0.001  # per 1000 events
+      emails: 0.001  # per email
+      sms: 0.02  # per SMS
+      api_calls: 0.0001  # per 1000 calls
+      ai_requests: 0.05  # per request
+      video_minutes: 0.10  # per minute

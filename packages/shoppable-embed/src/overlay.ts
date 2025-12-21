@@ -5,7 +5,7 @@ import type { Product, ProductTag } from './types';
  */
 export class ProductOverlay {
   private container: HTMLElement;
-  private mediaElement: HTMLElement;
+  private _mediaElement: HTMLElement;
   private products: Product[];
   private tags: ProductTag[];
 
@@ -16,7 +16,7 @@ export class ProductOverlay {
     tags: ProductTag[]
   ) {
     this.container = container;
-    this.mediaElement = mediaElement;
+    this._mediaElement = mediaElement;
     this.products = products;
     this.tags = tags;
 

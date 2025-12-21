@@ -1,4 +1,4 @@
-import type { CartItem, CheckoutOptions } from './types';
+import type { CheckoutOptions } from './types';
 
 /**
  * Checkout flow handler

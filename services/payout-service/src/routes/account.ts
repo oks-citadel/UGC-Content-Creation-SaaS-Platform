@@ -49,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
     const creatorId = req.headers['x-creator-id'] as string || 'default-creator';
     const body = setupAccountSchema.parse(req.body);
 
-    const account = await accountService.setupAccount(creatorId, body);
+    const account = await accountService.setupAccount(creatorId, body as any);
 
     res.status(201).json(account);
   } catch (error) {

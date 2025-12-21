@@ -12,7 +12,6 @@ import type {
   Image,
   Video,
   SocialPlatform,
-  SocialHandle,
   Address,
   GeoLocation,
 } from './common';
