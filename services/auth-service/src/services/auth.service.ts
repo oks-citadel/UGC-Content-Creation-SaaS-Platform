@@ -5,7 +5,7 @@ import { hashPassword, verifyPassword, validatePasswordStrength } from '../lib/p
 import { generateTokenPair, verifyToken, TokenPair } from '../lib/jwt';
 import { setupMfa, verifyToken as verifyMfaToken } from '../lib/mfa';
 import { config } from '../config';
-import { AppError, ValidationError } from '@nexus/utils';
+import { AppError, ValidationError } from '../lib/errors';
 
 export interface RegisterInput {
   email: string;

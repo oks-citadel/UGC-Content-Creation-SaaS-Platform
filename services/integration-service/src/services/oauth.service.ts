@@ -60,10 +60,10 @@ export class OAuthService {
           authUrl = await salesforceConnector.getAuthorizationUrl(state, redirectUri);
           break;
         case IntegrationProvider.SHOPIFY:
-          if (!metadata?.shop) {
+          if (!(metadata as any).shop) {
             throw new Error('Shopify shop domain is required');
           }
-          authUrl = await shopifyConnector.getAuthorizationUrl(metadata.shop, state, redirectUri);
+          authUrl = await shopifyConnector.getAuthorizationUrl((metadata as any).shop, state, redirectUri);
           break;
         case IntegrationProvider.GOOGLE_ADS:
           authUrl = await googleAdsConnector.getAuthorizationUrl(state);
@@ -138,11 +138,11 @@ export class OAuthService {
           break;
 
         case IntegrationProvider.SHOPIFY:
-          if (!oauthState.metadata?.shop) {
+          if (!(oauthState.metadata as any)?.shop) {
             throw new Error('Shopify shop domain is required');
           }
-          tokens = await shopifyConnector.exchangeCodeForTokens(oauthState.metadata.shop, code);
-          metadata.shop = oauthState.metadata.shop;
+          tokens = await shopifyConnector.exchangeCodeForTokens((oauthState.metadata as any)?.shop, code);
+          (metadata as any).shop = (oauthState.metadata as any)?.shop;
           break;
 
         case IntegrationProvider.GOOGLE_ADS:
@@ -234,7 +234,7 @@ export class OAuthService {
         case IntegrationProvider.SALESFORCE:
           tokens = await salesforceConnector.refreshAccessToken(
             integration.refreshToken,
-            integration.metadata?.instanceUrl
+            (integration.metadata as any)?.instanceUrl
           );
           break;
         case IntegrationProvider.GOOGLE_ADS:

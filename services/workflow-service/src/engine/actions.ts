@@ -42,7 +42,7 @@ class DelayAction implements Action {
 class LogAction implements Action {
   async execute(params: any, context: any): Promise<any> {
     const { message, level = 'info' } = params;
-    logger[level as keyof typeof logger](message);
+    (logger as any)[level](message);
     return { logged: message };
   }
 }

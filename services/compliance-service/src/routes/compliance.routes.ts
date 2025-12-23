@@ -127,7 +127,7 @@ router.post('/rights', async (req, res, next) => {
       ...input,
       startsAt: input.startsAt ? new Date(input.startsAt) : undefined,
       endsAt: input.endsAt ? new Date(input.endsAt) : undefined,
-    });
+    } as any);
     res.json({ success: true, data: rights });
   } catch (error) {
     next(error);

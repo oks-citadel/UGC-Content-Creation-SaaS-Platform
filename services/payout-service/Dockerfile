@@ -1,83 +1,62 @@
-# =============================================================================
-# CreatorBridge Payout Service - Dockerfile
-# =============================================================================
-
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8 --activate
-
-# Copy workspace files
-COPY pnpm-workspace.yaml ./
-COPY package.json pnpm-lock.yaml ./
-
-# Copy packages
-COPY packages/types/package.json packages/types/
-COPY packages/utils/package.json packages/utils/
-
-# Copy service
-COPY services/payout-service/package.json services/payout-service/
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY prisma ./prisma/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
 # Copy source code
-COPY packages/types packages/types
-COPY packages/utils packages/utils
-COPY services/payout-service services/payout-service
+COPY src ./src
 
-# Build packages
-RUN pnpm --filter @nexus/types build
-RUN pnpm --filter @nexus/utils build
-RUN pnpm --filter @nexus/payout-service build
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:20-alpine
+
+# Install OpenSSL for Prisma runtime
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nexus
+# Install production dependencies only
+COPY package*.json ./
+RUN npm install --only=production
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8 --activate
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
 
 # Copy built application
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/dist ./dist
 
-COPY --from=builder /app/packages/types/package.json packages/types/
-COPY --from=builder /app/packages/types/dist packages/types/dist
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-COPY --from=builder /app/packages/utils/package.json packages/utils/
-COPY --from=builder /app/packages/utils/dist packages/utils/dist
+# Change ownership
+RUN chown -R nodejs:nodejs /app
 
-COPY --from=builder /app/services/payout-service/package.json services/payout-service/
-COPY --from=builder /app/services/payout-service/dist services/payout-service/dist
+USER nodejs
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Set ownership
-RUN chown -R nexus:nodejs /app
-
-# Switch to non-root user
-USER nexus
-
-# Environment
-ENV NODE_ENV=production
-ENV PORT=8091
-
+# Expose port
 EXPOSE 8091
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8091/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8091/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start
-CMD ["node", "services/payout-service/dist/index.js"]
+# Start application
+CMD ["node", "dist/index.js"]

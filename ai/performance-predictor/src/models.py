@@ -242,3 +242,110 @@ class OutcomeResponse(BaseModel):
     accuracy_breakdown: Dict[str, float] = Field(..., description="Accuracy by metric")
     learning_impact: str = Field(..., description="How this outcome will improve future predictions")
     recorded_at: str
+
+
+# =====================================================
+# Batch Prediction Models
+# =====================================================
+
+
+class BatchPredictionItem(BaseModel):
+    """Single item in a batch prediction request."""
+    item_id: str = Field(..., description="Unique identifier for this item in the batch")
+    content_url: str = Field(..., description="URL to the content to analyze")
+    content_type: ContentType
+    platform: Platform
+    caption: Optional[str] = None
+    hashtags: List[str] = Field(default_factory=list)
+    target_audience: Optional[Dict[str, Any]] = None
+    creator_metrics: Optional[Dict[str, float]] = None
+    posting_time: Optional[str] = None
+
+
+class BatchPredictionRequest(BaseModel):
+    """Request for batch predictions."""
+    items: List[BatchPredictionItem] = Field(
+        ...,
+        description="List of content items to predict",
+        min_length=1,
+        max_length=50
+    )
+    include_virality: bool = Field(
+        default=True,
+        description="Include virality scores in predictions"
+    )
+    include_optimization: bool = Field(
+        default=False,
+        description="Include optimization suggestions (slower)"
+    )
+
+
+class BatchPredictionResult(BaseModel):
+    """Result for a single item in batch prediction."""
+    item_id: str
+    content_id: str
+    success: bool
+    error: Optional[str] = None
+    platform: Optional[Platform] = None
+    engagement_prediction: Optional[EngagementPrediction] = None
+    virality_score: Optional[ViralityScore] = None
+    content_analysis: Optional[ContentAnalysis] = None
+    overall_score: Optional[float] = Field(None, ge=0.0, le=100.0)
+    optimization_suggestions: Optional[List[OptimizationSuggestion]] = None
+
+
+class BatchPredictionResponse(BaseModel):
+    """Response for batch predictions."""
+    batch_id: str = Field(..., description="Unique batch request ID")
+    total_items: int = Field(..., ge=0)
+    successful: int = Field(..., ge=0)
+    failed: int = Field(..., ge=0)
+    results: List[BatchPredictionResult]
+    processing_time_ms: float
+    analyzed_at: str
+
+
+# =====================================================
+# Model Management & A/B Testing Models
+# =====================================================
+
+
+class ModelVersionInfo(BaseModel):
+    """Information about a model version."""
+    version: str
+    target: str
+    created_at: str
+    metrics: Dict[str, float]
+    is_active: bool
+
+
+class ABTestConfig(BaseModel):
+    """Configuration for A/B testing model versions."""
+    target: str = Field(..., description="Target metric (e.g., 'views', 'engagement_rate')")
+    versions: Dict[str, float] = Field(
+        ...,
+        description="Model version to traffic percentage mapping (must sum to 1.0)"
+    )
+
+
+class ABTestResult(BaseModel):
+    """Result of prediction with A/B test information."""
+    prediction: Dict[str, float]
+    confidence: float
+    model_version: str
+    latency_ms: float
+
+
+class FeatureImportanceResponse(BaseModel):
+    """Feature importance for a trained model."""
+    target: str
+    feature_importance: Dict[str, float]
+    top_features: List[str]
+
+
+class ModelHealthResponse(BaseModel):
+    """Health and statistics about loaded models."""
+    loaded_models: List[str]
+    model_versions: Dict[str, ModelVersionInfo]
+    ab_tests_active: Dict[str, Dict[str, float]]
+    cache_stats: Dict[str, Any]

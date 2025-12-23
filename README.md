@@ -25,6 +25,23 @@
 
 ---
 
+## 🎯 Production Status
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| **Backend Services** | ✅ Ready | 17 microservices, 28/28 tests passing |
+| **AI Services** | ✅ Ready | 11 Python/FastAPI services |
+| **Frontend Apps** | ⚠️ 90% | Windows symlink issue on local build |
+| **Infrastructure** | ✅ Ready | 21 Azure resources deployed |
+| **Container Images** | ⚠️ 46% | 13/28 images built to ACR |
+| **Kubernetes** | ✅ Ready | 44 manifests with health probes |
+| **CI/CD** | ✅ Ready | 6 GitHub Actions workflows |
+| **Documentation** | ✅ Ready | 50+ documentation files |
+
+**GitHub Repository**: [oks-citadel/UGC-Content-Creation-SaaS-Platform](https://github.com/oks-citadel/UGC-Content-Creation-SaaS-Platform)
+
+---
+
 ## ✨ Core Features
 
 ### 🤖 AI Creation & Automation Suite
@@ -617,11 +634,12 @@ Unique automated paths for:
 - **Vector DB**: Pinecone
 
 ### Infrastructure
-- **Cloud**: AWS (primary), GCP (ML)
-- **Orchestration**: Kubernetes (EKS/GKE)
+- **Cloud**: Azure (primary), AWS (ML/AI)
+- **Orchestration**: Azure Kubernetes Service (AKS)
+- **Container Registry**: Azure Container Registry (ACR)
 - **IaC**: Terraform
-- **CI/CD**: GitHub Actions, ArgoCD
-- **Monitoring**: Datadog, Grafana
+- **CI/CD**: GitHub Actions
+- **Monitoring**: Azure Application Insights, Grafana
 
 ### Data
 - **Relational**: PostgreSQL 15+
@@ -639,6 +657,79 @@ Unique automated paths for:
 
 ---
 
+## 💰 Subscription Tiers
+
+NEXUS offers a 6-tier subscription model designed to scale with your business:
+
+| Tier | Price/Month | Seats | Storage | Creators | Key Features |
+|------|-------------|-------|---------|----------|--------------|
+| **Free** | $0 | 1 | 1 GB | 5 | Basic UGC management, community support |
+| **Starter** | $49 | 3 | 10 GB | 25 | 2FA, email support, shoppable galleries |
+| **Growth** | $149 | 10 | 50 GB | 100 | Audit log, priority support, Spark Ads |
+| **Pro** | $399 | 25 | 200 GB | 500 | SSO, custom domain, 99.9% SLA |
+| **Business** | $999 | 100 | 1 TB | 2,000 | SCIM, white-label, dedicated support |
+| **Enterprise** | Custom | Unlimited | Unlimited | Unlimited | Custom SLA, dedicated infrastructure |
+
+All paid tiers include:
+- Annual billing discount (2 months free)
+- GDPR/CCPA compliance tools
+- API access
+- Multi-touch attribution
+
+See [`config/entitlements.tiers.yml`](config/entitlements.tiers.yml) for complete tier specifications.
+
+---
+
+## ☁️ Azure Deployment
+
+### Deployed Infrastructure (Staging)
+
+| Resource | Name | Purpose |
+|----------|------|---------|
+| **AKS Cluster** | `aks-marketing-staging-ravs` | Kubernetes 1.32, managed node pool |
+| **Container Registry** | `acrmktstagingravs.azurecr.io` | Docker image repository |
+| **PostgreSQL** | Flexible Server | Primary database with pgvector |
+| **Redis Cache** | Premium tier | Session & cache management |
+| **Key Vault** | Secret management | Secure credential storage |
+| **Storage Account** | Blob containers | Asset & media storage |
+| **Virtual Network** | Hub-spoke topology | Network isolation |
+| **Application Insights** | Telemetry | Monitoring & diagnostics |
+| **Log Analytics** | Workspace | Centralized logging |
+
+### Container Images (ACR)
+
+```
+acrmktstagingravs.azurecr.io/
+├── api-gateway:latest
+├── auth-service:latest
+├── ai-service:latest
+├── analytics-aggregator:latest
+├── brand-portal:latest
+├── notification-dispatcher:latest
+├── recommendation-engine:latest
+├── social-publisher:latest
+├── video-generator:latest
+├── video-processor:latest
+└── ... (28 total services)
+```
+
+### Terraform Infrastructure
+
+```bash
+cd infrastructure/terraform
+
+# Initialize
+terraform init
+
+# Plan deployment
+terraform plan -var-file="environments/staging.tfvars"
+
+# Apply
+terraform apply -var-file="environments/staging.tfvars"
+```
+
+---
+
 ## 📦 Getting Started
 
 ### Prerequisites
@@ -652,8 +743,8 @@ Unique automated paths for:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/nexus-platform.git
-cd nexus-platform
+git clone https://github.com/oks-citadel/UGC-Content-Creation-SaaS-Platform.git
+cd UGC-Content-Creation-SaaS-Platform
 
 # Install dependencies
 pnpm install

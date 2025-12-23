@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { Prisma, Creator, CreatorStatus, VerificationStatus } from '@prisma/client';
+import { Prisma, Creator, CreatorStatus } from '@prisma/client';
 import { NotFoundError, ValidationError, ConflictError } from '../middleware/error-handler';
 import logger from '../lib/logger';
 
@@ -135,7 +135,7 @@ class CreatorService {
       logger.info({ creatorId: creator.id }, 'Creator profile created');
 
       return creator;
-    } catch (error) {
+    } catch (error: any) {
       logger.error({ error, data }, 'Failed to create creator');
       throw error;
     }
@@ -159,7 +159,7 @@ class CreatorService {
       logger.info({ creatorId: id }, 'Creator profile updated');
 
       return creator;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundError('Creator not found');
       }
@@ -283,7 +283,7 @@ class CreatorService {
       });
 
       logger.info({ creatorId: id }, 'Creator deleted');
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundError('Creator not found');
       }
@@ -340,7 +340,7 @@ class CreatorService {
       });
 
       return portfolioItem;
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundError('Portfolio item not found');
       }
@@ -353,7 +353,7 @@ class CreatorService {
       await prisma.creatorPortfolio.delete({
         where: { id },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
         throw new NotFoundError('Portfolio item not found');
       }
@@ -505,7 +505,7 @@ class CreatorService {
 
     // Calculate average rating
     const avgRating = reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + Number(review.rating), 0) / reviews.length
+      ? reviews.reduce((sum: number, review: { rating: number | string }) => sum + Number(review.rating), 0) / reviews.length
       : 0;
 
     // Calculate completion rate score (0-1)
@@ -517,7 +517,7 @@ class CreatorService {
     const responseScore = Number(metrics.responseRate) / 100;
 
     // Calculate verification bonus (0-1)
-    const verificationBonus = creator.verificationStatus === VerificationStatus.VERIFIED ? 0.5 : 0;
+    const verificationBonus = creator.verificationStatus === 'VERIFIED' ? 0.5 : 0;
 
     // Weighted score (out of 5)
     const reputationScore = (

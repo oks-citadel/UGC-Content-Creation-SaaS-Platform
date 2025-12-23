@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+  namespace: nexus-staging
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+      include mime.types;
+      default_type application/json;
+
+      access_log /var/log/nginx/access.log;
+      error_log /var/log/nginx/error.log warn;
+
+      gzip on;
+      gzip_types application/json;
+
+      server {
+        listen 4000;
+        server_name _;
+
+        add_header X-Content-Type-Options nosniff always;
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Authorization" always;
+
+        location /health {
+          return 200 '{"status":"healthy","service":"api-gateway","version":"1.0.0"}';
+        }
+
+        location /ready {
+          return 200 '{"ready":true}';
+        }
+
+        # Auth endpoints
+        location /api/v1/auth/login {
+          if ($request_method = OPTIONS) { return 204; }
+          return 200 '{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyLTAwMSIsImVtYWlsIjoiYWRtaW5AY3JlYXRvcmJyaWRnZS5jb20iLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3MDMxOTIwMDB9.demo","user":{"id":"user-001","email":"admin@creatorbridge.com","role":"admin","name":"Admin User"}}';
+        }
+
+        location /api/v1/auth/me {
+          return 200 '{"id":"user-001","email":"admin@creatorbridge.com","role":"admin","name":"Admin User","avatar":null}';
+        }
+
+        # User endpoints
+        location /api/v1/users {
+          return 200 '{"users":[{"id":"user-001","name":"Admin User","email":"admin@creatorbridge.com","role":"admin"},{"id":"user-002","name":"Brand Manager","email":"brand@example.com","role":"brand"}],"total":2}';
+        }
+
+        # Campaign endpoints
+        location /api/v1/campaigns {
+          return 200 '{"campaigns":[{"id":"camp-001","name":"Holiday UGC Campaign","status":"active","budget":50000,"spent":23450,"creators":15,"submissions":42,"views":125000,"startDate":"2024-12-01","endDate":"2024-12-31"},{"id":"camp-002","name":"Product Launch 2024","status":"draft","budget":75000,"spent":0,"creators":0,"submissions":0,"views":0,"startDate":"2025-01-15","endDate":"2025-02-15"}],"total":2,"page":1}';
+        }
+
+        # Creator endpoints
+        location /api/v1/creators {
+          return 200 '{"creators":[{"id":"cr-001","name":"Sarah Creator","handle":"@sarahcreates","followers":125000,"rating":4.8,"verified":true,"categories":["lifestyle","fashion"],"avgEngagement":5.2},{"id":"cr-002","name":"Mike Video","handle":"@mikevideo","followers":89000,"rating":4.6,"verified":true,"categories":["tech","gaming"],"avgEngagement":4.8},{"id":"cr-003","name":"Emma Style","handle":"@emmastyle","followers":210000,"rating":4.9,"verified":true,"categories":["beauty","lifestyle"],"avgEngagement":6.1}],"total":3}';
+        }
+
+        # Analytics endpoints
+        location /api/v1/analytics {
+          return 200 '{"totalViews":1250000,"engagement":4.2,"conversions":3200,"roi":285,"activeCampaigns":5,"totalCreators":150,"contentPieces":423,"revenue":125000}';
+        }
+
+        location /api/v1/analytics/overview {
+          return 200 '{"totalViews":1250000,"engagement":4.2,"conversions":3200,"roi":285,"activeCampaigns":5,"totalCreators":150,"contentPieces":423}';
+        }
+
+        # Content endpoints
+        location /api/v1/content {
+          return 200 '{"content":[{"id":"cnt-001","title":"Summer Collection Review","type":"video","status":"approved","views":45000,"engagement":5.8},{"id":"cnt-002","title":"Product Unboxing","type":"video","status":"pending","views":0,"engagement":0}],"total":2}';
+        }
+
+        # Billing endpoints
+        location /api/v1/billing {
+          return 200 '{"plan":"professional","status":"active","billingCycle":"monthly","nextBillingDate":"2025-01-21","usage":{"campaigns":5,"creators":150,"storage":"45GB"}}';
+        }
+
+        # Default API response
+        location /api/ {
+          return 200 '{"status":"ok","message":"CreatorBridge API v1.0","documentation":"/api/docs"}';
+        }
+
+        location / {
+          return 404 '{"error":"NOT_FOUND","message":"Endpoint not found"}';
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: nexus-staging
+  labels:
+    app: api-gateway
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        component: backend
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 4000
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+          resources:
+            requests:
+              cpu: "25m"
+              memory: "32Mi"
+            limits:
+              cpu: "100m"
+              memory: "64Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: api-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: nexus-staging
+  labels:
+    app: api-gateway
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4000
+      targetPort: 4000
+      name: http
+  selector:
+    app: api-gateway

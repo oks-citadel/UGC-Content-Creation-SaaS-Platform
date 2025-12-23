@@ -133,23 +133,23 @@ module "aks" {
   sku_tier           = "Free"
 
   # System node pool (staging - minimal)
-  system_node_count = 2
-  system_vm_size    = "Standard_D2s_v3"
-  system_min_count  = 2
-  system_max_count  = 3
+  system_node_count = 1
+  system_vm_size    = "Standard_B2s"
+  system_min_count  = 1
+  system_max_count  = 1
 
   # App node pool (staging - minimal)
-  app_vm_size   = "Standard_D2s_v3"
-  app_min_count = 1
-  app_max_count = 3
+  app_vm_size   = "Standard_B2s"
+  app_min_count = 0
+  app_max_count = 0
 
   # Disable worker pool for staging
-  worker_vm_size   = "Standard_D2s_v3"
+  worker_vm_size   = "Standard_B2s"
   worker_min_count = 0
   worker_max_count = 0
 
-  enable_auto_scaling = true
-  availability_zones  = ["3"]
+  enable_auto_scaling = false
+  availability_zones  = []
 
   acr_id                     = module.acr.acr_id
   enable_acr_integration     = true

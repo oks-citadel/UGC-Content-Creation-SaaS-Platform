@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-html
+  namespace: nexus-staging
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>CreatorBridge - Platform</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+            }
+            .container {
+                text-align: center;
+                padding: 2rem;
+            }
+            h1 { font-size: 3rem; margin-bottom: 1rem; }
+            .subtitle { font-size: 1.5rem; opacity: 0.9; margin-bottom: 2rem; }
+            .status {
+                background: rgba(255,255,255,0.2);
+                padding: 1rem 2rem;
+                border-radius: 10px;
+                display: inline-block;
+            }
+            .status-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+            .info { margin-top: 2rem; font-size: 0.9rem; opacity: 0.8; }
+            .portals { display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }
+            .portal {
+                background: rgba(255,255,255,0.15);
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                text-decoration: none;
+                color: white;
+                transition: transform 0.2s, background 0.2s;
+            }
+            .portal:hover { background: rgba(255,255,255,0.25); transform: translateY(-2px); }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>CreatorBridge</h1>
+            <p class="subtitle">UGC Marketing Platform</p>
+            <div class="status">
+                <div class="status-icon">&#9989;</div>
+                <div>Infrastructure Deployed</div>
+            </div>
+            <div class="portals">
+                <a href="/brand" class="portal">Brand Portal</a>
+                <a href="/creator" class="portal">Creator Portal</a>
+                <a href="/admin" class="portal">Admin Dashboard</a>
+            </div>
+            <p class="info">
+                Azure Kubernetes Service (AKS) | Azure Container Registry | PostgreSQL | Redis<br>
+                Staging Environment - Ready for Application Deployment
+            </p>
+        </div>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-landing
+  namespace: nexus-staging
+  labels:
+    app: demo-landing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-landing
+  template:
+    metadata:
+      labels:
+        app: demo-landing
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"
+      volumes:
+        - name: html
+          configMap:
+            name: demo-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-landing
+  namespace: nexus-staging
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: demo-landing
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+  namespace: nexus-staging
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-landing
+                port:
+                  number: 80

@@ -136,8 +136,8 @@ e2e/
 .prettierignore
 .eslintrc*
 .eslintignore
-tsconfig.json
-tsconfig.*.json
+#tsconfig.json - needed for building packages
+#tsconfig.*.json
 jest.config.*
 vitest.config.*
 playwright.config.*
@@ -158,3 +158,6 @@ playwright.config.*
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Mobile app (React Native has very long paths that break Windows builds)
+apps/mobile/

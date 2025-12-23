@@ -40,6 +40,12 @@ resources:
   - monitoring/prometheus-servicemonitor.yaml
   - monitoring/grafana-dashboards.yaml
 
+  # Network Policies
+  - network-policies.yaml
+
+  # Pod Disruption Budgets
+  - pdb.yaml
+
 commonLabels:
   app.kubernetes.io/managed-by: kustomize
   app.kubernetes.io/part-of: nexus-platform

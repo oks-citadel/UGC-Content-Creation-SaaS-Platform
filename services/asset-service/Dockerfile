@@ -1,86 +1,62 @@
-# =============================================================================
-# CreatorBridge Asset Service - Dockerfile
-# =============================================================================
-
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8 --activate
-
-# Copy workspace files
-COPY pnpm-workspace.yaml ./
-COPY package.json pnpm-lock.yaml ./
-
-# Copy packages
-COPY packages/types/package.json packages/types/
-COPY packages/utils/package.json packages/utils/
-
-# Copy service
-COPY services/asset-service/package.json services/asset-service/
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY prisma ./prisma/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
 # Copy source code
-COPY packages/types packages/types
-COPY packages/utils packages/utils
-COPY services/asset-service services/asset-service
+COPY src ./src
 
-# Build packages
-RUN pnpm --filter @nexus/types build
-RUN pnpm --filter @nexus/utils build
-RUN pnpm --filter @nexus/asset-service build
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Install required system dependencies for sharp
-RUN apk add --no-cache vips-dev
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nexus
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@8 --activate
-
-# Copy built application
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/pnpm-lock.yaml ./
-
-COPY --from=builder /app/packages/types/package.json packages/types/
-COPY --from=builder /app/packages/types/dist packages/types/dist
-
-COPY --from=builder /app/packages/utils/package.json packages/utils/
-COPY --from=builder /app/packages/utils/dist packages/utils/dist
-
-COPY --from=builder /app/services/asset-service/package.json services/asset-service/
-COPY --from=builder /app/services/asset-service/dist services/asset-service/dist
+# Install runtime dependencies for sharp and Prisma
+RUN apk add --no-cache vips-dev openssl libc6-compat
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+COPY package*.json ./
+RUN npm install --only=production
 
-# Set ownership
-RUN chown -R nexus:nodejs /app
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
 
-# Switch to non-root user
-USER nexus
+# Copy built application
+COPY --from=builder /app/dist ./dist
 
-# Environment
-ENV NODE_ENV=production
-ENV PORT=8088
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
+# Change ownership
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Expose port
 EXPOSE 8088
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8088/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8088/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start
-CMD ["node", "services/asset-service/dist/index.js"]
+# Start application
+CMD ["node", "dist/index.js"]

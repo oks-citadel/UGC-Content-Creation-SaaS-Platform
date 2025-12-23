@@ -1,70 +1,65 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Copy workspace files
-COPY pnpm-workspace.yaml ./
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-
-# Copy packages
-COPY packages/types ./packages/types
-COPY packages/utils ./packages/utils
-
-# Copy service
-COPY services/notification-service ./services/notification-service
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY prisma ./prisma/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN npm install
 
-# Generate Prisma client
-RUN cd services/notification-service && pnpm db:generate
+# Copy source code
+COPY src ./src
 
-# Build packages
-RUN pnpm --filter @nexus/types build
-RUN pnpm --filter @nexus/utils build
+# Generate Prisma Client
+RUN npx prisma generate
 
-# Build service
-RUN pnpm --filter @nexus/notification-service build
+# Build TypeScript
+RUN npm run build
 
 # Production stage
-FROM node:20-alpine AS runner
+FROM node:20-alpine
+
+# Install OpenSSL for Prisma runtime
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install production dependencies only
+COPY package*.json ./
+RUN npm install --only=production
+
+# Copy Prisma schema and generate client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Copy templates if they exist
+COPY --from=builder /app/src/templates ./dist/templates
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nexus
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# Copy built files
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/node_modules ./node_modules
+# Change ownership
+RUN chown -R nodejs:nodejs /app
 
-# Copy packages
-COPY --from=builder /app/packages/types/package.json ./packages/types/
-COPY --from=builder /app/packages/types/dist ./packages/types/dist
-COPY --from=builder /app/packages/utils/package.json ./packages/utils/
-COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
+USER nodejs
 
-# Copy service
-COPY --from=builder /app/services/notification-service/package.json ./services/notification-service/
-COPY --from=builder /app/services/notification-service/dist ./services/notification-service/dist
-COPY --from=builder /app/services/notification-service/prisma ./services/notification-service/prisma
-COPY --from=builder /app/services/notification-service/node_modules ./services/notification-service/node_modules
-COPY --from=builder /app/services/notification-service/src/templates ./services/notification-service/dist/templates
-
-USER nexus
-
+# Expose port
 EXPOSE 3008
 
-WORKDIR /app/services/notification-service
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3008/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
+# Start application
 CMD ["node", "dist/index.js"]

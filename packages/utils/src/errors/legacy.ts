@@ -1,7 +1,11 @@
 // =============================================================================
-// Error Utilities
+// Legacy Error Utilities - Backward compatibility exports
 // =============================================================================
+// These are re-exported from the original errors.ts for backward compatibility
 
+/**
+ * @deprecated Use BaseError from './base-error' instead
+ */
 export class AppError extends Error {
   public readonly code: string;
   public readonly statusCode: number;
@@ -36,87 +40,28 @@ export class AppError extends Error {
   }
 }
 
-// Common error types
-export class ValidationError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 'VALIDATION_ERROR', 400, true, details);
-  }
-}
-
-export class AuthenticationError extends AppError {
-  constructor(message = 'Authentication required') {
-    super(message, 'AUTHENTICATION_ERROR', 401, true);
-  }
-}
-
-export class AuthorizationError extends AppError {
-  constructor(message = 'Access denied') {
-    super(message, 'AUTHORIZATION_ERROR', 403, true);
-  }
-}
-
-export class NotFoundError extends AppError {
-  constructor(resource = 'Resource', id?: string) {
-    const message = id ? `${resource} with ID ${id} not found` : `${resource} not found`;
-    super(message, 'NOT_FOUND', 404, true);
-  }
-}
-
-export class ConflictError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 'CONFLICT', 409, true, details);
-  }
-}
-
-export class RateLimitError extends AppError {
-  public readonly retryAfter?: number;
-
-  constructor(message = 'Too many requests', retryAfter?: number) {
-    super(message, 'RATE_LIMIT_EXCEEDED', 429, true, { retryAfter });
-    this.retryAfter = retryAfter;
-  }
-}
-
-export class ExternalServiceError extends AppError {
-  public readonly service: string;
-
-  constructor(service: string, message: string, details?: Record<string, unknown>) {
-    super(message, 'EXTERNAL_SERVICE_ERROR', 502, true, { service, ...details });
-    this.service = service;
-  }
-}
-
-export class DatabaseError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 'DATABASE_ERROR', 500, false, details);
-  }
-}
-
-export class FileUploadError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 'FILE_UPLOAD_ERROR', 400, true, details);
-  }
-}
-
-export class PaymentError extends AppError {
-  constructor(message: string, details?: Record<string, unknown>) {
-    super(message, 'PAYMENT_ERROR', 402, true, details);
-  }
-}
-
-// Error type guards
+// Error type guards (legacy versions)
+/**
+ * @deprecated Use isBaseError from './guards' instead
+ */
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 
-export function isOperationalError(error: unknown): boolean {
+/**
+ * @deprecated Use isOperationalError from './guards' instead
+ */
+export function isOperationalErrorLegacy(error: unknown): boolean {
   if (isAppError(error)) {
     return error.isOperational;
   }
   return false;
 }
 
-// Error formatting
+// Legacy error formatting
+/**
+ * @deprecated Use formatErrorResponse from './formatter' instead
+ */
 export function formatError(error: unknown): {
   message: string;
   code: string;
@@ -147,7 +92,10 @@ export function formatError(error: unknown): {
   };
 }
 
-// Error wrapping
+// Error wrapping (legacy)
+/**
+ * @deprecated Use BaseError.withContext() instead
+ */
 export function wrapError(error: unknown, context: string): AppError {
   if (isAppError(error)) {
     return error;
@@ -159,7 +107,10 @@ export function wrapError(error: unknown, context: string): AppError {
   });
 }
 
-// Async error handling wrapper
+// Async error handling wrapper (legacy)
+/**
+ * @deprecated Consider using try-catch with BaseError instead
+ */
 export function catchAsync<T extends (...args: unknown[]) => Promise<unknown>>(
   fn: T
 ): (...args: Parameters<T>) => Promise<ReturnType<T>> {

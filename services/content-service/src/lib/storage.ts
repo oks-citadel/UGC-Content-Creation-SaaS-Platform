@@ -53,7 +53,7 @@ export async function uploadStream(
 ): Promise<{ url: string; cdnUrl?: string }> {
   const blockBlobClient: BlockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-  await blockBlobClient.uploadStream(stream, undefined, undefined, {
+  await blockBlobClient.uploadStream(stream as any, undefined, undefined, {
     blobHTTPHeaders: {
       blobContentType: contentType,
       blobCacheControl: 'public, max-age=31536000',

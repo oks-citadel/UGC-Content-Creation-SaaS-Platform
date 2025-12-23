@@ -20,37 +20,71 @@ patchesStrategicMerge:
   - patches/ingress-patch.yaml
 
 images:
-  - name: nexusregistry.azurecr.io/api-gateway
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/auth-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/user-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/creator-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/campaign-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/content-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/commerce-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/analytics-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/billing-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/marketplace-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/notification-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/workflow-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/ai-service
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/video-processor
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/social-publisher
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/analytics-aggregator
-    newTag: staging-latest
-  - name: nexusregistry.azurecr.io/notification-dispatcher
-    newTag: staging-latest
+  # Backend Services
+  - name: acrmktstagingravs.azurecr.io/api-gateway
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/auth-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/user-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/creator-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/campaign-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/content-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/commerce-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/analytics-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/billing-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/marketplace-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/notification-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/workflow-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/compliance-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/integration-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/payout-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/rights-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/asset-service
+    newTag: latest
+  # AI Services
+  - name: acrmktstagingravs.azurecr.io/ai-service
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/moderation-engine
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/recommendation-engine
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/performance-predictor
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/video-generator
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/customer-agent
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/marketing-agent
+    newTag: latest
+  # Workers
+  - name: acrmktstagingravs.azurecr.io/video-processor
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/social-publisher
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/analytics-aggregator
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/notification-dispatcher
+    newTag: latest
+  # Frontend Apps
+  - name: acrmktstagingravs.azurecr.io/web
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/creator-portal
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/admin
+    newTag: latest
+  - name: acrmktstagingravs.azurecr.io/brand-portal
+    newTag: latest

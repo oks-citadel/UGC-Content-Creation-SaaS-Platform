@@ -55,7 +55,7 @@ export class SalesforceConnector {
         refreshToken,
       });
 
-      await conn.refresh(refreshToken);
+      await (conn as any).refresh(refreshToken);
 
       return {
         accessToken: conn.accessToken!,
@@ -76,7 +76,7 @@ export class SalesforceConnector {
       });
 
       const result = await conn.sobject('Lead').create(lead);
-      return { id: result.id };
+      return { id: (result as any).id };
     } catch (error: any) {
       logger.error({ error }, 'Failed to create lead');
       throw new Error('Failed to create Salesforce lead');
@@ -91,7 +91,7 @@ export class SalesforceConnector {
       });
 
       const result = await conn.sobject('Contact').create(contact);
-      return { id: result.id };
+      return { id: (result as any).id };
     } catch (error: any) {
       logger.error({ error }, 'Failed to create contact');
       throw new Error('Failed to create Salesforce contact');

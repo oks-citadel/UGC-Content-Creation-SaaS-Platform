@@ -1,0 +1,78 @@
+# =============================================================================
+# NEXUS API Gateway - ACR Build Dockerfile
+# =============================================================================
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm silently
+RUN corepack enable && corepack prepare pnpm@8 --activate
+ENV CI=true
+ENV npm_config_progress=false
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# Copy workspace files
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
+
+# Copy package.json files only
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
+COPY services/api-gateway/package.json services/api-gateway/
+
+# Install dependencies silently
+RUN pnpm install --frozen-lockfile --ignore-scripts --reporter=silent 2>/dev/null || \
+    pnpm install --ignore-scripts --reporter=silent 2>/dev/null || \
+    pnpm install --ignore-scripts 2>&1 | grep -v "Progress"
+
+# Copy source code
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/api-gateway services/api-gateway
+
+# Build TypeScript
+RUN cd packages/types && npx tsc --outDir dist 2>&1 || true
+RUN cd packages/utils && npx tsc --outDir dist 2>&1 || true
+RUN cd services/api-gateway && npx tsc --outDir dist 2>&1
+
+# Production stage
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
+
+RUN corepack enable && corepack prepare pnpm@8 --activate
+ENV CI=true
+ENV npm_config_progress=false
+
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
+
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
+
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
+
+COPY --from=builder /app/services/api-gateway/package.json services/api-gateway/
+COPY --from=builder /app/services/api-gateway/dist services/api-gateway/dist
+
+RUN pnpm install --frozen-lockfile --prod --reporter=silent 2>/dev/null || \
+    pnpm install --prod --reporter=silent 2>/dev/null || true
+
+RUN chown -R nexus:nodejs /app
+USER nexus
+
+ENV NODE_ENV=production
+ENV PORT=4000
+EXPOSE 4000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+
+CMD ["node", "services/api-gateway/dist/index.js"]

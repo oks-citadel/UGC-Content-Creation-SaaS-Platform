@@ -15,3 +15,6 @@ export * from './analytics';
 
 // API contracts and DTOs
 export * from './api';
+
+// Error types, codes, and HTTP status mappings
+export * from './errors';

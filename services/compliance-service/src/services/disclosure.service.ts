@@ -80,7 +80,7 @@ export class DisclosureService {
     });
   }
 
-  async generateDisclosureText(type: DisclosureType, platform: string): string {
+  async generateDisclosureText(type: DisclosureType, platform: string): Promise<string> {
     const templates: Record<DisclosureType, string> = {
       [DisclosureType.SPONSORED_CONTENT]: '#Ad - This is sponsored content',
       [DisclosureType.PAID_PARTNERSHIP]: '#Partner - This is a paid partnership',

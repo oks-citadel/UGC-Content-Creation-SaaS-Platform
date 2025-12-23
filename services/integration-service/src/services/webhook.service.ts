@@ -223,7 +223,7 @@ export class WebhookService {
     signature: string,
     timestamp: string,
     secret: string
-  ): boolean {
+  ): Promise<boolean> {
     const expectedSignature = this.generateSignature(payload, secret, timestamp);
     return crypto.timingSafeEqual(
       Buffer.from(signature),

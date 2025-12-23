@@ -1,0 +1,172 @@
+# =============================================================================
+# NEXUS Platform - Docker Ignore File
+# =============================================================================
+# Files and directories to exclude from Docker build context
+# =============================================================================
+
+# Node.js
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+lerna-debug.log*
+
+# Build outputs
+dist/
+build/
+.next/
+.turbo/
+out/
+.output/
+.nuxt/
+.cache/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+*.coverage
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+.env.test
+*.env
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+*.sublime-*
+.history/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Documentation
+*.md
+docs/
+!README.md
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Docker
+.dockerignore
+docker-compose*.yml
+Dockerfile*
+!Dockerfile
+
+# CI/CD
+.circleci/
+.travis.yml
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# Infrastructure as Code (keep separate from app images)
+infrastructure/terraform/
+infrastructure/bicep/
+infrastructure/kubernetes/
+infrastructure/helm/
+
+# Scripts (unless specifically needed)
+scripts/
+*.sh
+!infrastructure/docker/scripts/*.sh
+
+# Test files
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+__tests__/
+__mocks__/
+test/
+tests/
+e2e/
+
+# Development files
+.husky/
+.commitlintrc*
+.prettierrc*
+.prettierignore
+.eslintrc*
+.eslintignore
+#tsconfig.json - needed for building packages
+#tsconfig.*.json
+jest.config.*
+vitest.config.*
+playwright.config.*
+
+# Misc
+*.seed
+*.pid
+*.pid.lock
+*.tgz
+.eslintcache
+.stylelintcache
+.npmrc
+.yarnrc
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Mobile app (React Native has very long paths that break Windows builds)
+apps/mobile/
+
+# Apps not needed for service builds
+apps/admin/
+apps/brand-portal/
+apps/creator-portal/
+apps/web/
+
+# Infrastructure not needed for service builds
+infrastructure/

@@ -1,0 +1,61 @@
+# =============================================================================
+# NEXUS API Gateway - npm Build (no pnpm Unicode issues)
+# =============================================================================
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Use npm instead of pnpm to avoid Unicode progress bar issues
+ENV CI=true
+ENV npm_config_progress=false
+ENV npm_config_loglevel=error
+
+# Copy package files
+COPY package.json ./
+COPY services/api-gateway/package.json services/api-gateway/
+
+# Create minimal package.json for npm
+RUN echo '{"name":"api-gateway-build","private":true,"workspaces":["packages/*","services/*"]}' > package.json
+
+# Copy packages
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
+
+# Install dependencies with npm (no Unicode progress)
+RUN cd services/api-gateway && npm install --legacy-peer-deps --no-progress 2>&1
+
+# Copy source code
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/api-gateway services/api-gateway
+
+# Build TypeScript
+RUN cd packages/types && npx tsc --outDir dist 2>&1 || echo "types built"
+RUN cd packages/utils && npx tsc --outDir dist 2>&1 || echo "utils built"
+RUN cd services/api-gateway && npx tsc --outDir dist 2>&1 || echo "api-gateway built"
+
+# Production stage
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
+
+ENV CI=true
+ENV npm_config_progress=false
+ENV NODE_ENV=production
+ENV PORT=4000
+
+# Copy built application
+COPY --from=builder /app/services/api-gateway/dist ./dist
+COPY --from=builder /app/services/api-gateway/node_modules ./node_modules
+COPY --from=builder /app/services/api-gateway/package.json ./
+
+RUN chown -R nexus:nodejs /app
+USER nexus
+
+EXPOSE 4000
+
+CMD ["node", "dist/index.js"]

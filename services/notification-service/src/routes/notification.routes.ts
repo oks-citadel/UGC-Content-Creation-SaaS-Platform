@@ -41,7 +41,7 @@ router.post('/send', async (req, res, next) => {
     const result = await notificationService.send({
       ...input,
       scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : undefined,
-    });
+    } as any);
 
     res.json({
       success: true,
@@ -61,7 +61,7 @@ router.post('/send/batch', async (req, res, next) => {
       notifications.map(n => ({
         ...n,
         scheduledFor: n.scheduledFor ? new Date(n.scheduledFor) : undefined,
-      }))
+      })) as any
     );
 
     res.json({
@@ -200,6 +200,7 @@ router.put('/preferences/:userId', async (req, res, next) => {
         },
       },
       create: {
+        type: input.type,
         userId: req.params.userId,
         ...input,
       },

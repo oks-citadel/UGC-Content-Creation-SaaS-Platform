@@ -1,12 +1,15 @@
 FROM node:18-alpine
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN pnpm install --prod --frozen-lockfile=false
 
 # Copy built application
 COPY dist ./dist

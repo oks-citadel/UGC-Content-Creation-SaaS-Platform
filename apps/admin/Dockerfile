@@ -14,7 +14,7 @@ RUN corepack enable && corepack prepare pnpm@8 --activate
 RUN apk add --no-cache curl wget
 
 # Copy workspace files
-COPY pnpm-workspace.yaml ./
+COPY pnpm-workspace.yaml turbo.json tsconfig.json ./
 COPY package.json pnpm-lock.yaml ./
 
 # Copy packages
@@ -23,8 +23,8 @@ COPY packages ./packages
 # Copy app
 COPY apps/admin ./apps/admin
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (ignore postinstall scripts for dev stage)
+RUN pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild
 
 # Expose port
 EXPOSE 3003
@@ -46,7 +46,7 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@8 --activate
 
 # Copy workspace files
-COPY pnpm-workspace.yaml ./
+COPY pnpm-workspace.yaml turbo.json tsconfig.json ./
 COPY package.json pnpm-lock.yaml ./
 
 # Copy packages
@@ -57,8 +57,8 @@ COPY packages/ui/package.json packages/ui/
 # Copy app
 COPY apps/admin/package.json apps/admin/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (ignore postinstall scripts - we'll build manually)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY packages/types packages/types
@@ -95,6 +95,7 @@ RUN corepack enable && corepack prepare pnpm@8 --activate
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
 COPY --from=builder /app/pnpm-lock.yaml ./
+COPY --from=builder /app/turbo.json ./
 
 # Copy built packages
 COPY --from=builder /app/packages/types/package.json packages/types/
@@ -112,8 +113,8 @@ COPY --from=builder /app/apps/admin/next.config.js apps/admin/
 COPY --from=builder /app/apps/admin/public apps/admin/public
 COPY --from=builder /app/apps/admin/.next apps/admin/.next
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+# Install production dependencies only (ignore scripts)
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app

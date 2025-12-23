@@ -4,13 +4,19 @@ import { campaignService } from '../services/campaign.service';
 
 const router = Router();
 
+// Date coercion helper
+const dateSchema = z.preprocess((val) => {
+  if (typeof val === 'string') return new Date(val);
+  return val;
+}, z.date().optional());
+
 // Validation schemas
 const createCampaignSchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().max(2000).optional(),
   type: z.enum(['UGC', 'INFLUENCER', 'AFFILIATE', 'AMBASSADOR', 'PRODUCT_SEEDING']).optional(),
-  startDate: z.string().datetime().optional().transform((s) => s ? new Date(s) : undefined),
-  endDate: z.string().datetime().optional().transform((s) => s ? new Date(s) : undefined),
+  startDate: dateSchema,
+  endDate: dateSchema,
   budget: z.number().positive().optional(),
   currency: z.string().length(3).optional(),
   targetAudience: z.record(z.unknown()).optional(),
@@ -42,7 +48,7 @@ const createDeliverableSchema = z.object({
   platform: z.string().optional(),
   quantity: z.number().int().positive().optional(),
   requirements: z.record(z.unknown()).optional(),
-  dueDate: z.string().datetime().optional().transform((s) => s ? new Date(s) : undefined),
+  dueDate: dateSchema,
   compensation: z.number().positive().optional(),
 });
 
@@ -58,7 +64,7 @@ const updateApplicationStatusSchema = z.object({
 const addMilestoneSchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().max(1000).optional(),
-  dueDate: z.string().datetime().optional().transform((s) => s ? new Date(s) : undefined),
+  dueDate: dateSchema,
 });
 
 // Helper to validate request body

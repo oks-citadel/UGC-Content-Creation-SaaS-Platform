@@ -1,0 +1,368 @@
+# PodDisruptionBudgets for CreatorBridge UGC Platform
+# These PDBs ensure service availability during voluntary disruptions like:
+# - Kubernetes upgrades
+# - Node maintenance
+# - Rolling deployments
+#
+# Critical services (api-gateway, auth-service, billing-service): minAvailable: 2
+# Standard services: minAvailable: 1 or maxUnavailable: 1
+
+---
+# Critical Services - minAvailable: 2
+# These services are essential for platform operation
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-gateway-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: api-gateway
+    app.kubernetes.io/component: gateway
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-gateway
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: auth-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: auth-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: billing-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: billing-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: billing-service
+
+---
+# Standard Services - minAvailable: 1
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: user-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: user-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: user-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: campaign-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: campaign-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: campaign-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: creator-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: creator-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: creator-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: content-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: content-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: content-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: asset-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: asset-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: asset-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rights-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: rights-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rights-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analytics-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: analytics-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analytics-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payout-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: payout-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payout-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: marketplace-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: marketplace-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: marketplace-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: commerce-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: commerce-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: commerce-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: compliance-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: compliance-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: compliance-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: integration-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: integration-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: integration-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: workflow-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: workflow-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: workflow-service
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ai-service-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: ai-service
+    app.kubernetes.io/component: service
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ai-service
+
+---
+# Worker Services - maxUnavailable: 1
+# These services can tolerate some downtime as they process queued work
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: video-processor-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: video-processor
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: video-processor
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: social-publisher-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: social-publisher
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: social-publisher
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: analytics-aggregator-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: analytics-aggregator
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analytics-aggregator
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: notification-dispatcher-pdb
+  namespace: nexus
+  labels:
+    app.kubernetes.io/name: notification-dispatcher
+    app.kubernetes.io/component: worker
+    app.kubernetes.io/part-of: nexus-platform
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-dispatcher

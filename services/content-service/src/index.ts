@@ -7,7 +7,7 @@ import pinoHttp from 'pino-http';
 import { config } from './config';
 import { initializeStorage, ensureContainerExists } from './lib/storage';
 import mediaRoutes from './routes/media.routes';
-import { AppError } from '@nexus/utils';
+import { AppError } from './lib/errors';
 
 const logger = pino({
   name: config.serviceName,

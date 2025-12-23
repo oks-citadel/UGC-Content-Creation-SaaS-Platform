@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../lib/prisma';
 import { uploadBlob, deleteBlob, generateBlobName } from '../lib/storage';
-import { AppError } from '@nexus/utils';
+import { AppError } from '../lib/errors';
 import { config } from '../config';
 
 export interface UploadMediaInput {
@@ -47,6 +47,7 @@ class MediaService {
         mimeType: file.mimetype,
         size: BigInt(file.size),
         status: 'PROCESSING',
+        url: '',  // Will be updated after upload
       },
     });
 

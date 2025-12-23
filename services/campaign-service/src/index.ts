@@ -6,7 +6,7 @@ import pinoHttp from 'pino-http';
 
 import { config } from './config';
 import campaignRoutes from './routes/campaign.routes';
-import { AppError } from '@nexus/utils';
+import { AppError } from './lib/errors';
 
 const logger = pino({
   name: config.serviceName,

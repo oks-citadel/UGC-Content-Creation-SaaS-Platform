@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ValidationError } from '@nexus/utils';
+import { AppError, ValidationError } from '../lib/errors';
 import pino from 'pino';
 
 const logger = pino({ name: 'auth-service' });

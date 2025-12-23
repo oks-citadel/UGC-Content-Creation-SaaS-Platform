@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: brand-portal-config
+  namespace: nexus-staging
+data:
+  NODE_ENV: "staging"
+  NEXT_PUBLIC_API_URL: "https://api.creatorbridge.staging"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: brand-portal
+  namespace: nexus-staging
+  labels:
+    app: brand-portal
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: brand-portal
+  template:
+    metadata:
+      labels:
+        app: brand-portal
+        component: frontend
+    spec:
+      containers:
+        - name: brand-portal
+          image: acrmktstagingravs.azurecr.io/brand-portal:staging-latest
+          ports:
+            - containerPort: 3001
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: brand-portal-config
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: brand-portal
+  namespace: nexus-staging
+  labels:
+    app: brand-portal
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3001
+      protocol: TCP
+  selector:
+    app: brand-portal
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: brand-portal-ingress
+  namespace: nexus-staging
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: brand.4.149.189.206.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: brand-portal
+                port:
+                  number: 80
+    - http:
+        paths:
+          - path: /brand
+            pathType: Prefix
+            backend:
+              service:
+                name: brand-portal
+                port:
+                  number: 80

@@ -1,0 +1,378 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: creatorbridge-demo
+  namespace: nexus-staging
+data:
+  nginx.conf: |
+    events {
+      worker_connections 1024;
+    }
+    http {
+      include mime.types;
+      server {
+        listen 80;
+        root /usr/share/nginx/html;
+        index index.html;
+
+        location /api/health {
+          default_type application/json;
+          return 200 '{"status":"healthy","service":"creatorbridge-api","version":"1.0.0"}';
+        }
+
+        location /api/v1/campaigns {
+          default_type application/json;
+          return 200 '{"campaigns":[{"id":"1","name":"Holiday UGC Campaign","status":"active","creators":15,"submissions":42},{"id":"2","name":"Product Launch","status":"draft","creators":0,"submissions":0}]}';
+        }
+
+        location /api/v1/creators {
+          default_type application/json;
+          return 200 '{"creators":[{"id":"1","name":"Sarah Creator","followers":125000,"rating":4.8},{"id":"2","name":"Mike Video","followers":89000,"rating":4.6}]}';
+        }
+
+        location /api/v1/analytics {
+          default_type application/json;
+          return 200 '{"totalViews":1250000,"engagement":4.2,"conversions":3200,"roi":285}';
+        }
+
+        location / {
+          try_files $uri $uri/ /index.html;
+        }
+      }
+    }
+
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>CreatorBridge - UGC Marketing Platform</title>
+      <style>
+        :root {
+          --primary: #6366f1;
+          --primary-dark: #4f46e5;
+          --secondary: #10b981;
+          --bg: #0f172a;
+          --bg-card: #1e293b;
+          --text: #f8fafc;
+          --text-muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          min-height: 100vh;
+        }
+        .header {
+          background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+          padding: 1rem 2rem;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: bold; }
+        .nav { display: flex; gap: 2rem; }
+        .nav a { color: white; text-decoration: none; opacity: 0.9; }
+        .nav a:hover { opacity: 1; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .hero {
+          text-align: center;
+          padding: 4rem 2rem;
+          background: linear-gradient(180deg, var(--primary-dark) 0%, var(--bg) 100%);
+        }
+        .hero h1 { font-size: 3rem; margin-bottom: 1rem; }
+        .hero p { font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 2rem; }
+        .btn {
+          background: var(--secondary);
+          color: white;
+          padding: 0.75rem 2rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 1rem;
+          cursor: pointer;
+          text-decoration: none;
+          display: inline-block;
+        }
+        .btn:hover { filter: brightness(1.1); }
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+          margin: 2rem 0;
+        }
+        .stat-card {
+          background: var(--bg-card);
+          padding: 1.5rem;
+          border-radius: 12px;
+          text-align: center;
+        }
+        .stat-value { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
+        .stat-label { color: var(--text-muted); margin-top: 0.5rem; }
+        .section-title {
+          font-size: 1.5rem;
+          margin: 3rem 0 1.5rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 2px solid var(--primary);
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .card {
+          background: var(--bg-card);
+          border-radius: 12px;
+          padding: 1.5rem;
+        }
+        .card h3 { margin-bottom: 1rem; }
+        .card p { color: var(--text-muted); }
+        .badge {
+          display: inline-block;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          background: var(--secondary);
+          color: white;
+        }
+        .badge.draft { background: #f59e0b; }
+        .creator-card { display: flex; gap: 1rem; align-items: center; }
+        .avatar {
+          width: 50px;
+          height: 50px;
+          background: var(--primary);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+        }
+        .footer {
+          text-align: center;
+          padding: 2rem;
+          color: var(--text-muted);
+          border-top: 1px solid var(--bg-card);
+          margin-top: 3rem;
+        }
+        .status-bar {
+          background: var(--secondary);
+          color: white;
+          padding: 0.5rem;
+          text-align: center;
+          font-size: 0.875rem;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .live-indicator { animation: pulse 2s infinite; color: var(--secondary); }
+      </style>
+    </head>
+    <body>
+      <div class="status-bar">
+        <span class="live-indicator">●</span> Platform Status: All Systems Operational | Azure AKS Staging Environment
+      </div>
+
+      <header class="header">
+        <div class="logo">CreatorBridge</div>
+        <nav class="nav">
+          <a href="#campaigns">Campaigns</a>
+          <a href="#creators">Creators</a>
+          <a href="#analytics">Analytics</a>
+          <a href="#marketplace">Marketplace</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <h1>UGC Marketing Platform</h1>
+        <p>Connect with creators, launch campaigns, and scale your user-generated content strategy with AI-powered insights.</p>
+        <a href="#campaigns" class="btn">Launch Campaign</a>
+      </section>
+
+      <div class="container">
+        <div class="stats" id="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="views">--</div>
+            <div class="stat-label">Total Views</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="engagement">--</div>
+            <div class="stat-label">Engagement Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="conversions">--</div>
+            <div class="stat-label">Conversions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="roi">--</div>
+            <div class="stat-label">ROI %</div>
+          </div>
+        </div>
+
+        <h2 class="section-title" id="campaigns">Active Campaigns</h2>
+        <div class="grid" id="campaign-list">
+          <div class="card">Loading campaigns...</div>
+        </div>
+
+        <h2 class="section-title" id="creators">Top Creators</h2>
+        <div class="grid" id="creator-list">
+          <div class="card">Loading creators...</div>
+        </div>
+
+        <h2 class="section-title">Platform Features</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>AI Content Moderation</h3>
+            <p>Automated content review with machine learning to ensure brand safety and quality standards.</p>
+          </div>
+          <div class="card">
+            <h3>Creator Matching</h3>
+            <p>Smart algorithm matches brands with ideal creators based on audience demographics and performance.</p>
+          </div>
+          <div class="card">
+            <h3>Performance Analytics</h3>
+            <p>Real-time dashboards with engagement metrics, conversion tracking, and ROI analysis.</p>
+          </div>
+          <div class="card">
+            <h3>Rights Management</h3>
+            <p>Digital rights tracking and licensing automation for all user-generated content.</p>
+          </div>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <p>CreatorBridge Platform v1.0 | Deployed on Azure Kubernetes Service</p>
+        <p style="margin-top: 0.5rem;">PostgreSQL | Redis | Container Registry | Key Vault</p>
+      </footer>
+
+      <script>
+        async function loadData() {
+          try {
+            const analytics = await fetch('/api/v1/analytics').then(r => r.json());
+            document.getElementById('views').textContent = (analytics.totalViews / 1000000).toFixed(1) + 'M';
+            document.getElementById('engagement').textContent = analytics.engagement + '%';
+            document.getElementById('conversions').textContent = analytics.conversions.toLocaleString();
+            document.getElementById('roi').textContent = analytics.roi + '%';
+
+            const campaigns = await fetch('/api/v1/campaigns').then(r => r.json());
+            document.getElementById('campaign-list').innerHTML = campaigns.campaigns.map(c => `
+              <div class="card">
+                <h3>${c.name} <span class="badge ${c.status}">${c.status}</span></h3>
+                <p>${c.creators} creators · ${c.submissions} submissions</p>
+              </div>
+            `).join('');
+
+            const creators = await fetch('/api/v1/creators').then(r => r.json());
+            document.getElementById('creator-list').innerHTML = creators.creators.map(c => `
+              <div class="card creator-card">
+                <div class="avatar">${c.name.charAt(0)}</div>
+                <div>
+                  <h3>${c.name}</h3>
+                  <p>${(c.followers/1000).toFixed(0)}K followers · ⭐ ${c.rating}</p>
+                </div>
+              </div>
+            `).join('');
+          } catch (e) {
+            console.error('Error loading data:', e);
+          }
+        }
+        loadData();
+      </script>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: creatorbridge-demo
+  namespace: nexus-staging
+  labels:
+    app: creatorbridge-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: creatorbridge-demo
+  template:
+    metadata:
+      labels:
+        app: creatorbridge-demo
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: html
+              mountPath: /usr/share/nginx/html
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: creatorbridge-demo
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+        - name: html
+          configMap:
+            name: creatorbridge-demo
+            items:
+              - key: index.html
+                path: index.html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: creatorbridge-demo
+  namespace: nexus-staging
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: creatorbridge-demo
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: creatorbridge-ingress
+  namespace: nexus-staging
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 4000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: creatorbridge-demo
+                port:
+                  number: 80
