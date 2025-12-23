@@ -65,9 +65,10 @@ jobs:
 
       - name: Build and Push ${{ matrix.app }}
         run: |
+          cd apps/${{ matrix.app }}
           docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ matrix.app }}:${{ github.sha }} \
             -t ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ matrix.app }}:latest \
-            -f apps/${{ matrix.app }}/Dockerfile .
+            -f Dockerfile.standalone .
           docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ matrix.app }}:${{ github.sha }}
           docker push ${{ env.AZURE_CONTAINER_REGISTRY }}/${{ matrix.app }}:latest
 
