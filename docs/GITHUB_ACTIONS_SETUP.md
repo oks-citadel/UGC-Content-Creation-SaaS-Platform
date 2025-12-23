@@ -2,7 +2,7 @@
 
 ## Azure Credentials for GitHub Actions
 
-To enable the CI/CD pipeline to build and deploy frontend apps (web, creator-portal, admin), you need to configure the `AZURE_CREDENTIALS` secret in your GitHub repository.
+To enable the CI/CD pipeline to build and deploy all services, you need to configure the `AZURE_CREDENTIALS` secret in your GitHub repository.
 
 ### Step 1: Go to GitHub Repository Settings
 
@@ -44,31 +44,49 @@ After adding the secret:
 
 Or push any change to the `main` branch.
 
-## Current ACR Images (29 images)
+## Current ACR Images (32 total)
 
-All backend services, AI services, and workers are already built:
+All images have been built and pushed to Azure Container Registry (`acrmktstagingravs.azurecr.io`):
 
-### Backend Services (17)
-- api-gateway, auth-service, user-service, campaign-service
-- content-service, notification-service, rights-service, payout-service
-- asset-service, billing-service, commerce-service, marketplace-service
-- creator-service, compliance-service, workflow-service, integration-service
-- analytics-service
-
-### AI Services (7)
-- ai-service, moderation-engine, recommendation-engine
-- performance-predictor, video-generator, customer-agent, marketing-agent
-
-### Workers (4)
-- video-processor, social-publisher, analytics-aggregator, notification-dispatcher
-
-### Frontend (1)
-- brand-portal
-
-### Pending (will build via GitHub Actions)
+### Frontend Apps (4)
 - web
 - creator-portal
 - admin
+- brand-portal
+
+### Backend Services (17)
+- api-gateway
+- auth-service
+- user-service
+- campaign-service
+- content-service
+- notification-service
+- rights-service
+- payout-service
+- asset-service
+- billing-service
+- commerce-service
+- marketplace-service
+- creator-service
+- compliance-service
+- workflow-service
+- integration-service
+- analytics-service
+
+### AI Services (7)
+- ai-service
+- moderation-engine
+- recommendation-engine
+- performance-predictor
+- video-generator
+- customer-agent
+- marketing-agent
+
+### Workers (4)
+- video-processor
+- social-publisher
+- analytics-aggregator
+- notification-dispatcher
 
 ## Service Principal Details
 
@@ -77,3 +95,16 @@ All backend services, AI services, and workers are already built:
 - **Permissions:**
   - Contributor on marketing-staging-rg resource group
   - AcrPush on acrmktstagingravs container registry
+
+## Unified CI/CD Pipeline
+
+The repository has a single unified CI/CD pipeline (`.github/workflows/ci-cd.yml`) that:
+
+1. **Lint & Type Check** - Runs on all PRs and pushes
+2. **Build Frontend** - Builds web, creator-portal, admin apps (on push to main)
+3. **Build Backend** - Builds all 17 backend services (on push to main)
+4. **Build AI Services** - Builds all 7 AI services (on push to main)
+5. **Build Workers** - Builds all 4 workers (on push to main)
+6. **Deploy to AKS** - Deploys to staging environment (on push to main)
+
+All old/duplicate workflows have been removed.
