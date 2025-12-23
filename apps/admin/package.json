@@ -41,7 +41,8 @@
     "postcss": "^8.4.33",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.56.0",
-    "eslint-config-next": "^14.2.0"
+    "eslint-config-next": "^14.2.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "engines": {
     "node": ">=18.17.0",

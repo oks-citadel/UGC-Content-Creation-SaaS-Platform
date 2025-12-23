@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  output: 'standalone',
   transpilePackages: [],
   images: {
     domains: ['localhost', 'nexus-platform.com'],

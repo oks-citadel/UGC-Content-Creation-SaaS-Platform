@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyJWT } from '@nexus/auth';
+import { verifyJWT } from './lib/auth';
 
 // Admin roles with hierarchical permissions
 export enum AdminRole {

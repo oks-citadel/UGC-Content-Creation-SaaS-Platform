@@ -1,0 +1,48 @@
+# Standalone Next.js Dockerfile for creator-portal
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY package.json ./
+
+# Install dependencies
+RUN npm install
+
+# Fix permissions on node_modules/.bin
+RUN chmod -R +x node_modules/.bin || true
+
+# Copy source
+COPY . .
+
+# Build using node directly to avoid permission issues
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN node node_modules/next/dist/bin/next build
+
+# Production stage
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Copy built app
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+USER nextjs
+
+EXPOSE 3001
+
+ENV PORT=3001
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "server.js"]

@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  transpilePackages: ['@nexus/ui', '@nexus/database', '@nexus/auth'],
+  output: 'standalone',
+  transpilePackages: [],
 
   // Security headers for admin dashboard
   async headers() {
