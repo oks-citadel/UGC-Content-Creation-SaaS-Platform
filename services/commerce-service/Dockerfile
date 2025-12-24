@@ -48,6 +48,10 @@ RUN npm ci --only=production && \
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Change ownership to non-root user
 RUN chown -R nodejs:nodejs /app

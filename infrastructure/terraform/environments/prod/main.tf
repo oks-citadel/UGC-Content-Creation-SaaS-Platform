@@ -199,8 +199,9 @@ module "aks" {
   system_max_count  = 3
 
   # App node pool (cost-optimized with aggressive autoscaling)
+  # Note: Reduced min to 1 due to westus2 vCPU quota limits
   app_vm_size   = "Standard_D4s_v3"
-  app_min_count = 2
+  app_min_count = 1
   app_max_count = 10
 
   # Worker pool (disabled, use app pool for background jobs to save costs)
@@ -209,7 +210,12 @@ module "aks" {
   worker_max_count = 0
 
   enable_auto_scaling = true
-  availability_zones  = ["1", "2", "3"]
+  # Note: westus2 only supports zone 3 for AKS
+  availability_zones  = ["3"]
+
+  # Use non-overlapping service CIDR (VNet uses 10.1.0.0/16)
+  service_cidr   = "10.2.0.0/16"
+  dns_service_ip = "10.2.0.10"
 
   acr_id                     = module.acr.acr_id
   enable_acr_integration     = true
@@ -244,8 +250,8 @@ module "postgresql" {
   database_name       = "marketing"
   create_analytics_db = true
 
-  # Cost optimization: Zone redundant HA for production reliability
-  high_availability_mode       = "ZoneRedundant"
+  # Note: HA is disabled in westus2 region
+  high_availability_mode       = "Disabled"
   geo_redundant_backup_enabled = false  # LRS is cheaper, enable for DR requirements
   backup_retention_days        = 14     # Reduced from 35 for cost savings
 
@@ -386,6 +392,7 @@ module "keyvault" {
   sku_name               = "standard"
   default_network_action = "Deny"
   allowed_subnet_ids     = [module.networking.aks_subnet_id]
+  allowed_ip_ranges      = ["73.76.114.217/32"]  # Deployer IP for initial setup
 
   aks_identity_principal_id = module.aks.kubelet_identity.object_id
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id

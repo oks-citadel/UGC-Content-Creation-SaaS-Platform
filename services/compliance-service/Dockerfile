@@ -1,8 +1,8 @@
 # Build stage
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl libc6-compat
+# Install OpenSSL for Prisma and build dependencies
+RUN apk add --no-cache openssl libc6-compat python3 make g++
 
 WORKDIR /app
 
@@ -11,8 +11,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm install
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY src ./src
@@ -26,29 +26,34 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install OpenSSL for Prisma runtime
-RUN apk add --no-cache openssl libc6-compat
-
-WORKDIR /app
-
-# Install production dependencies only
-COPY package*.json ./
-RUN npm install --only=production
-
-# Copy Prisma schema and generate client
-COPY prisma ./prisma/
-RUN npx prisma generate
-
-# Copy built application
-COPY --from=builder /app/dist ./dist
+# Install tini for proper signal handling and runtime dependencies
+RUN apk add --no-cache tini openssl libc6-compat
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+WORKDIR /app
 
+# Copy package files and install production dependencies only
+COPY package*.json ./
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy Prisma schema (needed for migrations)
+COPY --from=builder /app/prisma ./prisma
+
+# Copy generated Prisma client from builder (DO NOT regenerate)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app
+
+# Switch to non-root user
 USER nodejs
 
 # Expose port
@@ -57,6 +62,9 @@ EXPOSE 3011
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3011/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Use tini to handle signals properly
+ENTRYPOINT ["/sbin/tini", "--"]
 
 # Start application
 CMD ["node", "dist/index.js"]

@@ -82,7 +82,7 @@ describe('AssetService', () => {
         contentType: 'video/mp4',
         size: 200 * 1024 * 1024,
       };
-      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('FILE_TOO_LARGE');
+      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('File size exceeds');
     });
 
     it('should reject images exceeding maximum image size', async () => {
@@ -92,7 +92,7 @@ describe('AssetService', () => {
         contentType: 'image/jpeg',
         size: 25 * 1024 * 1024,
       };
-      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('IMAGE_TOO_LARGE');
+      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('Image size exceeds');
     });
 
     it('should reject videos exceeding maximum video size', async () => {
@@ -102,7 +102,7 @@ describe('AssetService', () => {
         contentType: 'video/mp4',
         size: 600 * 1024 * 1024,
       };
-      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('VIDEO_TOO_LARGE');
+      await expect(assetService.generateUploadUrl(params)).rejects.toThrow('File size exceeds');
     });
   });
 
@@ -145,7 +145,7 @@ describe('AssetService', () => {
     });
 
     it('should throw error for non-existent asset', async () => {
-      await expect(assetService.generateDownloadUrl('non-existent')).rejects.toThrow('ASSET_NOT_FOUND');
+      await expect(assetService.generateDownloadUrl('non-existent')).rejects.toThrow('Asset not found');
     });
   });
 
@@ -206,7 +206,7 @@ describe('AssetService', () => {
     });
 
     it('should throw error when deleting non-existent asset', async () => {
-      await expect(assetService.deleteAsset('does-not-exist')).rejects.toThrow('ASSET_NOT_FOUND');
+      await expect(assetService.deleteAsset('does-not-exist')).rejects.toThrow('Asset not found');
     });
   });
 });

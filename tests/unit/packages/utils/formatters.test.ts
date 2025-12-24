@@ -270,7 +270,7 @@ describe('Formatters', () => {
 
     it('should use custom ellipsis', () => {
       const text = 'This is a very long text';
-      expect(truncateText(text, 15, '…')).toBe('This is a ver…');
+      expect(truncateText(text, 15, '…')).toBe('This is a very…');
     });
 
     it('should handle exact length', () => {

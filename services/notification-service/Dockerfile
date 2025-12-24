@@ -11,8 +11,8 @@ COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm install
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
 # Copy source code
 COPY src ./src
@@ -26,24 +26,33 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install OpenSSL for Prisma runtime
-RUN apk add --no-cache openssl libc6-compat
+# Install OpenSSL for Prisma runtime and tini for proper signal handling
+RUN apk add --no-cache openssl libc6-compat tini
 
 WORKDIR /app
 
-# Install production dependencies only
+# Copy package files
 COPY package*.json ./
-RUN npm install --only=production
 
-# Copy Prisma schema and generate client
+# Install production dependencies only
+RUN npm ci --only=production && \
+    npm cache clean --force
+
+# Copy Prisma schema (needed for migrations)
 COPY prisma ./prisma/
-RUN npx prisma generate
+
+# Copy generated Prisma client from builder (avoid regeneration)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
 
 # Copy templates if they exist
 COPY --from=builder /app/src/templates ./dist/templates
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -57,9 +66,12 @@ USER nodejs
 # Expose port
 EXPOSE 3008
 
+ENV NODE_ENV=production
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3008/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start application
+ENTRYPOINT ["/sbin/tini", "--"]
+
 CMD ["node", "dist/index.js"]

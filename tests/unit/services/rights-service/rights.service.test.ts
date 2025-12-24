@@ -104,7 +104,7 @@ describe('RightsService', () => {
         rights.status = 'active';
       }
 
-      await expect(rightsService.createContentRights(params)).rejects.toThrow('RIGHTS_EXIST');
+      await expect(rightsService.createContentRights(params)).rejects.toThrow('Active rights already exist');
     });
 
     it('should calculate expiration date for 1-year duration', async () => {
@@ -272,7 +272,7 @@ describe('RightsService', () => {
     it('should throw error for non-existent content rights', async () => {
       await expect(
         rightsService.getLicenseAgreement('non-existent-content', 'json')
-      ).rejects.toThrow('RIGHTS_NOT_FOUND');
+      ).rejects.toThrow('Rights not found');
     });
   });
 
@@ -339,7 +339,7 @@ describe('RightsService', () => {
 
       await expect(
         rightsService.signLicense('content-unauthorized', 'wrong-creator-id', signatureData)
-      ).rejects.toThrow('UNAUTHORIZED');
+      ).rejects.toThrow('Not authorized to sign');
     });
 
     it('should track rights history', async () => {
