@@ -17,7 +17,7 @@ import { requestIdMiddleware } from './middleware/request-id';
 import { setupRoutes } from './routes';
 import { logger } from './utils/logger';
 
-const app = express();
+const app: express.Express = express();
 
 // Trust proxy for rate limiting behind load balancer
 app.set('trust proxy', 1);

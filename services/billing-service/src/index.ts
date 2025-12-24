@@ -9,7 +9,7 @@ import planRoutes from './routes/plan.routes';
 import cron from 'node-cron';
 import invoiceService from './services/invoice.service';
 
-const app = express();
+const app: express.Express = express();
 
 // Security middleware
 app.use(helmet());

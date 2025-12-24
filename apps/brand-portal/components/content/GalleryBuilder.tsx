@@ -1,16 +1,37 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, X, Save, ShoppingBag } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Plus, X, Save, ShoppingBag, Loader2 } from 'lucide-react'
 import { ProductTagger } from './ProductTagger'
 import { toast } from 'sonner'
+import { apiClient } from '@/lib/api'
+import { AxiosError } from 'axios'
+
+interface GalleryData {
+  id: string
+  name: string
+  contentIds?: string[]
+  layout?: string
+  url?: string
+}
+
+interface ContentItem {
+  id: string
+  thumbnail: string
+  tagged: boolean
+}
 
 export function GalleryBuilder({ galleryId }: { galleryId: string }) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [galleryName, setGalleryName] = useState('Summer Collection 2024')
   const [selectedContent, setSelectedContent] = useState<string[]>([])
   const [showProductTagger, setShowProductTagger] = useState<string | null>(null)
+  const [layout, setLayout] = useState('Grid')
+  const initialLoadDone = useRef(false)
 
-  const availableContent = [
+  // Sample available content - in a real app, this would be fetched from API
+  const availableContent: ContentItem[] = [
     { id: '1', thumbnail: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=400', tagged: false },
     { id: '2', thumbnail: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400', tagged: true },
     { id: '3', thumbnail: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400', tagged: false },
@@ -19,14 +40,89 @@ export function GalleryBuilder({ galleryId }: { galleryId: string }) {
     { id: '6', thumbnail: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=400', tagged: true },
   ]
 
-  const handleSave = async () => {
-    try {
-      // TODO: API call to save gallery
-      await new Promise(resolve => setTimeout(resolve, 500))
-      toast.success('Gallery saved successfully!')
-    } catch (error) {
-      toast.error('Failed to save gallery')
+  // Load existing gallery data
+  useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
+
+    const loadGallery = async () => {
+      if (!galleryId || galleryId === 'new') return
+
+      setIsLoading(true)
+      try {
+        const response = await apiClient.galleries.getById(galleryId)
+        if (response.data?.success && response.data?.data) {
+          const galleryData = response.data.data as GalleryData
+          if (galleryData.name) setGalleryName(galleryData.name)
+          if (galleryData.contentIds) setSelectedContent(galleryData.contentIds)
+          if (galleryData.layout) setLayout(galleryData.layout)
+        }
+      } catch (error) {
+        // Gallery might not exist yet, which is fine for new galleries
+        console.log('No existing gallery found or error loading:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
+    loadGallery()
+  }, [galleryId])
+
+  const handleSave = async () => {
+    if (!galleryName.trim()) {
+      toast.error('Please enter a gallery name')
+      return
+    }
+
+    if (selectedContent.length === 0) {
+      toast.error('Please select at least one content item')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const galleryData = {
+        name: galleryName,
+        contentIds: selectedContent,
+        layout,
+        settings: {
+          layout,
+          showProductTags: true,
+        },
+      }
+
+      let response
+      if (galleryId && galleryId !== 'new') {
+        // Update existing gallery
+        response = await apiClient.galleries.update(galleryId, galleryData)
+      } else {
+        // Create new gallery
+        response = await apiClient.galleries.create(galleryData)
+      }
+
+      if (response.data?.success) {
+        toast.success('Gallery saved successfully!')
+      } else {
+        const errorMessage = response.data?.error?.message || 'Failed to save gallery'
+        toast.error(errorMessage)
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<{ error?: { message?: string } }>
+      const errorMessage = axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Failed to save gallery. Please try again.'
+      toast.error(errorMessage)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+        <span className="ml-3 text-gray-600">Loading gallery...</span>
+      </div>
+    )
   }
 
   return (
@@ -156,12 +252,19 @@ export function GalleryBuilder({ galleryId }: { galleryId: string }) {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Gallery Layout</h3>
         <div className="grid grid-cols-3 gap-4">
-          {['Grid', 'Masonry', 'Carousel'].map((layout) => (
+          {['Grid', 'Masonry', 'Carousel'].map((layoutOption) => (
             <button
-              key={layout}
-              className="p-4 border-2 border-gray-300 rounded-lg hover:border-primary-600 hover:bg-primary-50 transition-colors"
+              key={layoutOption}
+              onClick={() => setLayout(layoutOption)}
+              className={`p-4 border-2 rounded-lg transition-colors ${
+                layout === layoutOption
+                  ? 'border-primary-600 bg-primary-50'
+                  : 'border-gray-300 hover:border-primary-600 hover:bg-primary-50'
+              }`}
             >
-              <div className="text-sm font-medium text-gray-900">{layout}</div>
+              <div className={`text-sm font-medium ${
+                layout === layoutOption ? 'text-primary-700' : 'text-gray-900'
+              }`}>{layoutOption}</div>
             </button>
           ))}
         </div>
@@ -174,10 +277,20 @@ export function GalleryBuilder({ galleryId }: { galleryId: string }) {
         </button>
         <button
           onClick={handleSave}
-          className="inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+          disabled={isSaving}
+          className="inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Save className="w-4 h-4 mr-2" />
-          Save Gallery
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Save Gallery
+            </>
+          )}
         </button>
       </div>
 

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { LibraryService } from '../services/library.service';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const libraryService = new LibraryService();
 
 // Request schemas

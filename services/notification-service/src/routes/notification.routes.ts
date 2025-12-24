@@ -4,7 +4,7 @@ import { NotificationService } from '../services/notification.service';
 import { NotificationChannel, NotificationType, NotificationPriority } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
-const router = Router();
+const router: Router = Router();
 const notificationService = new NotificationService();
 
 // Validation schemas

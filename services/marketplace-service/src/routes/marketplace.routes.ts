@@ -8,7 +8,7 @@ import ambassadorService from '../services/ambassador.service';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // Async handler wrapper
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { RightsService } from '../services/rights.service';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const rightsService = new RightsService();
 
 // Request schemas

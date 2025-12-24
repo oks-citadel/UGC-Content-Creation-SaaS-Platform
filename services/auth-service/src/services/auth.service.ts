@@ -3,9 +3,13 @@ import { prisma } from '../lib/prisma';
 import { redis } from '../lib/redis';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '../lib/password';
 import { generateTokenPair, verifyToken, TokenPair } from '../lib/jwt';
-import { setupMfa, verifyToken as verifyMfaToken } from '../lib/mfa';
+import { setupMfa, verifyToken as verifyMfaToken, decryptSecret } from '../lib/mfa';
+import { mfaService } from './mfa.service';
 import { config } from '../config';
 import { AppError, ValidationError } from '../lib/errors';
+import { NotificationClient } from '@nexus/utils';
+
+const notificationClient = new NotificationClient();
 
 export interface RegisterInput {
   email: string;
@@ -18,6 +22,7 @@ export interface LoginInput {
   email: string;
   password: string;
   mfaToken?: string;
+  mfaMethod?: 'totp' | 'email' | 'recovery';
   ipAddress?: string;
   userAgent?: string;
 }
@@ -33,6 +38,7 @@ export interface AuthResult {
   };
   tokens: TokenPair;
   requiresMfa?: boolean;
+  mfaMethods?: string[];
 }
 
 class AuthService {
@@ -112,11 +118,12 @@ class AuthService {
   }
 
   async login(input: LoginInput): Promise<AuthResult> {
-    const { email, password, mfaToken, ipAddress, userAgent } = input;
+    const { email, password, mfaToken, mfaMethod = 'totp', ipAddress, userAgent } = input;
 
-    // Find user
+    // Find user with MFA config
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
+      include: { mfaConfig: true },
     });
 
     if (!user || !user.passwordHash) {
@@ -154,6 +161,13 @@ class AuthService {
     if (user.mfaEnabled) {
       if (!mfaToken) {
         // Return partial response indicating MFA is required
+        // Include available MFA methods
+        const mfaMethods: string[] = [];
+        if (user.mfaConfig?.totpEnabled) mfaMethods.push('totp');
+        if (user.mfaConfig?.emailOtpEnabled) mfaMethods.push('email');
+        // Recovery codes are always available if MFA is enabled
+        mfaMethods.push('recovery');
+
         return {
           user: {
             id: user.id,
@@ -170,13 +184,16 @@ class AuthService {
             refreshTokenExpiresAt: new Date(),
           },
           requiresMfa: true,
+          mfaMethods,
         };
       }
 
-      // Verify MFA token
-      if (!user.mfaSecret || !verifyMfaToken(mfaToken, user.mfaSecret)) {
-        await this.logAudit(user.id, 'LOGIN_FAILED', { ipAddress, reason: 'invalid_mfa' });
-        throw new AppError('Invalid MFA token', 401);
+      // Verify MFA using the new MFA service
+      try {
+        await mfaService.verifyMfa(user.id, mfaToken, mfaMethod, ipAddress);
+      } catch (error) {
+        await this.logAudit(user.id, 'LOGIN_FAILED', { ipAddress, reason: 'invalid_mfa', method: mfaMethod });
+        throw error;
       }
     }
 
@@ -400,7 +417,18 @@ class AuthService {
       },
     });
 
-    // TODO: Send password reset email via notification service
+    // Send password reset email via notification service
+    try {
+      await notificationClient.sendPasswordResetEmail({
+        email: user.email,
+        resetToken,
+        userName: user.firstName || undefined,
+        expiresIn: '1 hour',
+      });
+    } catch (error) {
+      console.error('Failed to send password reset email:', error);
+      // Don't throw - token was created, user can request again if email fails
+    }
 
     await this.logAudit(user.id, 'PASSWORD_RESET_REQUESTED');
   }
@@ -510,7 +538,17 @@ class AuthService {
       },
     });
 
-    // TODO: Send verification email via notification service
+    // Send verification email via notification service
+    try {
+      await notificationClient.sendVerificationEmail({
+        email: user.email,
+        verificationCode: code,
+        userName: user.firstName || undefined,
+      });
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      // Don't throw - code was created, user can request again if email fails
+    }
 
     await this.logAudit(userId, 'VERIFICATION_EMAIL_RESENT');
   }

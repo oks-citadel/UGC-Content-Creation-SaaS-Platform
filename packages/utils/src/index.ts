@@ -10,3 +10,4 @@ export * from './crypto';
 export * from './errors';
 export * from './retry';
 export * from './pagination';
+export * from './notification-client';

@@ -15,7 +15,7 @@ const logger = pino({
   level: config.nodeEnv === 'production' ? 'info' : 'debug',
 });
 
-const app = express();
+const app: express.Express = express();
 
 // Trust proxy
 app.set('trust proxy', 1);
@@ -44,7 +44,7 @@ app.get('/health', (req, res) => {
 // Readiness check
 app.get('/ready', async (req, res) => {
   try {
-    const { prisma } = await import('./lib/prisma');
+    const { prisma } = await import('./lib/prisma.js');
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ready', service: config.serviceName });
   } catch (error) {
@@ -103,7 +103,7 @@ const gracefulShutdown = async () => {
     logger.info('HTTP server closed');
 
     try {
-      const { prisma } = await import('./lib/prisma');
+      const { prisma } = await import('./lib/prisma.js');
       await prisma.$disconnect();
       logger.info('Database connection closed');
     } catch (error) {

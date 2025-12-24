@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 import Stripe from 'stripe';
 
-const router = Router();
+const router: Router = Router();
 
 // Service metadata
 const SERVICE_NAME = 'payout-service';

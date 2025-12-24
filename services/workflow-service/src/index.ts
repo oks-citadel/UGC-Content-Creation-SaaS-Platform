@@ -10,7 +10,7 @@ import { errorHandler } from './middleware/error-handler';
 import { WorkflowScheduler } from './engine/scheduler';
 
 const logger = pino({ name: config.serviceName, level: config.nodeEnv === 'production' ? 'info' : 'debug' });
-const app = express();
+const app: express.Express = express();
 
 app.set('trust proxy', 1);
 app.use(helmet());
@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/health', (req, res) => res.json({ status: 'healthy', service: config.serviceName }));
 app.get('/ready', async (req, res) => {
   try {
-    const { prisma } = await import('./lib/prisma');
+    const { prisma } = await import('./lib/prisma.js');
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ready', service: config.serviceName });
   } catch (error) {
@@ -49,7 +49,7 @@ const gracefulShutdown = async () => {
   logger.info('Shutting down...');
   server.close(async () => {
     try {
-      const { prisma } = await import('./lib/prisma');
+      const { prisma } = await import('./lib/prisma.js');
       await prisma.$disconnect();
       const { redis } = await import('./lib/redis');
       await redis.quit();

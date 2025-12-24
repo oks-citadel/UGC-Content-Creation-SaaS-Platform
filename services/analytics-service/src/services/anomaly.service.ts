@@ -3,8 +3,10 @@ import { mean, standardDeviation } from 'simple-statistics';
 import { subDays } from 'date-fns';
 import metricsService from './metrics.service';
 import config from '../config';
+import { NotificationClient } from '@nexus/utils';
 
 const prisma = new PrismaClient();
+const notificationClient = new NotificationClient();
 
 export interface AnomalyInput {
   metric: string;
@@ -431,35 +433,120 @@ class AnomalyService {
   private async sendAlertNotifications(alert: any, value: number, metadata?: any) {
     const channels = alert.channels;
 
-    // Send to each configured channel
-    if (channels.email) {
-      await this.sendEmailAlert(alert, value, channels.email);
-    }
+    try {
+      // Use the unified sendAlert method for all channels at once
+      const results = await notificationClient.sendAlert({
+        name: alert.name,
+        metric: alert.metric,
+        value,
+        threshold: alert.threshold,
+        condition: alert.condition,
+        severity: this.getSeverityFromDeviation(value, alert.threshold),
+        channels: {
+          email: channels.email,
+          slack: channels.slack ? {
+            channel: channels.slack.channel || '#alerts',
+            webhookUrl: channels.slack.webhook,
+          } : undefined,
+          webhook: channels.webhook,
+        },
+        metadata: {
+          alertId: alert.id,
+          entityType: alert.entityType,
+          entityId: alert.entityId,
+          triggeredAt: new Date().toISOString(),
+          ...metadata,
+        },
+      });
 
-    if (channels.slack) {
-      await this.sendSlackAlert(alert, value, channels.slack);
+      console.log(`Alert notifications sent for ${alert.name}: ${results.length} channels notified`);
+    } catch (error) {
+      console.error(`Failed to send alert notifications for ${alert.name}:`, error);
+      // Don't throw - alert trigger was recorded, just notifications failed
     }
-
-    if (channels.webhook) {
-      await this.sendWebhookAlert(alert, value, channels.webhook);
-    }
-
-    console.log(`Alert triggered: ${alert.name} (value: ${value})`);
   }
 
-  private async sendEmailAlert(alert: any, value: number, email: string[]) {
-    // TODO: Implement email sending
-    console.log(`Sending email alert to ${email.join(', ')}`);
+  private getSeverityFromDeviation(value: number, threshold: number): 'low' | 'medium' | 'high' | 'critical' {
+    const ratio = Math.abs(value / threshold);
+    if (ratio >= 3) return 'critical';
+    if (ratio >= 2) return 'high';
+    if (ratio >= 1.5) return 'medium';
+    return 'low';
+  }
+
+  private async sendEmailAlert(alert: any, value: number, emails: string[]) {
+    try {
+      await notificationClient.sendAlert({
+        name: alert.name,
+        metric: alert.metric,
+        value,
+        threshold: alert.threshold,
+        condition: alert.condition,
+        severity: this.getSeverityFromDeviation(value, alert.threshold),
+        channels: {
+          email: emails,
+        },
+        metadata: {
+          alertId: alert.id,
+          entityType: alert.entityType,
+          entityId: alert.entityId,
+        },
+      });
+      console.log(`Email alert sent to ${emails.join(', ')} for alert: ${alert.name}`);
+    } catch (error) {
+      console.error(`Failed to send email alert to ${emails.join(', ')}:`, error);
+    }
   }
 
   private async sendSlackAlert(alert: any, value: number, slack: any) {
-    // TODO: Implement Slack integration
-    console.log(`Sending Slack alert to ${slack.webhook}`);
+    try {
+      await notificationClient.sendAlert({
+        name: alert.name,
+        metric: alert.metric,
+        value,
+        threshold: alert.threshold,
+        condition: alert.condition,
+        severity: this.getSeverityFromDeviation(value, alert.threshold),
+        channels: {
+          slack: {
+            channel: slack.channel || '#alerts',
+            webhookUrl: slack.webhook,
+          },
+        },
+        metadata: {
+          alertId: alert.id,
+          entityType: alert.entityType,
+          entityId: alert.entityId,
+        },
+      });
+      console.log(`Slack alert sent for: ${alert.name}`);
+    } catch (error) {
+      console.error(`Failed to send Slack alert:`, error);
+    }
   }
 
-  private async sendWebhookAlert(alert: any, value: number, webhook: string) {
-    // TODO: Implement webhook notification
-    console.log(`Sending webhook alert to ${webhook}`);
+  private async sendWebhookAlert(alert: any, value: number, webhookUrl: string) {
+    try {
+      await notificationClient.sendAlert({
+        name: alert.name,
+        metric: alert.metric,
+        value,
+        threshold: alert.threshold,
+        condition: alert.condition,
+        severity: this.getSeverityFromDeviation(value, alert.threshold),
+        channels: {
+          webhook: webhookUrl,
+        },
+        metadata: {
+          alertId: alert.id,
+          entityType: alert.entityType,
+          entityId: alert.entityId,
+        },
+      });
+      console.log(`Webhook alert sent to ${webhookUrl} for: ${alert.name}`);
+    } catch (error) {
+      console.error(`Failed to send webhook alert to ${webhookUrl}:`, error);
+    }
   }
 }
 

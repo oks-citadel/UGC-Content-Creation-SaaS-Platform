@@ -7,9 +7,11 @@ import { PrismaClient, PlanName, UsageType } from '@prisma/client';
 import logger from '../utils/logger';
 import config from '../config';
 import { requireActiveSubscription } from '../middleware/entitlement';
+import { NotificationClient } from '@nexus/utils';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
+const notificationClient = new NotificationClient();
 
 interface AuthenticatedRequest extends Request {
   userId?: string;
@@ -538,11 +540,54 @@ async function handleInvoicePaymentFailed(invoice: any) {
 }
 
 async function handleTrialWillEnd(subscription: any) {
+  const trialEndDate = new Date(subscription.trial_end * 1000);
+  const daysRemaining = Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
   logger.info('Trial will end soon', {
     subscriptionId: subscription.id,
-    trialEnd: new Date(subscription.trial_end * 1000),
+    trialEnd: trialEndDate,
+    daysRemaining,
   });
-  // TODO: Send notification to user
+
+  try {
+    // Get the subscription from our database to find user info
+    const dbSubscription = await prisma.subscription.findUnique({
+      where: { stripeSubscriptionId: subscription.id },
+      include: {
+        user: { select: { id: true, email: true, firstName: true } },
+        plan: { select: { name: true } },
+      },
+    });
+
+    if (!dbSubscription || !dbSubscription.user) {
+      logger.warn('Subscription or user not found for trial ending notification', {
+        stripeSubscriptionId: subscription.id,
+      });
+      return;
+    }
+
+    // Send trial ending notification via notification service
+    await notificationClient.sendTrialEndingNotification({
+      email: dbSubscription.user.email,
+      userId: dbSubscription.user.id,
+      userName: dbSubscription.user.firstName || undefined,
+      planName: dbSubscription.plan.name,
+      trialEndDate,
+      daysRemaining,
+    });
+
+    logger.info('Trial ending notification sent successfully', {
+      userId: dbSubscription.user.id,
+      subscriptionId: dbSubscription.id,
+      daysRemaining,
+    });
+  } catch (error) {
+    logger.error('Failed to send trial ending notification', {
+      error,
+      stripeSubscriptionId: subscription.id,
+    });
+    // Don't throw - webhook should complete successfully
+  }
 }
 
 export default router;

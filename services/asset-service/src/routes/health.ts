@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import { BlobServiceClient } from '@azure/storage-blob';
 import Redis from 'ioredis';
 
-const router = Router();
+const router: Router = Router();
 
 // Service metadata
 const SERVICE_NAME = 'asset-service';

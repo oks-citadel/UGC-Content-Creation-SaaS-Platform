@@ -3,7 +3,7 @@ import payoutsRouter from './payouts';
 import accountRouter from './account';
 import taxRouter from './tax';
 
-const router = Router();
+const router: Router = Router();
 
 // Payout management routes
 router.use('/payouts', payoutsRouter);

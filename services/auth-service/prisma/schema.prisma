@@ -34,6 +34,7 @@ model User {
   verificationCodes VerificationCode[]
   passwordResets    PasswordReset[]
   auditLogs         AuditLog[]
+  mfaConfig         MfaConfig?
 
   @@index([email])
   @@index([status])
@@ -169,4 +170,59 @@ enum VerificationType {
   EMAIL
   PHONE
   MFA
+  EMAIL_OTP
+}
+
+// MFA Configuration model for storing MFA settings per user
+model MfaConfig {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @unique @map("user_id") @db.Uuid
+  totpSecret      String?     @map("totp_secret")
+  totpEnabled     Boolean     @default(false) @map("totp_enabled")
+  emailOtpEnabled Boolean     @default(false) @map("email_otp_enabled")
+  backupEmail     String?     @map("backup_email")
+  preferredMethod MfaMethod   @default(TOTP) @map("preferred_method")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recoveryCodes RecoveryCode[]
+
+  @@index([userId])
+  @@map("mfa_configs")
+}
+
+// Recovery codes for MFA backup
+model RecoveryCode {
+  id          String    @id @default(uuid()) @db.Uuid
+  mfaConfigId String    @map("mfa_config_id") @db.Uuid
+  codeHash    String    @map("code_hash")
+  usedAt      DateTime? @map("used_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  mfaConfig MfaConfig @relation(fields: [mfaConfigId], references: [id], onDelete: Cascade)
+
+  @@index([mfaConfigId])
+  @@index([codeHash])
+  @@map("recovery_codes")
+}
+
+// MFA verification attempts for rate limiting and security
+model MfaAttempt {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  ipAddress String?  @map("ip_address")
+  success   Boolean
+  method    MfaMethod
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([ipAddress, createdAt])
+  @@map("mfa_attempts")
+}
+
+enum MfaMethod {
+  TOTP
+  EMAIL_OTP
+  RECOVERY_CODE
 }

@@ -21,7 +21,7 @@ import { ShopifyIntegration } from '../integrations/shopify';
 import { WooCommerceIntegration } from '../integrations/woocommerce';
 import logger from '../config/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // ==================== PRODUCT ROUTES ====================
 

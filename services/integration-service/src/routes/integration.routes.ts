@@ -5,7 +5,7 @@ import { oauthService } from '../services/oauth.service';
 import { webhookService } from '../services/webhook.service';
 import { IntegrationProvider } from '@prisma/client';
 
-const router = Router();
+const router: Router = Router();
 
 // Validation schemas
 const initiateOAuthSchema = z.object({

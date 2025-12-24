@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 import { workflowService } from '../services/workflow.service';
 import { TriggerType } from '@prisma/client';
 
-const router = Router();
+const router: Router = Router();
 
 const createWorkflowSchema = z.object({
   userId: z.string().uuid(),

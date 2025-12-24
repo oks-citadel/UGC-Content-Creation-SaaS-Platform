@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Users,
   Building2,
@@ -15,6 +15,14 @@ import {
 import { formatCurrency, formatNumber } from '@/lib/utils';
 import { HealthStatus } from '@/components/system/HealthStatus';
 import { RevenueChart } from '@/components/billing/RevenueChart';
+
+interface Activity {
+  id: string;
+  action: string;
+  user: string;
+  time: string;
+  type: string;
+}
 
 interface DashboardStats {
   users: {
@@ -97,33 +105,149 @@ function StatCard({
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+
+  // Fetch recent activity from notification/activity service
+  const fetchRecentActivity = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/activity/recent?limit=10');
+      if (response.ok) {
+        const data = await response.json();
+        const activityList = data.data || data.activities || [];
+
+        // Transform activity data to consistent format
+        const formattedActivities: Activity[] = activityList.map((item: any) => ({
+          id: item.id || item._id || Math.random().toString(),
+          action: item.action || item.type || item.message || 'Activity',
+          user: item.user || item.actor || item.subject || 'Unknown',
+          time: formatRelativeTime(item.createdAt || item.timestamp || new Date().toISOString()),
+          type: item.activityType || item.category || 'general',
+        }));
+
+        setActivities(formattedActivities);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent activity:', error);
+      setActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, []);
+
+  // Helper function to format relative time
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+
+    return date.toLocaleDateString();
+  };
 
   useEffect(() => {
-    // Fetch dashboard stats
+    // Fetch dashboard stats from analytics and other services
     const fetchStats = async () => {
       try {
-        const response = await fetch('/api/admin/dashboard/stats');
-        const data = await response.json();
-        setStats(data);
-      } catch (error) {
-        console.error('Failed to fetch stats:', error);
-        // Set mock data for development
+        // Fetch all stats in parallel from their respective services
+        const [
+          userStatsRes,
+          orgStatsRes,
+          creatorStatsRes,
+          contentStatsRes,
+          revenueStatsRes,
+          healthStatsRes,
+        ] = await Promise.allSettled([
+          fetch('/api/admin/users/stats'),
+          fetch('/api/admin/organizations/stats'),
+          fetch('/api/admin/creators/stats'),
+          fetch('/api/admin/content/stats'),
+          fetch('/api/admin/billing/revenue'),
+          fetch('/api/admin/system/health'),
+        ]);
+
+        // Helper to safely extract data from response
+        const extractData = async (result: PromiseSettledResult<Response>, defaultValue: any) => {
+          if (result.status === 'fulfilled' && result.value.ok) {
+            const json = await result.value.json();
+            return json.data || json;
+          }
+          return defaultValue;
+        };
+
+        // Extract data from each response with defaults
+        const [userData, orgData, creatorData, contentData, revenueData, healthData] = await Promise.all([
+          extractData(userStatsRes, { total: 0, active: 0, growth: 0 }),
+          extractData(orgStatsRes, { total: 0, active: 0, growth: 0 }),
+          extractData(creatorStatsRes, { total: 0, verified: 0, growth: 0 }),
+          extractData(contentStatsRes, { total: 0, pending: 0, growth: 0 }),
+          extractData(revenueStatsRes, { mrr: 0, arr: 0, growth: 0 }),
+          extractData(healthStatsRes, { status: 'unknown', uptime: 0 }),
+        ]);
+
         setStats({
-          users: { total: 15420, active: 12340, growth: 12.5 },
-          organizations: { total: 1240, active: 980, growth: 8.3 },
-          creators: { total: 8920, verified: 6540, growth: 15.7 },
-          content: { total: 45230, pending: 120, growth: 22.4 },
-          revenue: { mrr: 284000, arr: 3408000, growth: 18.2 },
-          health: { status: 'healthy', uptime: 99.98 },
+          users: {
+            total: userData.total ?? userData.totalUsers ?? 0,
+            active: userData.active ?? userData.activeUsers ?? 0,
+            growth: userData.growth ?? userData.growthRate ?? 0,
+          },
+          organizations: {
+            total: orgData.total ?? orgData.totalOrganizations ?? 0,
+            active: orgData.active ?? orgData.activeOrganizations ?? 0,
+            growth: orgData.growth ?? orgData.growthRate ?? 0,
+          },
+          creators: {
+            total: creatorData.total ?? creatorData.totalCreators ?? 0,
+            verified: creatorData.verified ?? creatorData.verifiedCreators ?? 0,
+            growth: creatorData.growth ?? creatorData.growthRate ?? 0,
+          },
+          content: {
+            total: contentData.total ?? contentData.totalContent ?? 0,
+            pending: contentData.pending ?? contentData.pendingReview ?? 0,
+            growth: contentData.growth ?? contentData.growthRate ?? 0,
+          },
+          revenue: {
+            mrr: revenueData.mrr ?? revenueData.monthlyRecurringRevenue ?? 0,
+            arr: revenueData.arr ?? revenueData.annualRecurringRevenue ?? 0,
+            growth: revenueData.growth ?? revenueData.growthRate ?? 0,
+          },
+          health: {
+            status: healthData.status ?? 'unknown',
+            uptime: healthData.uptime ?? healthData.uptimePercentage ?? 0,
+          },
         });
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+        // Show error state - don't use mock data in production
+        setStats(null);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+    fetchRecentActivity();
+
+    // Refresh stats every 60 seconds
+    const statsIntervalId = setInterval(fetchStats, 60000);
+    // Refresh activity every 30 seconds
+    const activityIntervalId = setInterval(fetchRecentActivity, 30000);
+
+    return () => {
+      clearInterval(statsIntervalId);
+      clearInterval(activityIntervalId);
+    };
+  }, [fetchRecentActivity]);
 
   if (loading) {
     return (
@@ -224,36 +348,23 @@ export default function DashboardPage() {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h2>
         <div className="space-y-4">
-          {[
-            {
-              action: 'New organization created',
-              user: 'Acme Corp',
-              time: '5 minutes ago',
-            },
-            {
-              action: 'Creator verified',
-              user: 'Sarah Johnson',
-              time: '12 minutes ago',
-            },
-            {
-              action: 'Content approved',
-              user: 'Campaign #1234',
-              time: '23 minutes ago',
-            },
-            {
-              action: 'Payout processed',
-              user: '$12,450.00',
-              time: '1 hour ago',
-            },
-          ].map((activity, i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b last:border-0">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                <p className="text-sm text-gray-600">{activity.user}</p>
-              </div>
-              <span className="text-sm text-gray-500">{activity.time}</span>
+          {activitiesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600" />
             </div>
-          ))}
+          ) : activities.length > 0 ? (
+            activities.map((activity) => (
+              <div key={activity.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                  <p className="text-sm text-gray-600">{activity.user}</p>
+                </div>
+                <span className="text-sm text-gray-500">{activity.time}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+          )}
         </div>
       </div>
     </div>

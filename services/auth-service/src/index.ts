@@ -7,6 +7,7 @@ import pinoHttp from 'pino-http';
 
 import { config } from './config';
 import authRoutes from './routes/auth.routes';
+import mfaRoutes from './routes/mfa.routes';
 import { errorHandler } from './middleware/error-handler';
 
 const logger = pino({
@@ -14,7 +15,7 @@ const logger = pino({
   level: config.nodeEnv === 'production' ? 'info' : 'debug',
 });
 
-const app = express();
+const app: express.Express = express();
 
 // Trust proxy (for rate limiting behind load balancer)
 app.set('trust proxy', 1);
@@ -80,7 +81,7 @@ app.get('/health', (req, res) => {
 app.get('/ready', async (req, res) => {
   try {
     // Import prisma here to avoid circular dependencies
-    const { prisma } = await import('./lib/prisma');
+    const { prisma } = await import('./lib/prisma.js');
     await prisma.$queryRaw`SELECT 1`;
     res.json({ status: 'ready', service: config.serviceName });
   } catch (error) {
@@ -90,6 +91,7 @@ app.get('/ready', async (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/auth/mfa', mfaRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -118,7 +120,7 @@ const gracefulShutdown = async () => {
     logger.info('HTTP server closed');
 
     try {
-      const { prisma } = await import('./lib/prisma');
+      const { prisma } = await import('./lib/prisma.js');
       await prisma.$disconnect();
       logger.info('Database connection closed');
     } catch (error) {

@@ -43,6 +43,10 @@ const configSchema = z.object({
   mfa: z.object({
     issuer: z.string().default('NEXUS Platform'),
     tokenWindow: z.coerce.number().default(1),
+    maxAttempts: z.coerce.number().default(5),
+    lockoutDuration: z.coerce.number().default(15 * 60 * 1000), // 15 minutes
+    setupExpiry: z.coerce.number().default(10 * 60), // 10 minutes in seconds
+    recoveryCodeCount: z.coerce.number().default(10),
   }),
 
   cors: z.object({
@@ -90,6 +94,10 @@ const parseConfig = () => {
     mfa: {
       issuer: process.env.MFA_ISSUER,
       tokenWindow: process.env.MFA_TOKEN_WINDOW,
+      maxAttempts: process.env.MFA_MAX_ATTEMPTS,
+      lockoutDuration: process.env.MFA_LOCKOUT_DURATION,
+      setupExpiry: process.env.MFA_SETUP_EXPIRY,
+      recoveryCodeCount: process.env.MFA_RECOVERY_CODE_COUNT,
     },
     cors: {
       origins: process.env.CORS_ORIGINS,

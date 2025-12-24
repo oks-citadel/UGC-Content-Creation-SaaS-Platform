@@ -7,8 +7,10 @@ import path from 'path';
 import { CronJob } from 'cron';
 import metricsService from './metrics.service';
 import config from '../config';
+import { NotificationClient } from '@nexus/utils';
 
 const prisma = new PrismaClient();
+const notificationClient = new NotificationClient();
 
 export interface ReportInput {
   userId: string;
@@ -443,9 +445,25 @@ class ReportingService {
   }
 
   private async sendReport(recipients: string[], filePath: string, reportName: string) {
-    // This would integrate with email service
-    console.log(`Sending report ${reportName} to ${recipients.join(', ')}`);
-    // TODO: Implement actual email sending
+    try {
+      // Generate a download URL for the report
+      // In production, this would be a signed URL from cloud storage
+      const reportUrl = `${process.env.API_GATEWAY_URL || 'https://api.nexusplatform.io'}/analytics/reports/download/${path.basename(filePath)}`;
+
+      // Send email notification to all recipients
+      await notificationClient.sendReportEmail({
+        recipients,
+        reportName,
+        reportUrl,
+        generatedAt: new Date(),
+        summary: `Your scheduled "${reportName}" report has been generated and is ready for download.`,
+      });
+
+      console.log(`Report notification sent for ${reportName} to ${recipients.join(', ')}`);
+    } catch (error) {
+      console.error(`Failed to send report notification for ${reportName}:`, error);
+      // Don't throw - report generation was successful, just notification failed
+    }
   }
 
   private getMimeType(format: string): string {

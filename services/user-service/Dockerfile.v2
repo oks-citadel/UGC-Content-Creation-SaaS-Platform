@@ -8,7 +8,6 @@ COPY package.json ./package.json.orig
 RUN cat package.json.orig | sed 's/"@nexus\/types": "workspace:\*",//' | sed 's/"@nexus\/utils": "workspace:\*",//' > package.json
 
 COPY tsconfig.json ./
-COPY tsconfig.docker.json ./tsconfig.docker.json 2>/dev/null || echo '{"compilerOptions":{}}' > tsconfig.docker.json
 COPY prisma ./prisma/
 RUN npm install --legacy-peer-deps
 

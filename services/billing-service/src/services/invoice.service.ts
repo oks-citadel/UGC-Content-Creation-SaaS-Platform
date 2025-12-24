@@ -4,8 +4,10 @@ import logger from '../utils/logger';
 import config from '../config';
 import { addDays, addHours } from 'date-fns';
 import usageService from './usage.service';
+import { NotificationClient } from '@nexus/utils';
 
 const prisma = new PrismaClient();
+const notificationClient = new NotificationClient();
 
 export class InvoiceService {
   async createInvoice(params: {
@@ -439,8 +441,49 @@ export class InvoiceService {
     userId: string,
     attempt: number
   ): Promise<void> {
-    // TODO: Integrate with notification service
-    logger.info('Sending dunning notification', { userId, attempt });
+    try {
+      // Get user and invoice details for the notification
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, firstName: true },
+      });
+
+      if (!user) {
+        logger.warn('User not found for dunning notification', { userId });
+        return;
+      }
+
+      // Get the latest unpaid invoice for this user
+      const latestInvoice = await prisma.invoice.findFirst({
+        where: {
+          userId,
+          status: { in: [InvoiceStatus.OPEN, InvoiceStatus.UNCOLLECTIBLE] },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!latestInvoice) {
+        logger.warn('No unpaid invoice found for dunning notification', { userId });
+        return;
+      }
+
+      // Send dunning notification via notification service
+      await notificationClient.sendDunningNotification({
+        email: user.email,
+        userId,
+        userName: user.firstName || undefined,
+        invoiceNumber: latestInvoice.invoiceNumber,
+        amount: Number(latestInvoice.total),
+        currency: 'USD',
+        dueDate: latestInvoice.dueDate,
+        attempt,
+      });
+
+      logger.info('Dunning notification sent successfully', { userId, attempt, invoiceId: latestInvoice.id });
+    } catch (error) {
+      logger.error('Failed to send dunning notification', { error, userId, attempt });
+      // Don't throw - dunning process should continue even if notification fails
+    }
   }
 }
 

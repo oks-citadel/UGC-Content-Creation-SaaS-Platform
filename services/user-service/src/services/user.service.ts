@@ -1,6 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
+import { NotificationClient } from '@nexus/utils';
+
+const notificationClient = new NotificationClient();
 
 export interface UpdateUserInput {
   firstName?: string;
@@ -320,6 +323,12 @@ class UserService {
       throw new AppError('An invitation has already been sent to this email', 409);
     }
 
+    // Get inviter info for the email
+    const inviter = await prisma.user.findUnique({
+      where: { id: inviterId },
+      select: { firstName: true, lastName: true, email: true },
+    });
+
     // Create invitation
     const invitation = await prisma.organizationInvitation.create({
       data: {
@@ -338,7 +347,25 @@ class UserService {
       },
     });
 
-    // TODO: Send invitation email via notification service
+    // Send invitation email via notification service
+    try {
+      const inviterName = inviter
+        ? `${inviter.firstName || ''} ${inviter.lastName || ''}`.trim() || inviter.email
+        : undefined;
+
+      await notificationClient.sendInvitationEmail({
+        email: email.toLowerCase(),
+        invitationToken: invitation.token,
+        organizationName: invitation.organization.name,
+        inviterName,
+        role,
+      });
+
+      console.log(`Invitation email sent to ${email} for organization ${invitation.organization.name}`);
+    } catch (error) {
+      console.error(`Failed to send invitation email to ${email}:`, error);
+      // Don't throw - invitation was created, user can access via token
+    }
 
     return invitation;
   }

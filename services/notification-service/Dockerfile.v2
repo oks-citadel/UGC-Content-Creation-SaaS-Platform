@@ -8,7 +8,6 @@ COPY package.json ./package.json.orig
 RUN cat package.json.orig | sed 's/"@nexus\/types": "workspace:\*",//' | sed 's/"@nexus\/utils": "workspace:\*",//' > package.json
 
 COPY tsconfig.json ./
-COPY prisma ./prisma/ 2>/dev/null || true
 RUN npm install --legacy-peer-deps
 COPY src ./src
 RUN npx prisma generate 2>/dev/null || echo "Prisma generate completed"
@@ -20,11 +19,7 @@ RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 COPY --from=builder /app/package.json ./
 RUN npm install --omit=dev --legacy-peer-deps
-COPY --from=builder /app/prisma ./prisma/ 2>/dev/null || true
-RUN npx prisma generate 2>/dev/null || echo "Prisma generate completed"
 COPY --from=builder /app/dist ./dist
-# Copy templates if they exist
-COPY src/templates ./dist/templates 2>/dev/null || true
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
 RUN chown -R nodejs:nodejs /app
 USER nodejs

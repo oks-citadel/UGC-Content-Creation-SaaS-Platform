@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/auth.service';
 
-const router = Router();
+const router: Router = Router();
 
 // Validation schemas
 const registerSchema = z.object({
@@ -16,6 +16,7 @@ const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   mfaToken: z.string().optional(),
+  mfaMethod: z.enum(['totp', 'email', 'recovery']).optional().default('totp'),
 });
 
 const refreshSchema = z.object({
@@ -46,7 +47,7 @@ function getIpAddress(req: Request): string | undefined {
 }
 
 // Helper to validate request body
-function validate<T>(schema: z.ZodSchema<T>) {
+function validate<TOutput, TInput = unknown>(schema: z.ZodType<TOutput, z.ZodTypeDef, TInput>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
@@ -92,6 +93,7 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response,
         data: {
           requiresMfa: true,
           userId: result.user.id,
+          mfaMethods: result.mfaMethods,
         },
       });
     }

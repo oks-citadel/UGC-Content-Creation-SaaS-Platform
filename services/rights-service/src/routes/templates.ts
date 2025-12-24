@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { TemplateService } from '../services/template.service';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const templateService = new TemplateService();
 
 // Request schemas

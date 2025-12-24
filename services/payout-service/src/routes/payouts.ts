@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { PayoutService } from '../services/payout.service';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const payoutService = new PayoutService();
 
 // Request schemas

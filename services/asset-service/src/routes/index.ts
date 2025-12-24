@@ -2,7 +2,7 @@ import { Router } from 'express';
 import assetsRouter from './assets';
 import libraryRouter from './library';
 
-const router = Router();
+const router: Router = Router();
 
 // Asset management routes
 router.use('/assets', assetsRouter);

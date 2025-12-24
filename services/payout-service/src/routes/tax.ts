@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { TaxService } from '../services/tax.service';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const taxService = new TaxService();
 
 const taxInfoSchema = z.object({

@@ -3,7 +3,7 @@ import planService from '../services/plan.service';
 import { PlanName } from '@prisma/client';
 import logger from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // Get all plans
 router.get('/', async (req: Request, res: Response) => {

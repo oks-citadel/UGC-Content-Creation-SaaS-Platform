@@ -46,7 +46,7 @@ const proxyOptions = (target: string, pathRewrite?: Record<string, string>): Opt
 });
 
 export function setupRoutes(app: Express): void {
-  const router = Router();
+  const router: Router = Router();
 
   // Auth Service
   router.use(

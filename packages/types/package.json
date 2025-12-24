@@ -7,44 +7,44 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./user": {
+      "types": "./dist/user.d.ts",
       "import": "./dist/user.mjs",
-      "require": "./dist/user.js",
-      "types": "./dist/user.d.ts"
+      "require": "./dist/user.js"
     },
     "./campaign": {
+      "types": "./dist/campaign.d.ts",
       "import": "./dist/campaign.mjs",
-      "require": "./dist/campaign.js",
-      "types": "./dist/campaign.d.ts"
+      "require": "./dist/campaign.js"
     },
     "./content": {
+      "types": "./dist/content.d.ts",
       "import": "./dist/content.mjs",
-      "require": "./dist/content.js",
-      "types": "./dist/content.d.ts"
+      "require": "./dist/content.js"
     },
     "./creator": {
+      "types": "./dist/creator.d.ts",
       "import": "./dist/creator.mjs",
-      "require": "./dist/creator.js",
-      "types": "./dist/creator.d.ts"
+      "require": "./dist/creator.js"
     },
     "./commerce": {
+      "types": "./dist/commerce.d.ts",
       "import": "./dist/commerce.mjs",
-      "require": "./dist/commerce.js",
-      "types": "./dist/commerce.d.ts"
+      "require": "./dist/commerce.js"
     },
     "./analytics": {
+      "types": "./dist/analytics.d.ts",
       "import": "./dist/analytics.mjs",
-      "require": "./dist/analytics.js",
-      "types": "./dist/analytics.d.ts"
+      "require": "./dist/analytics.js"
     },
     "./api": {
+      "types": "./dist/api.d.ts",
       "import": "./dist/api.mjs",
-      "require": "./dist/api.js",
-      "types": "./dist/api.d.ts"
+      "require": "./dist/api.js"
     }
   },
   "files": [

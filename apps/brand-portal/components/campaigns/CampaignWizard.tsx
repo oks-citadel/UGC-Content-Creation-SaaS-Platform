@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { ChevronRight, ChevronLeft, Check } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
+import { AxiosError } from 'axios'
 
 type CampaignFormData = {
   name: string
@@ -29,16 +31,53 @@ const steps = [
 export function CampaignWizard() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { register, handleSubmit, watch, formState: { errors } } = useForm<CampaignFormData>()
 
   const onSubmit = async (data: CampaignFormData) => {
+    setIsSubmitting(true)
     try {
-      // TODO: API call to create campaign
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('Campaign created successfully!')
-      router.push('/campaigns')
+      // Transform form data to match API schema
+      const campaignData = {
+        name: data.name,
+        description: data.description,
+        startDate: data.startDate ? new Date(data.startDate).toISOString() : undefined,
+        endDate: data.endDate ? new Date(data.endDate).toISOString() : undefined,
+        budget: Number(data.budget),
+        type: 'UGC' as const,
+        goals: {
+          objectives: data.objectives || [],
+          deliverables: Number(data.deliverables) || 1,
+        },
+        targetAudience: {
+          description: data.targetAudience,
+          platforms: data.platforms || [],
+        },
+        tags: data.contentType || [],
+      }
+
+      const response = await apiClient.campaigns.create(campaignData)
+
+      if (response.data?.success) {
+        toast.success('Campaign created successfully!')
+        const campaignId = response.data.data?.id
+        if (campaignId) {
+          router.push(`/campaigns/${campaignId}`)
+        } else {
+          router.push('/campaigns')
+        }
+      } else {
+        const errorMessage = response.data?.error?.message || 'Failed to create campaign'
+        toast.error(errorMessage)
+      }
     } catch (error) {
-      toast.error('Failed to create campaign')
+      const axiosError = error as AxiosError<{ error?: { message?: string } }>
+      const errorMessage = axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Failed to create campaign. Please try again.'
+      toast.error(errorMessage)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -315,10 +354,20 @@ export function CampaignWizard() {
           ) : (
             <button
               type="submit"
-              className="inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+              disabled={isSubmitting}
+              className="inline-flex items-center px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Check className="w-4 h-4 mr-2" />
-              Launch Campaign
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating Campaign...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Launch Campaign
+                </>
+              )}
             </button>
           )}
         </div>

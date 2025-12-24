@@ -2,7 +2,7 @@ import { Router } from 'express';
 import rightsRouter from './rights';
 import templatesRouter from './templates';
 
-const router = Router();
+const router: Router = Router();
 
 // Content rights routes
 router.use('/content', rightsRouter);

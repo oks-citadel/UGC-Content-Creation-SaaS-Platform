@@ -7,7 +7,7 @@ import { rightsService } from '../services/rights.service';
 import { disclosureService } from '../services/disclosure.service';
 import { prisma } from '../lib/prisma';
 
-const router = Router();
+const router: Router = Router();
 
 // Consent routes
 const grantConsentSchema = z.object({

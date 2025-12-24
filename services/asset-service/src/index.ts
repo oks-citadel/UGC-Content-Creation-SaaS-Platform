@@ -8,7 +8,7 @@ import { errorHandler } from './middleware/error-handler';
 import { requestId } from './middleware/request-id';
 import routes from './routes';
 
-const app = express();
+const app: express.Express = express();
 
 // Security middleware
 app.use(helmet());

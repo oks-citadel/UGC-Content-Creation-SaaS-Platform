@@ -11,7 +11,7 @@ import creatorAggregator from '../aggregators/creator.aggregator';
 import commerceAggregator from '../aggregators/commerce.aggregator';
 import fs from 'fs';
 
-const router = Router();
+const router: Router = Router();
 
 // Metrics endpoints
 router.get('/metrics/:entityType/:entityId', async (req: Request, res: Response) => {

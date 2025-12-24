@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { UserPlus, Mail, Lock, Building2, User, Loader2 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
+import { AxiosError } from 'axios'
 
 const registerSchema = z.object({
   companyName: z.string().min(2, 'Company name is required'),
@@ -37,12 +39,48 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
     try {
-      // TODO: Implement actual registration
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      toast.success('Account created successfully!')
-      router.push('/dashboard')
+      // Split full name into first and last name
+      const nameParts = data.fullName.trim().split(' ')
+      const firstName = nameParts[0]
+      const lastName = nameParts.slice(1).join(' ') || undefined
+
+      const response = await apiClient.auth.register({
+        email: data.email,
+        password: data.password,
+        firstName,
+        lastName,
+      })
+
+      if (response.success) {
+        toast.success('Account created successfully! Please check your email to verify your account.')
+        router.push('/dashboard')
+      } else {
+        // Handle error response
+        const errorMessage = response.error?.message || 'Registration failed. Please try again.'
+
+        // Check for validation errors
+        if (response.error?.details && Array.isArray(response.error.details)) {
+          const validationMessages = response.error.details
+            .map((d: { message?: string }) => d.message)
+            .filter(Boolean)
+            .join(', ')
+          toast.error(validationMessages || errorMessage)
+        } else {
+          toast.error(errorMessage)
+        }
+      }
     } catch (error) {
-      toast.error('Registration failed. Please try again.')
+      const axiosError = error as AxiosError<{ error?: { message?: string; code?: string } }>
+      const errorCode = axiosError.response?.data?.error?.code
+      const errorMessage = axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Registration failed. Please try again.'
+
+      if (errorCode === 'EMAIL_EXISTS' || axiosError.response?.status === 409) {
+        toast.error('An account with this email already exists. Please sign in instead.')
+      } else {
+        toast.error(errorMessage)
+      }
     } finally {
       setIsLoading(false)
     }

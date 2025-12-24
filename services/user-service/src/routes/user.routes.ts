@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { userService } from '../services/user.service';
 
-const router = Router();
+const router: Router = Router();
 
 // Validation schemas
 const updateUserSchema = z.object({
@@ -59,7 +59,7 @@ const inviteMemberSchema = z.object({
 });
 
 // Helper to validate request body
-function validate<T>(schema: z.ZodSchema<T>) {
+function validate<TOutput, TInput = unknown>(schema: z.ZodType<TOutput, z.ZodTypeDef, TInput>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {

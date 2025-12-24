@@ -6,7 +6,7 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
 
-const router = Router();
+const router: Router = Router();
 
 // Service metadata
 const SERVICE_NAME = 'rights-service';

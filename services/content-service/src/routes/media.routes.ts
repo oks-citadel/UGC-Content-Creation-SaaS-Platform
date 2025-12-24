@@ -3,7 +3,7 @@ import multer from 'multer';
 import { mediaService } from '../services/media.service';
 import { config } from '../config';
 
-const router = Router();
+const router: Router = Router();
 
 // Configure multer for memory storage
 const upload = multer({

@@ -7,11 +7,14 @@ import { z } from 'zod'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react'
+import { LogIn, Mail, Lock, Loader2, Shield } from 'lucide-react'
+import { apiClient } from '@/lib/api'
+import { AxiosError } from 'axios'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  mfaToken: z.string().optional(),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -19,11 +22,15 @@ type LoginFormData = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [requiresMfa, setRequiresMfa] = useState(false)
+  const [mfaUserId, setMfaUserId] = useState<string | null>(null)
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    watch,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
@@ -31,12 +38,34 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
     try {
-      // TODO: Implement actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      toast.success('Welcome back!')
-      router.push('/dashboard')
+      const response = await apiClient.auth.login({
+        email: data.email,
+        password: data.password,
+        mfaToken: data.mfaToken,
+      })
+
+      if (response.success) {
+        if (response.data?.requiresMfa && !data.mfaToken) {
+          // MFA is required, show MFA input
+          setRequiresMfa(true)
+          setMfaUserId(response.data.user.id)
+          toast.info('Please enter your MFA code')
+        } else {
+          // Login successful
+          toast.success('Welcome back!')
+          router.push('/dashboard')
+        }
+      } else {
+        // Handle error response
+        const errorMessage = response.error?.message || 'Login failed. Please try again.'
+        toast.error(errorMessage)
+      }
     } catch (error) {
-      toast.error('Invalid credentials. Please try again.')
+      const axiosError = error as AxiosError<{ error?: { message?: string } }>
+      const errorMessage = axiosError.response?.data?.error?.message ||
+        axiosError.message ||
+        'Invalid credentials. Please try again.'
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -96,6 +125,28 @@ export default function LoginPage() {
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
             </div>
+
+            {requiresMfa && (
+              <div>
+                <label htmlFor="mfaToken" className="block text-sm font-medium text-gray-700 mb-2">
+                  MFA Code
+                </label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    {...register('mfaToken')}
+                    type="text"
+                    id="mfaToken"
+                    maxLength={6}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    placeholder="Enter 6-digit code"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter the code from your authenticator app
+                </p>
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">

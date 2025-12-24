@@ -5,7 +5,7 @@ import { AssetService } from '../services/asset.service';
 import { AppError } from '../middleware/error-handler';
 import { logger } from '../utils/logger';
 
-const router = Router();
+const router: Router = Router();
 const assetService = new AssetService();
 
 // Request schemas

@@ -7,7 +7,7 @@ import { validate } from '../middleware/validate';
 import { asyncHandler } from '../middleware/error-handler';
 import logger from '../lib/logger';
 
-const router = Router();
+const router: Router = Router();
 
 // Validation Schemas
 const createCreatorSchema = z.object({
