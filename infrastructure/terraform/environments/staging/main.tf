@@ -10,6 +10,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.80"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 2.45"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
@@ -23,6 +27,10 @@ terraform {
       version = "~> 2.12"
     }
   }
+}
+
+provider "azuread" {
+  # Uses same authentication as azurerm
 }
 
 provider "azurerm" {
@@ -153,7 +161,7 @@ module "aks" {
 
   acr_id                     = module.acr.acr_id
   enable_acr_integration     = true
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 
   tags = local.common_tags
 }
@@ -281,25 +289,28 @@ module "keyvault" {
 }
 
 # -----------------------------------------------------------------------------
-# Application Insights (Direct resource - no monitoring module)
+# Monitoring (Using Module)
 # -----------------------------------------------------------------------------
 
-resource "azurerm_log_analytics_workspace" "main" {
-  name                = "${local.project}-${local.environment}-logs"
-  location            = azurerm_resource_group.main.location
+module "monitoring" {
+  source = "../../modules/monitoring"
+
   resource_group_name = azurerm_resource_group.main.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-  tags                = local.common_tags
+  location            = azurerm_resource_group.main.location
+  project             = local.project
+  environment         = local.environment
+
+  retention_days        = var.log_retention_days
+  alert_email_receivers = var.alert_email_receivers
+  create_alerts         = length(var.alert_email_receivers) > 0
+  create_workbooks      = true
+
+  tags = local.common_tags
 }
 
-resource "azurerm_application_insights" "main" {
-  name                = "${local.project}-${local.environment}-appinsights"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-  workspace_id        = azurerm_log_analytics_workspace.main.id
-  application_type    = "web"
-  tags                = local.common_tags
+# Keep reference for backwards compatibility
+locals {
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
 }
 
 # -----------------------------------------------------------------------------
@@ -313,3 +324,136 @@ resource "random_password" "jwt_secret" {
 
 # Note: Kubernetes resources are defined in kubernetes.tf
 # They will be applied after the Azure infrastructure is created
+
+# =============================================================================
+# DNS Zone (Optional - Enable when domain is configured)
+# =============================================================================
+
+module "dns" {
+  count  = var.enable_dns && var.domain_name != "" ? 1 : 0
+  source = "../../modules/dns"
+
+  resource_group_name = azurerm_resource_group.main.name
+  domain_name         = var.domain_name
+
+  # Email records
+  mx_records   = var.mx_records
+  spf_record   = var.spf_record
+  dkim_records = var.dkim_records
+  dmarc_record = var.dmarc_record
+
+  # Subdomain targets (will be updated when Front Door is enabled)
+  create_apex_record = var.enable_frontdoor
+  create_www_record  = true
+  create_api_record  = true
+  create_app_record  = true
+
+  api_target = var.enable_frontdoor ? module.frontdoor[0].frontdoor_endpoint_hostname : ""
+  app_target = var.enable_frontdoor ? module.frontdoor[0].frontdoor_endpoint_hostname : ""
+  www_target = var.enable_frontdoor ? module.frontdoor[0].frontdoor_endpoint_hostname : ""
+
+  tags = local.common_tags
+}
+
+# =============================================================================
+# Azure Front Door (Optional - Enable for production-ready setup)
+# =============================================================================
+
+module "frontdoor" {
+  count  = var.enable_frontdoor ? 1 : 0
+  source = "../../modules/frontdoor"
+
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  project             = local.project
+  environment         = local.environment
+
+  sku_name    = var.frontdoor_sku
+  domain_name = var.domain_name
+  dns_zone_id = var.enable_dns ? module.dns[0].dns_zone_id : ""
+
+  # Origin configuration
+  api_origin_hostname = "${local.project}-${local.environment}-api.${azurerm_resource_group.main.location}.cloudapp.azure.com"
+  web_origin_hostname = "${local.project}-${local.environment}-web.${azurerm_resource_group.main.location}.cloudapp.azure.com"
+
+  # WAF configuration
+  enable_waf = var.enable_waf
+  waf_mode   = var.waf_mode
+
+  # Monitoring
+  log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
+
+  tags = local.common_tags
+}
+
+# =============================================================================
+# Identity - Entra ID B2C Configuration (Optional)
+# =============================================================================
+
+module "identity" {
+  count  = var.enable_identity ? 1 : 0
+  source = "../../modules/identity"
+
+  providers = {
+    azuread = azuread
+  }
+
+  project     = local.project
+  environment = local.environment
+
+  b2c_tenant_name = var.b2c_tenant_name
+
+  # Redirect URIs
+  web_redirect_uris = var.web_redirect_uris
+  spa_redirect_uris = var.spa_redirect_uris
+
+  # Security groups
+  create_security_groups = true
+
+  # Store secrets in Key Vault
+  key_vault_id = module.keyvault.key_vault_id
+
+  tags = local.common_tags
+}
+
+# =============================================================================
+# Outputs for new modules
+# =============================================================================
+
+output "dns_name_servers" {
+  description = "DNS name servers (configure at registrar)"
+  value       = var.enable_dns ? module.dns[0].name_servers : []
+}
+
+output "frontdoor_endpoint" {
+  description = "Front Door endpoint hostname"
+  value       = var.enable_frontdoor ? module.frontdoor[0].frontdoor_endpoint_hostname : null
+}
+
+output "frontdoor_origin_header" {
+  description = "Front Door origin protection header value"
+  value       = var.enable_frontdoor ? module.frontdoor[0].frontdoor_resource_guid : null
+  sensitive   = true
+}
+
+output "identity_web_client_id" {
+  description = "Web application client ID"
+  value       = var.enable_identity ? module.identity[0].web_app_client_id : null
+}
+
+output "identity_api_client_id" {
+  description = "API application client ID"
+  value       = var.enable_identity ? module.identity[0].api_app_client_id : null
+}
+
+output "identity_group_ids" {
+  description = "Security group IDs"
+  value       = var.enable_identity ? module.identity[0].group_ids : {}
+  sensitive   = true
+}
+
+output "monitoring_appinsights_connection_string" {
+  description = "Application Insights connection string"
+  value       = module.monitoring.application_insights_connection_string
+  sensitive   = true
+}

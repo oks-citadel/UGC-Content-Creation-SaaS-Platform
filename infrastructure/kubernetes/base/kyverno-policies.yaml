@@ -1,0 +1,28 @@
+
+# NEXUS Platform - Kyverno Admission Control Policies
+# These policies enforce production deployment standards
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/title: Disallow Latest Tag
+    policies.kyverno.io/severity: high
+spec:
+  validationFailureAction: Enforce
+  rules:
+    - name: validate-image-tag
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - nexus-prod
+      validate:
+        message: "Images must not use latest tag. Use SHA digest or git SHA."
+        pattern:
+          spec:
+            containers:
+              - image: "\!*:latest"

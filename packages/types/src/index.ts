@@ -18,3 +18,6 @@ export * from './api';
 
 // Error types, codes, and HTTP status mappings
 export * from './errors';
+
+// Subscription tiers and access control types
+export * from './subscription-tiers';

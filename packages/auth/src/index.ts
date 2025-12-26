@@ -3,6 +3,9 @@ export { hash, compare } from 'bcryptjs';
 export * from 'jose';
 import { jwtVerify, SignJWT } from 'jose';
 
+// B2C Authorization (Group-based access control)
+export * from './b2c-authorization';
+
 export interface AuthUser {
   id: string;
   email: string;

@@ -1,5 +1,6 @@
 # NEXUS Platform - Database Documentation
 
+
 ## Overview
 
 The NEXUS platform uses a polyglot persistence strategy to optimize for different data types and access patterns:

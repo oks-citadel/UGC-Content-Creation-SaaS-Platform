@@ -1,0 +1,92 @@
+# =============================================================================
+# NEXUS Platform - Staging Environment Variables
+# Copy to staging.tfvars and fill in your values
+# =============================================================================
+
+# =============================================================================
+# General Configuration
+# =============================================================================
+
+location = "eastus"
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+
+db_admin_username = "nexusadmin"
+# db_admin_password = "your-secure-password"  # Pass via TF_VAR_db_admin_password
+
+# =============================================================================
+# DNS Configuration (Optional - Enable when domain is ready)
+# =============================================================================
+
+enable_dns  = false
+domain_name = ""  # e.g., "staging.nexusplatform.com"
+
+# Email DNS Records (fill in when using custom domain)
+mx_records = [
+  # { preference = 1, exchange = "mx1.your-email-provider.com." }
+]
+
+spf_record   = ""  # e.g., "v=spf1 include:_spf.google.com ~all"
+dmarc_record = ""  # e.g., "v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com"
+
+dkim_records = {
+  # "google._domainkey" = "dkim.google.com."
+}
+
+# =============================================================================
+# Front Door Configuration (Optional - Enable for production-like staging)
+# =============================================================================
+
+enable_frontdoor = false
+frontdoor_sku    = "Standard_AzureFrontDoor"  # Use "Premium_AzureFrontDoor" for WAF
+enable_waf       = true
+waf_mode         = "Detection"  # Use "Prevention" in production
+
+# =============================================================================
+# Identity Configuration (Optional - Enable for B2C integration)
+# =============================================================================
+
+enable_identity = false
+b2c_tenant_name = ""  # e.g., "nexusplatformb2c"
+
+# Redirect URIs for staging
+web_redirect_uris = [
+  # "https://staging.nexusplatform.com/auth/callback",
+  # "https://staging.nexusplatform.com/auth/logout"
+]
+
+spa_redirect_uris = [
+  # "https://staging.nexusplatform.com/auth/callback"
+]
+
+# =============================================================================
+# Monitoring Configuration
+# =============================================================================
+
+log_retention_days = 30
+
+alert_email_receivers = [
+  # { name = "Platform Team", email = "platform@company.com" }
+]
+
+# =============================================================================
+# How to Apply
+# =============================================================================
+#
+# 1. Copy this file to staging.tfvars
+# 2. Fill in the required values
+# 3. Set sensitive values via environment variables:
+#    export TF_VAR_db_admin_password="your-secure-password"
+#
+# 4. Initialize Terraform:
+#    terraform init
+#
+# 5. Plan the changes:
+#    terraform plan -var-file="staging.tfvars"
+#
+# 6. Apply the changes:
+#    terraform apply -var-file="staging.tfvars"
+#
+# =============================================================================
