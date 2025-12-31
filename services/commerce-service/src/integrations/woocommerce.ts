@@ -2,7 +2,7 @@ import WooCommerceRestApi from '@woocommerce/woocommerce-rest-api';
 import config from '../config';
 import logger from '../config/logger';
 import prisma from '../config/database';
-import { Product, Order } from '@prisma/client';
+import { Product, Order } from '.prisma/commerce-service-client';
 
 interface WooProduct {
   id: number;

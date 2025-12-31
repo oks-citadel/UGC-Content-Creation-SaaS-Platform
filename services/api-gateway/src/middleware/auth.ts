@@ -131,6 +131,30 @@ export async function authMiddleware(
     req.user = payload;
     req.organizationId = payload.organizationId || req.headers['x-organization-id'] as string;
 
+    // Enforce email verification for protected routes
+    // Skip for auth-related endpoints and public routes
+    const skipEmailVerificationPaths = [
+      '/api/v1/auth/verify-email',
+      '/api/v1/auth/resend-verification',
+      '/api/v1/auth/logout',
+      '/api/v1/users/me', // Allow fetching own profile to see verification status
+    ];
+
+    const requiresEmailVerification = !skipEmailVerificationPaths.some(
+      path => req.path.startsWith(path)
+    );
+
+    if (requiresEmailVerification && !(payload as any).emailVerified) {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Please verify your email address before accessing this resource',
+        },
+      });
+      return;
+    }
+
     // Add user info to response headers for debugging
     res.setHeader('X-User-ID', payload.sub);
 

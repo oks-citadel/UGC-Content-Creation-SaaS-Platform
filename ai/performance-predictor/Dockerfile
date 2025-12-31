@@ -23,11 +23,22 @@ RUN python -c "from transformers import CLIPProcessor, CLIPModel; \
 # Copy application code
 COPY src/ ./src/
 
-# Create directories for models
-RUN mkdir -p /app/models /app/cache
+# Create non-root user for security
+RUN groupadd --system --gid 1001 nexus && \
+    useradd --system --uid 1001 --gid nexus nexus
+
+# Create directories for models with proper ownership
+RUN mkdir -p /app/models /app/cache && \
+    chown -R nexus:nexus /app
+
+# Switch to non-root user
+USER nexus
 
 # Expose port
 EXPOSE 8001
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

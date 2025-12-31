@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/analytics-service-client';
 import { mean, standardDeviation } from 'simple-statistics';
 import { subDays } from 'date-fns';
 import metricsService from './metrics.service';

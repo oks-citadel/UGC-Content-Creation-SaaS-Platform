@@ -1,4 +1,4 @@
-import { PrismaClient, AmbassadorProgram, Ambassador, AmbassadorStatus } from '@prisma/client';
+import { PrismaClient, AmbassadorProgram, Ambassador, AmbassadorStatus } from '.prisma/marketplace-service-client';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 

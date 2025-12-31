@@ -1,6 +1,8 @@
 'use client';
 
-import { BarChart3, TrendingUp, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
+import { Eye, Heart, MessageCircle } from 'lucide-react';
+import EngagementChart from '@/components/analytics/EngagementChart';
+import PlatformDistributionChart from '@/components/analytics/PlatformDistributionChart';
 
 export default function AnalyticsPage() {
   const metrics = [
@@ -120,18 +122,12 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">Engagement Over Time</h2>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <BarChart3 className="h-12 w-12 text-gray-400" />
-            <p className="text-gray-500 ml-3">Chart placeholder - integrate with recharts</p>
-          </div>
+          <EngagementChart />
         </div>
 
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">Platform Distribution</h2>
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-            <TrendingUp className="h-12 w-12 text-gray-400" />
-            <p className="text-gray-500 ml-3">Chart placeholder - integrate with recharts</p>
-          </div>
+          <PlatformDistributionChart />
         </div>
       </div>
 

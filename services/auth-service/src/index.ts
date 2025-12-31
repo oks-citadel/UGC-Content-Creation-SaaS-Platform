@@ -9,6 +9,7 @@ import { config } from './config';
 import authRoutes from './routes/auth.routes';
 import mfaRoutes from './routes/mfa.routes';
 import { errorHandler } from './middleware/error-handler';
+import { ipFraudDetectionMiddleware } from './middleware/ip-fraud-detection';
 
 const logger = pino({
   name: config.serviceName,
@@ -71,6 +72,10 @@ const strictLimiter = rateLimit({
 
 app.use('/auth/password/forgot', strictLimiter);
 app.use('/auth/password/reset', strictLimiter);
+
+// IP-based fraud detection for login endpoints
+app.use('/auth/login', ipFraudDetectionMiddleware);
+app.use('/auth/register', ipFraudDetectionMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {

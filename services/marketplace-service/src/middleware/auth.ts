@@ -99,7 +99,7 @@ export function generateToken(payload: {
   role: string;
 }): string {
   return jwt.sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiry,
+    expiresIn: config.jwt.expiry as any,
   });
 }
 

@@ -1,4 +1,4 @@
-import { PrismaClient, Plan, PlanName } from '@prisma/client';
+import { PrismaClient, Plan, PlanName } from '.prisma/billing-service-client';
 import logger from '../utils/logger';
 
 const prisma = new PrismaClient();

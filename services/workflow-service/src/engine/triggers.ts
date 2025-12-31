@@ -1,4 +1,4 @@
-import { TriggerType } from '@prisma/client';
+import { TriggerType } from '.prisma/workflow-client';
 
 export interface Trigger {
   type: TriggerType;

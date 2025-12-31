@@ -1,10 +1,22 @@
 'use client'
 
-import { useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { apiClient } from '@/lib/api'
+
+type ScheduleEvent = {
+  title: string
+  platform: string
+  creator: string
+}
+
+type EventsByDay = Record<number, ScheduleEvent[]>
 
 export function ContentCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [events, setEvents] = useState<EventsByDay>({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const daysInMonth = new Date(
     currentDate.getFullYear(),
@@ -23,15 +35,45 @@ export function ContentCalendar() {
     'July', 'August', 'September', 'October', 'November', 'December'
   ]
 
-  const mockEvents = {
-    5: [{ title: 'Photo Post', platform: 'Instagram', creator: 'Sarah J.' }],
-    12: [
-      { title: 'Video Review', platform: 'TikTok', creator: 'Mike C.' },
-      { title: 'Story Post', platform: 'Instagram', creator: 'Emma D.' },
-    ],
-    18: [{ title: 'Reel', platform: 'Instagram', creator: 'Alex R.' }],
-    25: [{ title: 'YouTube Video', platform: 'YouTube', creator: 'David K.' }],
-  }
+  // Fetch events from API
+  const fetchEvents = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await apiClient.schedule.getByMonth(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1
+      )
+      if (response.data?.data) {
+        // Group events by day
+        const eventsByDay: EventsByDay = {}
+        response.data.data.forEach((event: any) => {
+          const eventDate = new Date(event.scheduledAt)
+          const day = eventDate.getDate()
+          if (!eventsByDay[day]) {
+            eventsByDay[day] = []
+          }
+          eventsByDay[day].push({
+            title: event.title || event.content?.title || 'Untitled',
+            platform: event.platform || 'Unknown',
+            creator: event.creator?.name || event.creatorName || 'Unknown',
+          })
+        })
+        setEvents(eventsByDay)
+      }
+    } catch (err) {
+      console.error('Failed to fetch schedule:', err)
+      setError('Failed to load schedule')
+      // Set empty events on error so calendar still renders
+      setEvents({})
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentDate])
+
+  useEffect(() => {
+    fetchEvents()
+  }, [fetchEvents])
 
   const prevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
@@ -64,6 +106,27 @@ export function ContentCalendar() {
         </div>
       </div>
 
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-4 mb-4">
+          <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
+          <span className="ml-2 text-sm text-gray-500">Loading schedule...</span>
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && (
+        <div className="text-center py-2 mb-4">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            onClick={fetchEvents}
+            className="text-sm text-primary-600 hover:text-primary-700 mt-1"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-2">
         {/* Day headers */}
@@ -81,7 +144,7 @@ export function ContentCalendar() {
         {/* Calendar days */}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1
-          const events = mockEvents[day as keyof typeof mockEvents] || []
+          const dayEvents = events[day] || []
           const isToday = new Date().getDate() === day &&
             new Date().getMonth() === currentDate.getMonth() &&
             new Date().getFullYear() === currentDate.getFullYear()
@@ -97,7 +160,7 @@ export function ContentCalendar() {
                 {day}
               </div>
               <div className="space-y-1">
-                {events.map((event, idx) => (
+                {dayEvents.map((event, idx) => (
                   <div
                     key={idx}
                     className="text-xs bg-primary-100 text-primary-800 px-1 py-0.5 rounded truncate"

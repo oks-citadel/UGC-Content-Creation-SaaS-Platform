@@ -266,4 +266,27 @@ export const apiClient = {
     get: () => api.get('/settings'),
     update: (data: any) => api.put('/settings', data),
   },
+
+  // Products (Commerce)
+  products: {
+    getAll: (params?: { search?: string; limit?: number; offset?: number }) =>
+      api.get('/commerce/products', { params }),
+    getById: (id: string) => api.get(`/commerce/products/${id}`),
+    search: (query: string) =>
+      api.get('/commerce/products/search', { params: { q: query } }),
+  },
+
+  // Content Schedule
+  schedule: {
+    getByMonth: (year: number, month: number) =>
+      api.get('/content/schedule', { params: { year, month } }),
+    getUpcoming: (days?: number) =>
+      api.get('/content/schedule/upcoming', { params: { days: days || 30 } }),
+    create: (data: { contentId: string; scheduledAt: Date; platform: string }) =>
+      api.post('/content/schedule', data),
+    update: (id: string, data: any) =>
+      api.put(`/content/schedule/${id}`, data),
+    delete: (id: string) =>
+      api.delete(`/content/schedule/${id}`),
+  },
 }

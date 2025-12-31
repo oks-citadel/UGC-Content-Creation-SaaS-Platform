@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import logger from '../config/logger';
-import { ShoppableGallery, GalleryLayout } from '@prisma/client';
+import { ShoppableGallery, GalleryLayout } from '.prisma/commerce-service-client';
 import { v4 as uuidv4 } from 'uuid';
 
 interface CreateGalleryData {

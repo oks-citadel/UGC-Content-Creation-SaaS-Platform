@@ -124,7 +124,7 @@ class CreatorAggregator {
     }
 
     // Calculate weighted performance score
-    const latestMetrics = snapshots[snapshots.length - 1].metrics;
+    const latestMetrics = snapshots[snapshots.length - 1].metrics as any || {};
 
     const contentQuality = (latestMetrics.averageContentScore || 0) * 25;
     const engagement = Math.min((latestMetrics.averageEngagementRate || 0) * 5, 25);
@@ -214,23 +214,23 @@ class CreatorAggregator {
       };
     }
 
-    const oldest = snapshots[0].metrics;
-    const latest = snapshots[snapshots.length - 1].metrics;
+    const oldest = snapshots[0].metrics as any || {};
+    const latest = snapshots[snapshots.length - 1].metrics as any || {};
 
     const followerGrowth =
-      oldest.totalFollowers > 0
-        ? ((latest.totalFollowers - oldest.totalFollowers) / oldest.totalFollowers) *
+      (oldest || {}).totalFollowers > 0
+        ? (((latest || {}).totalFollowers - (oldest || {}).totalFollowers) / (oldest || {}).totalFollowers) *
           100
         : 0;
 
     const contentGrowth =
-      oldest.totalContent > 0
-        ? ((latest.totalContent - oldest.totalContent) / oldest.totalContent) * 100
+      (oldest || {}).totalContent > 0
+        ? (((latest || {}).totalContent - (oldest || {}).totalContent) / (oldest || {}).totalContent) * 100
         : 0;
 
     const earningsGrowth =
-      oldest.totalEarnings > 0
-        ? ((latest.totalEarnings - oldest.totalEarnings) / oldest.totalEarnings) *
+      (oldest || {}).totalEarnings > 0
+        ? (((latest || {}).totalEarnings - (oldest || {}).totalEarnings) / (oldest || {}).totalEarnings) *
           100
         : 0;
 

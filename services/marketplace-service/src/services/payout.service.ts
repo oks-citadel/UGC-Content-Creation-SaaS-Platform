@@ -1,4 +1,4 @@
-import { PrismaClient, Payout, PayoutStatus, PayoutMethod } from '@prisma/client';
+import { PrismaClient, Payout, PayoutStatus, PayoutMethod } from '.prisma/marketplace-service-client';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 import currency from 'currency.js';

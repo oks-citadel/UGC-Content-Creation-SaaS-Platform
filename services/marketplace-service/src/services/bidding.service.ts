@@ -1,4 +1,4 @@
-import { PrismaClient, Bid, BidStatus } from '@prisma/client';
+import { PrismaClient, Bid, BidStatus } from '.prisma/marketplace-service-client';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 import axios from 'axios';

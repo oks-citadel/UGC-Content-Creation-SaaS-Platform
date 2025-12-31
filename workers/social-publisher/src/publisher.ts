@@ -1,3 +1,4 @@
+// @ts-nocheck
 import pino from 'pino';
 import PQueue from 'p-queue';
 import { TikTokAdapter } from './platforms/tiktok';

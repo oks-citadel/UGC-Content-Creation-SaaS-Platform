@@ -2,7 +2,7 @@ import Shopify from 'shopify-api-node';
 import config from '../config';
 import logger from '../config/logger';
 import prisma from '../config/database';
-import { Product, Order } from '@prisma/client';
+import { Product, Order } from '.prisma/commerce-service-client';
 
 interface ShopifyProduct {
   id: number;
@@ -38,6 +38,7 @@ interface ShopifyConfig {
 export class ShopifyIntegration {
   private client: Shopify | null = null;
   private tenantId: string;
+  private shopName: string = '';
 
   constructor(tenantId: string) {
     this.tenantId = tenantId;
@@ -48,6 +49,7 @@ export class ShopifyIntegration {
    */
   async initialize(shopifyConfig: ShopifyConfig): Promise<void> {
     try {
+      this.shopName = shopifyConfig.shopName;
       this.client = new Shopify({
         shopName: shopifyConfig.shopName,
         apiKey: shopifyConfig.apiKey,
@@ -142,7 +144,7 @@ export class ShopifyIntegration {
         variants,
         inventory: primaryVariant.inventory_quantity,
         source: 'shopify',
-        source_url: `https://${this.client!.shopName}.myshopify.com/products/${shopifyProduct.handle}`,
+        source_url: `https://${this.shopName}.myshopify.com/products/${shopifyProduct.handle}`,
         tags,
         tenant_id: this.tenantId,
         synced_at: new Date(),

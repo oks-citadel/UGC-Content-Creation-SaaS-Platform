@@ -15,12 +15,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 
-# Create cache directory
-RUN mkdir -p /app/cache
+# Create non-root user for security
+RUN groupadd --system --gid 1001 nexus && \
+    useradd --system --uid 1001 --gid nexus nexus
+
+# Create cache directory with proper ownership
+RUN mkdir -p /app/cache && \
+    chown -R nexus:nexus /app
+
+# Switch to non-root user
+USER nexus
 
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Expose port
 EXPOSE 8003

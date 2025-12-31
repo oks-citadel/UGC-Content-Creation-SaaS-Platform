@@ -1,6 +1,7 @@
 // Marketplace Service - Prisma Schema
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/marketplace-service-client"
 }
 
 datasource db {

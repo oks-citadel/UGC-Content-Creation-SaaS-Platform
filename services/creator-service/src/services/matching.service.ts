@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/creator-service-client';
 import logger from '../lib/logger';
 import { config } from '../config';
 
@@ -123,7 +123,7 @@ class MatchingService {
 
       // Platform filtering
       if (platforms.length > 0) {
-        const creatorPlatforms = [];
+        const creatorPlatforms: string[] = [];
         if (creator.instagramHandle) creatorPlatforms.push('INSTAGRAM');
         if (creator.tiktokHandle) creatorPlatforms.push('TIKTOK');
         if (creator.youtubeHandle) creatorPlatforms.push('YOUTUBE');

@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import pino from 'pino';
 import pinoHttp from 'pino-http';
+import { rateLimit } from 'express-rate-limit';
 
 import { config } from './config';
 import userRoutes from './routes/user.routes';
@@ -26,6 +27,30 @@ app.use(cors({
   origin: config.cors.origins,
   credentials: true,
 }));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for'] as string || req.ip || 'unknown';
+  },
+  handler: (req, res) => {
+    logger.warn({ ip: req.ip, path: req.path }, 'Rate limit exceeded');
+    res.status(429).json({
+      success: false,
+      error: {
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests. Please try again later.',
+      },
+    });
+  },
+  skip: (req) => req.path === '/health' || req.path === '/ready',
+});
+
+app.use(limiter);
 
 // Request logging
 app.use(pinoHttp({ logger }));

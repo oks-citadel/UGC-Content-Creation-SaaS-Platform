@@ -35,3 +35,13 @@ variable "budget_alert_emails" {
   type        = list(string)
   default     = ["admin@example.com"]
 }
+
+# -----------------------------------------------------------------------------
+# Front Door / WAF Variables
+# -----------------------------------------------------------------------------
+
+variable "custom_domains" {
+  description = "Custom domains for Front Door"
+  type        = list(string)
+  default     = []
+}

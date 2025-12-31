@@ -13,10 +13,16 @@
     "test": "jest --passWithNoTests",
     "lint": "eslint . --ext .ts"
   },
-  "keywords": ["analytics", "reporting", "metrics", "nexus"],
+  "keywords": [
+    "analytics",
+    "reporting",
+    "metrics",
+    "nexus"
+  ],
   "author": "NEXUS Team",
   "license": "MIT",
   "dependencies": {
+    "@nexus/utils": "workspace:*",
     "@prisma/client": "^5.7.1",
     "express": "^4.18.2",
     "cors": "^2.8.5",

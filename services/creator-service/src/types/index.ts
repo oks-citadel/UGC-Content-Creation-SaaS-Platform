@@ -1,4 +1,4 @@
-import { Creator, CreatorMetrics, CreatorEarnings, CreatorVerification } from '@prisma/client';
+import { Creator, CreatorMetrics, CreatorEarnings, CreatorVerification } from '.prisma/creator-service-client';
 
 export interface CreatorWithRelations extends Creator {
   metrics?: CreatorMetrics | null;

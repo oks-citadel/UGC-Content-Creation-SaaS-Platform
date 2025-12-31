@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import planService from '../services/plan.service';
-import { PlanName } from '@prisma/client';
+import { PlanName } from '.prisma/billing-service-client';
 import logger from '../utils/logger';
 
 const router: Router = Router();

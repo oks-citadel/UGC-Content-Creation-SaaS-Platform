@@ -27,12 +27,34 @@ app.use(helmet({
   contentSecurityPolicy: false, // Configured at CDN level
 }));
 
-// CORS
+// CORS - Strict configuration for production
 app.use(cors({
-  origin: config.cors.origins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check against allowed origins
+    if (config.cors.origins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log and reject unknown origins in production
+    if (config.env === 'production') {
+      logger.warn({ origin }, 'CORS request from unknown origin rejected');
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // Allow in development
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Organization-ID'],
+  exposedHeaders: ['X-Request-ID', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
+  maxAge: 86400, // 24 hours
+  optionsSuccessStatus: 204,
 }));
 
 // Compression

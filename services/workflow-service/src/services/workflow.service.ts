@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { workflowExecutor } from '../engine/executor';
-import { TriggerType } from '@prisma/client';
+import { TriggerType } from '.prisma/workflow-client';
 import cronParser from 'cron-parser';
 import pino from 'pino';
 

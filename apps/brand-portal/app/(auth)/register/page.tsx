@@ -60,8 +60,8 @@ export default function RegisterPage() {
 
         // Check for validation errors
         if (response.error?.details && Array.isArray(response.error.details)) {
-          const validationMessages = response.error.details
-            .map((d: { message?: string }) => d.message)
+          const validationMessages = (response.error.details as Array<{ message?: string }>)
+            .map((d) => d.message)
             .filter(Boolean)
             .join(', ')
           toast.error(validationMessages || errorMessage)

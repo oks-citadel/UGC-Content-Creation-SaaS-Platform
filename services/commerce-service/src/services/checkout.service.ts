@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import logger from '../config/logger';
 import config from '../config';
 import { v4 as uuidv4 } from 'uuid';
-import { Order, CheckoutSession, OrderStatus } from '@prisma/client';
+import { Order, CheckoutSession, OrderStatus, Prisma } from '.prisma/commerce-service-client';
 import attributionService from './attribution.service';
 
 interface CheckoutItem {
@@ -13,11 +13,12 @@ interface CheckoutItem {
 }
 
 interface CustomerData {
+  [key: string]: Prisma.InputJsonValue | undefined;
   email: string;
   name?: string;
   phone?: string;
-  shipping_address?: any;
-  billing_address?: any;
+  shipping_address?: Prisma.InputJsonValue;
+  billing_address?: Prisma.InputJsonValue;
 }
 
 interface InitiateCheckoutData {

@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma';
-import { Prisma, Creator, CreatorStatus } from '@prisma/client';
+import { Prisma, Creator, CreatorStatus, VerificationStatus, SocialPlatform } from '.prisma/creator-service-client';
 import { NotFoundError, ValidationError, ConflictError } from '../middleware/error-handler';
 import logger from '../lib/logger';
 
@@ -323,8 +323,9 @@ class CreatorService {
     const portfolioItem = await prisma.creatorPortfolio.create({
       data: {
         ...data,
+        platform: data.platform as SocialPlatform | undefined,
         creatorId,
-      },
+      } as any,
     });
 
     logger.info({ creatorId, portfolioItemId: portfolioItem.id }, 'Portfolio item added');
@@ -336,7 +337,7 @@ class CreatorService {
     try {
       const portfolioItem = await prisma.creatorPortfolio.update({
         where: { id },
-        data,
+        data: data as any,
       });
 
       return portfolioItem;
@@ -505,7 +506,7 @@ class CreatorService {
 
     // Calculate average rating
     const avgRating = reviews.length > 0
-      ? reviews.reduce((sum: number, review: { rating: number | string }) => sum + Number(review.rating), 0) / reviews.length
+      ? (reviews as any[]).reduce((sum: number, review: any) => sum + Number(review.rating), 0) / reviews.length
       : 0;
 
     // Calculate completion rate score (0-1)

@@ -14,7 +14,7 @@ class AccessAutomationService {
   async handleSubscriptionChange(userId: string, oldPlan: string, newPlan: string) {
     const oldGroup = TIER_GROUP_MAP[oldPlan] || 'saas-free';
     const newGroup = TIER_GROUP_MAP[newPlan] || 'saas-free';
-    if (oldGroup \!== newGroup) {
+    if (oldGroup !== newGroup) {
       await this.revokeGroup(userId, oldGroup);
       await this.assignGroup(userId, newGroup, 'subscription_upgrade');
     }

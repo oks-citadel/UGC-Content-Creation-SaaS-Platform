@@ -19,5 +19,23 @@ export * from './api';
 // Error types, codes, and HTTP status mappings
 export * from './errors';
 
-// Subscription tiers and access control types
-export * from './subscription-tiers';
+// Subscription tiers and access control types (excluding UserRole which is defined in user.ts)
+export type {
+  SubscriptionTier,
+  LegacyPlanName,
+  UserAccountStatus,
+  InternalRole,
+  ConsumerRole,
+  AccessGroup,
+  Permission,
+  TierLimits,
+  AccessChangeReason,
+  AccessChangeEvent,
+  GroupMembership,
+  StripeAccessEvent,
+  SuspensionReason,
+  UserSuspension,
+  RoleEscalationPolicy,
+} from './subscription-tiers';
+
+export { PLAN_TO_TIER_MAP, DEFAULT_ESCALATION_POLICY } from './subscription-tiers';

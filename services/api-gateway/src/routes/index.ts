@@ -4,8 +4,29 @@
 
 import { Express, Router } from 'express';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
+import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { logger } from '../utils/logger';
+
+/**
+ * Signs an internal JWT token for service-to-service authentication
+ * This prevents header spoofing if the API Gateway is bypassed
+ */
+function signInternalToken(user: any, organizationId?: string): string {
+  const payload = {
+    sub: user.sub,
+    email: user.email,
+    role: user.role,
+    organizationId,
+    permissions: user.permissions || [],
+  };
+
+  return jwt.sign(payload, config.internalAuth.secret, {
+    issuer: config.internalAuth.issuer,
+    audience: config.internalAuth.audience,
+    expiresIn: config.internalAuth.tokenTtl,
+  });
+}
 
 const proxyOptions = (target: string, pathRewrite?: Record<string, string>): Options => ({
   target,
@@ -13,8 +34,15 @@ const proxyOptions = (target: string, pathRewrite?: Record<string, string>): Opt
   pathRewrite,
   logLevel: 'warn',
   onProxyReq: (proxyReq, req) => {
-    // Forward user information to downstream services
+    // Sign and forward internal token for service-to-service auth
     if ((req as any).user) {
+      const internalToken = signInternalToken(
+        (req as any).user,
+        (req as any).organizationId
+      );
+      proxyReq.setHeader('X-Internal-Token', internalToken);
+
+      // Keep legacy headers for backward compatibility during migration
       proxyReq.setHeader('X-User-ID', (req as any).user.sub);
       proxyReq.setHeader('X-User-Email', (req as any).user.email);
       proxyReq.setHeader('X-User-Role', (req as any).user.role);

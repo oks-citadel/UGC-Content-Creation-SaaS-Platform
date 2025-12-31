@@ -4,7 +4,7 @@
 // Usage: npx prisma db seed
 // =============================================================================
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/asset-service-client';
 import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();

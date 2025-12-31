@@ -83,6 +83,28 @@ resource "azurerm_resource_group" "main" {
 # Cost Management - Budget Alerts
 # -----------------------------------------------------------------------------
 
+# Action group for budget enforcement
+resource "azurerm_monitor_action_group" "budget_alerts" {
+  name                = "${local.project}-${local.environment}-budget-alerts"
+  resource_group_name = azurerm_resource_group.main.name
+  short_name          = "BudgetAlert"
+
+  email_receiver {
+    name                    = "budget-alerts"
+    email_address           = var.budget_alert_emails[0]
+    use_common_alert_schema = true
+  }
+
+  # Webhook for automated cost control actions
+  webhook_receiver {
+    name                    = "cost-control-webhook"
+    service_uri             = "https://${module.aks.cluster_fqdn}/api/v1/internal/cost-control"
+    use_common_alert_schema = true
+  }
+
+  tags = local.common_tags
+}
+
 resource "azurerm_consumption_budget_resource_group" "main" {
   name              = "${local.project}-${local.environment}-budget"
   resource_group_id = azurerm_resource_group.main.id
@@ -109,7 +131,8 @@ resource "azurerm_consumption_budget_resource_group" "main" {
     operator       = "GreaterThan"
     threshold_type = "Actual"
 
-    contact_emails = var.budget_alert_emails
+    contact_emails   = var.budget_alert_emails
+    contact_groups   = [azurerm_monitor_action_group.budget_alerts.id]
   }
 
   notification {
@@ -118,7 +141,19 @@ resource "azurerm_consumption_budget_resource_group" "main" {
     operator       = "GreaterThan"
     threshold_type = "Forecasted"
 
-    contact_emails = var.budget_alert_emails
+    contact_emails   = var.budget_alert_emails
+    contact_groups   = [azurerm_monitor_action_group.budget_alerts.id]
+  }
+
+  # Critical: Auto-enforcement at 120% of budget
+  notification {
+    enabled        = true
+    threshold      = 120
+    operator       = "GreaterThan"
+    threshold_type = "Actual"
+
+    contact_emails   = var.budget_alert_emails
+    contact_groups   = [azurerm_monitor_action_group.budget_alerts.id]
   }
 
   lifecycle {
@@ -252,8 +287,8 @@ module "postgresql" {
 
   # Note: HA is disabled in westus2 region
   high_availability_mode       = "Disabled"
-  geo_redundant_backup_enabled = false  # LRS is cheaper, enable for DR requirements
-  backup_retention_days        = 14     # Reduced from 35 for cost savings
+  geo_redundant_backup_enabled = true   # Enable for disaster recovery
+  backup_retention_days        = 35    # Production-grade backup retention
 
   tags = local.common_tags
 }
@@ -426,8 +461,43 @@ resource "azurerm_application_insights" "main" {
   workspace_id        = azurerm_log_analytics_workspace.main.id
   application_type    = "web"
 
-  # Cost optimization: Enable sampling
-  sampling_percentage = 50
+  # Production: Full telemetry capture
+  sampling_percentage = 100
+
+  tags = local.common_tags
+}
+
+# -----------------------------------------------------------------------------
+# Azure Front Door with WAF Protection
+# -----------------------------------------------------------------------------
+
+module "frontdoor" {
+  source = "../../modules/frontdoor"
+
+  resource_group_name = azurerm_resource_group.main.name
+  location            = "global"
+  environment         = local.environment
+  project             = local.project
+  name_suffix         = local.suffix
+
+  # Enable WAF with OWASP protection
+  sku_name              = "Premium_AzureFrontDoor"
+  waf_mode              = "Prevention"
+  enable_owasp_rules    = true
+  enable_bot_protection = true
+
+  # Rate limiting: 1000 requests per minute per IP
+  rate_limit_threshold = 1000
+  rate_limit_duration  = 1
+
+  # Origin configuration for AKS ingress
+  api_origin_hostname = module.aks.cluster_fqdn
+  web_origin_hostname = module.aks.cluster_fqdn
+
+  # Custom domain (configure in DNS)
+  custom_domains = var.custom_domains
+
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
 
   tags = local.common_tags
 }

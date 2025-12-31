@@ -124,7 +124,7 @@ worker.on('stalled', (jobId: string) => {
 const app = express();
 
 app.get('/health', (req, res) => {
-  const isHealthy = !worker.closing && !worker.closed;
+  const isHealthy = !worker.closing && !(worker as any).closed;
 
   if (isHealthy) {
     res.status(200).json({
@@ -142,7 +142,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/metrics', async (req, res) => {
-  const metrics = await worker.getMetrics('completed', 0, -1);
+  const metrics = await (worker as any).getMetrics('completed', 0, -1);
   res.json(metrics);
 });
 

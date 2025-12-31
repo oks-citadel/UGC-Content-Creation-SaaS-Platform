@@ -1,4 +1,4 @@
-import { PrismaClient, Contract, ContractStatus } from '@prisma/client';
+import { PrismaClient, Contract, ContractStatus } from '.prisma/marketplace-service-client';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 import { nanoid } from 'nanoid';
@@ -131,7 +131,7 @@ export class ContractService {
           paymentTerms: contract.paymentTerms,
           totalAmount: contract.totalAmount.toString(),
           currency: contract.currency,
-          deliverables: contract.deliverables,
+          deliverables: contract.deliverables as any[],
           startDate: contract.startDate,
           endDate: contract.endDate,
         },

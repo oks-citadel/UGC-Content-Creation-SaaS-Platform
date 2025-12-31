@@ -36,7 +36,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
     service: 'billing-service',
@@ -49,7 +49,7 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/plans', planRoutes);
 
 // 404 handler
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not Found',
     message: 'The requested resource was not found',
@@ -57,7 +57,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // Error handler
-app.use((err: any, req: Request, res: Response, next: any) => {
+app.use((err: any, req: Request, res: Response, _next: any) => {
   logger.error('Unhandled error', {
     error: err.message,
     stack: err.stack,

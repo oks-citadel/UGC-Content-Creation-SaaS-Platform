@@ -1,7 +1,7 @@
 import prisma from '../config/database';
 import logger from '../config/logger';
 import config from '../config';
-import { AttributionEventType, AttributionModelType } from '@prisma/client';
+import { AttributionEventType, AttributionModelType } from '.prisma/commerce-service-client';
 
 interface TrackEventData {
   type: AttributionEventType;

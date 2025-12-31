@@ -198,6 +198,31 @@ export class NotificationClient {
   }
 
   /**
+   * Send MFA OTP email for two-factor authentication
+   */
+  async sendMfaOtpEmail(params: {
+    email: string;
+    otp: string;
+    userName?: string;
+    expiresInMinutes?: number;
+  }): Promise<NotificationResult> {
+    return this.send({
+      type: 'SECURITY',
+      channel: ['EMAIL'],
+      priority: 'URGENT',
+      subject: 'Your Verification Code',
+      template: 'mfa-otp',
+      data: {
+        email: params.email,
+        to: params.email,
+        otp: params.otp,
+        userName: params.userName || 'there',
+        expiresInMinutes: params.expiresInMinutes || 10,
+      },
+    });
+  }
+
+  /**
    * Send organization invitation email
    */
   async sendInvitationEmail(params: {
@@ -482,7 +507,7 @@ export class NotificationClient {
       throw new Error(response.error?.message || 'Failed to get notification status');
     }
 
-    return response.data;
+    return response.data as { id: string; status: string };
   }
 
   /**

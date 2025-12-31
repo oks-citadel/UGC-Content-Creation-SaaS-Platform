@@ -2,7 +2,7 @@ import prisma from '../config/database';
 import logger from '../config/logger';
 import axios from 'axios';
 import config from '../config';
-import { ProductTag } from '@prisma/client';
+import { ProductTag } from '.prisma/commerce-service-client';
 
 interface CreateTagData {
   content_id: string;

@@ -13,7 +13,11 @@ import {
   hashRecoveryCode,
 } from '../lib/mfa';
 import { AppError } from '../lib/errors';
-import { MfaMethod } from '@prisma/client';
+import { MfaMethod } from '.prisma/auth-service-client';
+import { NotificationClient } from '@nexus/utils';
+import { logger } from '../lib/logger';
+
+const notificationClient = new NotificationClient();
 
 // Constants
 const MFA_SETUP_EXPIRY = 600; // 10 minutes
@@ -359,9 +363,19 @@ class MfaService {
       otp
     );
 
-    // TODO: Send email via notification service
-    // For now, log it (remove in production)
-    console.log(`[MFA] Email OTP for user ${userId}: ${otp}`);
+    // Send email via notification service
+    try {
+      await notificationClient.sendMfaOtpEmail({
+        email: user.email,
+        otp,
+        userName: user.firstName || undefined,
+        expiresInMinutes: 10,
+      });
+      logger.info({ userId }, 'MFA email OTP sent successfully');
+    } catch (error) {
+      logger.error({ userId, error }, 'Failed to send MFA email OTP');
+      throw new AppError('Failed to send verification email', 500);
+    }
 
     await this.logMfaAudit(userId, 'MFA_EMAIL_OTP_SENT');
   }

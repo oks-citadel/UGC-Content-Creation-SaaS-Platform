@@ -1,4 +1,4 @@
-import { Subscription, Plan, Invoice, Entitlement } from '@prisma/client';
+import { Subscription, Plan, Invoice, Entitlement } from '.prisma/billing-service-client';
 
 export interface SubscriptionWithPlan extends Subscription {
   plan: Plan;

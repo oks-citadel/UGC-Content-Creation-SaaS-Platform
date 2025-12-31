@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { ExecutionStatus } from '@prisma/client';
+import { ExecutionStatus } from '.prisma/workflow-client';
 import { actions } from './actions';
 import { config } from '../config';
 import pino from 'pino';

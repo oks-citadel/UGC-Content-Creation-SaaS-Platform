@@ -18,6 +18,11 @@ interface Config {
     userService: string;
     notificationService: string;
   };
+  internalAuth: {
+    secret: string;
+    issuer: string;
+    audience: string;
+  };
   billing: {
     trialPeriodDays: number;
     dunningMaxRetries: number;
@@ -50,6 +55,11 @@ const config: Config = {
     userService: process.env.USER_SERVICE_URL || 'http://localhost:3001',
     notificationService: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:3007',
   },
+  internalAuth: {
+    secret: process.env.INTERNAL_SERVICE_SECRET || '',
+    issuer: process.env.INTERNAL_SERVICE_ISSUER || 'nexus-api-gateway',
+    audience: process.env.INTERNAL_SERVICE_AUDIENCE || 'nexus-internal-services',
+  },
   billing: {
     trialPeriodDays: parseInt(process.env.TRIAL_PERIOD_DAYS || '14', 10),
     dunningMaxRetries: parseInt(process.env.DUNNING_MAX_RETRIES || '3', 10),
@@ -68,22 +78,12 @@ const config: Config = {
 
 // Validate required configuration
 const validateConfig = () => {
-  const required = [
-    'databaseUrl',
-    'stripe.secretKey',
-    'stripe.publishableKey',
-  ];
-
   const missing: string[] = [];
-
   if (!config.databaseUrl) missing.push('DATABASE_URL');
   if (!config.stripe.secretKey) missing.push('STRIPE_SECRET_KEY');
   if (!config.stripe.publishableKey) missing.push('STRIPE_PUBLISHABLE_KEY');
-
   if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}`
-    );
+    throw new Error('Missing required environment variables: ' + missing.join(', '));
   }
 };
 

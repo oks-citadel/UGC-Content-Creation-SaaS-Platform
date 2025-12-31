@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { oauthService } from '../services/oauth.service';
 import { webhookService } from '../services/webhook.service';
-import { IntegrationProvider } from '@prisma/client';
+import { IntegrationProvider } from '.prisma/integration-service-client';
 
 const router: Router = Router();
 

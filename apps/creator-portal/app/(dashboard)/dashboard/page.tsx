@@ -2,6 +2,7 @@
 
 import StatsCard from '@/components/dashboard/StatsCard';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import PerformanceChart from '@/components/dashboard/PerformanceChart';
 import { DollarSign, Briefcase, TrendingUp, Eye } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -61,9 +62,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <div className="card">
             <h2 className="text-xl font-semibold mb-4">Performance Overview</h2>
-            <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
-              <p className="text-gray-500">Chart placeholder - integrate with recharts</p>
-            </div>
+            <PerformanceChart />
           </div>
         </div>
 

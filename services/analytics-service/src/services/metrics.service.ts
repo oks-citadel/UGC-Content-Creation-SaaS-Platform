@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/analytics-service-client';
 import { startOfHour, startOfDay, startOfWeek, startOfMonth, subDays, subHours } from 'date-fns';
 import _ from 'lodash';
 
@@ -127,8 +127,8 @@ class MetricsService {
       }),
     ]);
 
-    const currentValue = this.extractMetricValue(currentData, query.metric);
-    const previousValue = this.extractMetricValue(previousData, query.metric);
+    const currentValue = this.extractMetricValue(Array.isArray(currentData) ? currentData : [], query.metric);
+    const previousValue = this.extractMetricValue(Array.isArray(previousData) ? previousData : [], query.metric);
 
     const change = currentValue - previousValue;
     const changePercent = previousValue !== 0 ? (change / previousValue) * 100 : 0;
@@ -138,12 +138,12 @@ class MetricsService {
       current: {
         value: currentValue,
         period: query.currentPeriod,
-        dataPoints: currentData.length,
+        dataPoints: Array.isArray(currentData) ? currentData.length : 0,
       },
       previous: {
         value: previousValue,
         period: query.previousPeriod,
-        dataPoints: previousData.length,
+        dataPoints: Array.isArray(previousData) ? previousData.length : 0,
       },
       comparison: {
         change,

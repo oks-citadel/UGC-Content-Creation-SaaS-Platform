@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { workflowService } from '../services/workflow.service';
-import { TriggerType } from '@prisma/client';
+import { TriggerType } from '.prisma/workflow-client';
 
 const router: Router = Router();
 

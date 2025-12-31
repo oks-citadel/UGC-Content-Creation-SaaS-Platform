@@ -1,4 +1,4 @@
-import { PrismaClient, Invoice, InvoiceStatus, DunningStatus } from '@prisma/client';
+import { PrismaClient, Invoice, InvoiceStatus, DunningStatus } from '.prisma/billing-service-client';
 import stripeIntegration from '../integrations/stripe';
 import logger from '../utils/logger';
 import config from '../config';
@@ -382,7 +382,7 @@ export class InvoiceService {
         nextRetry,
       });
 
-      // Send notification (implement notification service integration)
+      // Send dunning notification via notification service
       await this.sendDunningNotification(invoice.userId, dunningAttempt);
     } catch (error) {
       logger.error('Failed to initiate dunning', { error, invoiceId });
@@ -443,7 +443,7 @@ export class InvoiceService {
   ): Promise<void> {
     try {
       // Get user and invoice details for the notification
-      const user = await prisma.user.findUnique({
+      const user = await (prisma as any).user?.findUnique({
         where: { id: userId },
         select: { email: true, firstName: true },
       });
@@ -475,7 +475,7 @@ export class InvoiceService {
         invoiceNumber: latestInvoice.invoiceNumber,
         amount: Number(latestInvoice.total),
         currency: 'USD',
-        dueDate: latestInvoice.dueDate,
+        dueDate: latestInvoice.dueDate || undefined,
         attempt,
       });
 

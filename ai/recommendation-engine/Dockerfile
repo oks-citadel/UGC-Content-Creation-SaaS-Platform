@@ -13,11 +13,22 @@ RUN python -c "from sentence_transformers import SentenceTransformer; \
 # Copy application code
 COPY src/ ./src/
 
-# Create directories for embeddings cache
-RUN mkdir -p /app/embeddings /app/cache
+# Create non-root user for security
+RUN groupadd --system --gid 1001 nexus && \
+    useradd --system --uid 1001 --gid nexus nexus
+
+# Create directories for embeddings cache with proper ownership
+RUN mkdir -p /app/embeddings /app/cache && \
+    chown -R nexus:nexus /app
+
+# Switch to non-root user
+USER nexus
 
 # Expose port
 EXPOSE 8002
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

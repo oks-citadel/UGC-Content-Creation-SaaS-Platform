@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/analytics-service-client';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import { Parser } from 'json2csv';
@@ -303,7 +303,7 @@ class ReportingService {
     const report = await prisma.report.update({
       where: { id: reportId },
       data: {
-        template: branding,
+        template: JSON.stringify(branding),
       },
     });
 

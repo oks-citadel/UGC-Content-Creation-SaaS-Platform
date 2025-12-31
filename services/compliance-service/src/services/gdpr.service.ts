@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { DataRequestType, RequestStatus } from '@prisma/client';
+import { DataRequestType, RequestStatus } from '.prisma/compliance-service-client';
 import { config } from '../config';
 import archiver from 'archiver';
 import fs from 'fs';
@@ -286,8 +286,8 @@ async function fetchFromService<T>(
       return null;
     }
 
-    const data = await response.json();
-    return data.data || data;
+    const data = await response.json() as { data?: T };
+    return (data.data || data) as T;
   } catch (error) {
     logger.error({ error, serviceUrl, endpoint }, 'Failed to fetch from service');
     return null;

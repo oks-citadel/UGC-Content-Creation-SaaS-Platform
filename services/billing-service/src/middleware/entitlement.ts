@@ -122,10 +122,10 @@ export const requirePlan = (allowedPlans: string[]) => {
         });
       }
 
-      if (!allowedPlans.includes(subscription.plan.name)) {
+      if (!allowedPlans.includes((subscription as any).plan.name)) {
         logger.warn('Plan requirement not met', {
           userId,
-          currentPlan: subscription.plan.name,
+          currentPlan: (subscription as any).plan.name,
           requiredPlans: allowedPlans,
         });
 
@@ -133,7 +133,7 @@ export const requirePlan = (allowedPlans: string[]) => {
           error: 'Forbidden',
           message: `This feature requires one of the following plans: ${allowedPlans.join(', ')}`,
           details: {
-            currentPlan: subscription.plan.name,
+            currentPlan: (subscription as any).plan.name,
             requiredPlans: allowedPlans,
           },
         });

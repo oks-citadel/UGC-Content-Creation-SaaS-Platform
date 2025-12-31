@@ -2,7 +2,7 @@ import Queue from 'bull';
 import config from '../config';
 import invoiceService from '../services/invoice.service';
 import logger from '../utils/logger';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/billing-service-client';
 
 const prisma = new PrismaClient();
 

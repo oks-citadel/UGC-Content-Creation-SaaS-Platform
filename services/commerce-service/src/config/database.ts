@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/commerce-service-client';
 import logger from './logger';
 
 const prisma = new PrismaClient({

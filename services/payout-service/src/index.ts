@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import { pinoHttp } from 'pino-http';
 import { config } from './config';
 import { logger } from './utils/logger';
@@ -10,12 +11,54 @@ import routes from './routes';
 
 const app: express.Express = express();
 
+// Trust proxy for rate limiting behind load balancer
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors({
   origin: config.corsOrigins,
   credentials: true,
 }));
+
+// Rate limiting - Critical for financial service
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-forwarded-for'] as string || req.ip || 'unknown';
+  },
+  handler: (req, res) => {
+    logger.warn('Rate limit exceeded', { ip: req.ip, path: req.path });
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Rate limit exceeded. Please try again later.',
+    });
+  },
+  skip: (req) => req.path === '/health' || req.path === '/ready',
+});
+
+// Stricter rate limiting for payout operations
+const payoutLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 payout requests per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    return req.headers['x-user-id'] as string || req.ip || 'unknown';
+  },
+  handler: (req, res) => {
+    logger.warn('Payout rate limit exceeded', { ip: req.ip, userId: req.headers['x-user-id'] });
+    res.status(429).json({
+      error: 'Too Many Requests',
+      message: 'Payout rate limit exceeded. Please try again later.',
+    });
+  },
+});
+
+app.use(limiter);
 
 // Request parsing
 app.use(express.json());

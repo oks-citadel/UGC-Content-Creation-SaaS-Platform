@@ -12,7 +12,7 @@ class StripeConnectIntegration {
     }
 
     this.stripe = new Stripe(config.stripe.secretKey, {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2023-10-16' as any,
       typescript: true,
     });
   }

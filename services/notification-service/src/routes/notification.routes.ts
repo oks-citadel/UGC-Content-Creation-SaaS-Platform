@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { NotificationService } from '../services/notification.service';
-import { NotificationChannel, NotificationType, NotificationPriority } from '@prisma/client';
+import { NotificationChannel, NotificationType, NotificationPriority } from '.prisma/notification-service-client';
 import { prisma } from '../lib/prisma';
 
 const router: Router = Router();

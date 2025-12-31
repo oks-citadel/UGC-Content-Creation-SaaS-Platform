@@ -24,6 +24,13 @@ const configSchema = z.object({
     jwksUri: z.string().optional(),
   }),
 
+  internalAuth: z.object({
+    secret: z.string().min(32),
+    issuer: z.string().default('nexus-api-gateway'),
+    audience: z.string().default('nexus-internal-services'),
+    tokenTtl: z.coerce.number().default(300), // 5 minutes
+  }),
+
   services: z.object({
     auth: z.string().default('http://auth-service:3001'),
     user: z.string().default('http://user-service:3002'),
@@ -58,6 +65,13 @@ function loadConfig() {
       issuer: process.env.JWT_ISSUER,
       audience: process.env.JWT_AUDIENCE,
       jwksUri: process.env.JWKS_URI,
+    },
+
+    internalAuth: {
+      secret: process.env.INTERNAL_SERVICE_SECRET || '',
+      issuer: process.env.INTERNAL_SERVICE_ISSUER || 'nexus-api-gateway',
+      audience: process.env.INTERNAL_SERVICE_AUDIENCE || 'nexus-internal-services',
+      tokenTtl: process.env.INTERNAL_TOKEN_TTL || 300,
     },
 
     services: {

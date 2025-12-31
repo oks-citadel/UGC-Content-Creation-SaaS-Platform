@@ -1,4 +1,4 @@
-import { PrismaClient, Dispute, DisputeStatus, Role, Priority } from '@prisma/client';
+import { PrismaClient, Dispute, DisputeStatus, Role, Priority } from '.prisma/marketplace-service-client';
 import { AppError } from '../middleware/error-handler';
 import logger from '../utils/logger';
 import contractService from './contract.service';

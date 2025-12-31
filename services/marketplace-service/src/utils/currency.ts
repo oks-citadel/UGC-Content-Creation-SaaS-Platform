@@ -1,5 +1,5 @@
 import currency from 'currency.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/marketplace-service-client';
 import axios from 'axios';
 import logger from './logger';
 import config from '../config';

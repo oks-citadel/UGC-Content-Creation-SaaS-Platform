@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/creator-service-client';
 import { config } from '../config';
 import logger from './logger';
 

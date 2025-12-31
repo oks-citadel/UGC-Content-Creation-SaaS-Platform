@@ -33,8 +33,17 @@ async function seedAdmin() {
     return existingAdmin;
   }
 
-  // Create admin user
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123456';
+  // Create admin user - REQUIRE password from environment
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error(
+      'ADMIN_PASSWORD environment variable is required. ' +
+      'Set a strong password (min 12 chars, mixed case, numbers, symbols) before running seed.'
+    );
+  }
+  if (adminPassword.length < 12) {
+    throw new Error('ADMIN_PASSWORD must be at least 12 characters long');
+  }
   const hashedPassword = await hashPassword(adminPassword);
 
   const adminUser = await prisma.user.create({
@@ -131,10 +140,9 @@ async function seedAdmin() {
   console.log('✅ Created consent records');
 
   console.log('\n✨ Admin user setup complete!');
-  console.log('\n📧 Login credentials:');
-  console.log(`   Email: ${adminUser.email}`);
-  console.log(`   Password: ${adminPassword}`);
-  console.log('\n⚠️  Please change the admin password after first login!\n');
+  console.log('\n📧 Admin login email:', adminUser.email);
+  console.log('🔐 Password was set from ADMIN_PASSWORD environment variable');
+  console.log('⚠️  Store credentials securely and rotate after first login!\n');
 
   return adminUser;
 }
@@ -142,23 +150,35 @@ async function seedAdmin() {
 async function seedTestUsers() {
   console.log('🌱 Seeding test users...');
 
+  // Require test user password from environment - never use hardcoded credentials
+  const testPassword = process.env.TEST_USER_PASSWORD;
+  if (!testPassword) {
+    throw new Error(
+      'TEST_USER_PASSWORD environment variable is required for seeding test users. ' +
+      'Set a password (min 8 chars) before running seed in development.'
+    );
+  }
+  if (testPassword.length < 8) {
+    throw new Error('TEST_USER_PASSWORD must be at least 8 characters long');
+  }
+
   const testUsers = [
     {
-      email: 'brand@example.com',
+      email: process.env.TEST_BRAND_EMAIL || 'brand@example.com',
       firstName: 'Brand',
       lastName: 'Manager',
       role: 'BRAND_MANAGER',
       orgType: 'BRAND',
     },
     {
-      email: 'creator@example.com',
+      email: process.env.TEST_CREATOR_EMAIL || 'creator@example.com',
       firstName: 'Content',
       lastName: 'Creator',
       role: 'CREATOR',
       createCreatorProfile: true,
     },
     {
-      email: 'agency@example.com',
+      email: process.env.TEST_AGENCY_EMAIL || 'agency@example.com',
       firstName: 'Agency',
       lastName: 'Owner',
       role: 'ADMIN',
@@ -166,7 +186,7 @@ async function seedTestUsers() {
     },
   ];
 
-  const defaultPassword = await hashPassword('Test@123456');
+  const defaultPassword = await hashPassword(testPassword);
 
   for (const userData of testUsers) {
     // Check if user exists
@@ -250,10 +270,12 @@ async function seedTestUsers() {
   }
 
   console.log('\n✨ Test users setup complete!');
-  console.log('\n📧 Test user credentials:');
-  console.log('   Brand Manager: brand@example.com / Test@123456');
-  console.log('   Content Creator: creator@example.com / Test@123456');
-  console.log('   Agency Owner: agency@example.com / Test@123456\n');
+  console.log('\n📧 Test users created (development only):');
+  console.log(`   - ${process.env.TEST_BRAND_EMAIL || 'brand@example.com'}`);
+  console.log(`   - ${process.env.TEST_CREATOR_EMAIL || 'creator@example.com'}`);
+  console.log(`   - ${process.env.TEST_AGENCY_EMAIL || 'agency@example.com'}`);
+  console.log('🔐 Password was set from TEST_USER_PASSWORD environment variable');
+  console.log('⚠️  These are development-only accounts. Never seed test users in production!\n');
 }
 
 async function main() {

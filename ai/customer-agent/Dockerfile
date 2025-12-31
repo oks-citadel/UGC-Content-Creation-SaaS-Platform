@@ -15,8 +15,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 
-# Create directories for cache and data
-RUN mkdir -p /app/cache /app/data
+# Create non-root user for security
+RUN groupadd --system --gid 1001 nexus && \
+    useradd --system --uid 1001 --gid nexus nexus
+
+# Create directories for cache and data with proper ownership
+RUN mkdir -p /app/cache /app/data && \
+    chown -R nexus:nexus /app
+
+# Switch to non-root user
+USER nexus
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

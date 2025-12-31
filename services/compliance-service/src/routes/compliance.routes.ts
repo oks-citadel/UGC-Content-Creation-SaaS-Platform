@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { ConsentType, DisclosureType, LicenseType } from '@prisma/client';
+import { ConsentType, DisclosureType, LicenseType } from '.prisma/compliance-service-client';
 import { consentService } from '../services/consent.service';
 import { gdprService } from '../services/gdpr.service';
 import { rightsService } from '../services/rights.service';

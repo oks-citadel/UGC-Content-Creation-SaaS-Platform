@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { PlanName, UsageType } from '@prisma/client';
+import { PlanName, UsageType } from '.prisma/billing-service-client';
 
 export const subscriptionSchema = Joi.object({
   planName: Joi.string()

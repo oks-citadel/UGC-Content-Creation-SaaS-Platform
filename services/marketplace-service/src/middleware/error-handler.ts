@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/marketplace-service-client';
 import logger from '../utils/logger';
 
 export class AppError extends Error {

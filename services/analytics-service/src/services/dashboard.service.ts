@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/analytics-service-client';
 import metricsService from './metrics.service';
 import { subDays, subHours } from 'date-fns';
 import _ from 'lodash';
@@ -124,7 +124,7 @@ class DashboardService {
       throw new Error('Dashboard not found');
     }
 
-    const widgets = dashboard.widgets as WidgetConfig[];
+    const widgets = (dashboard.widgets as unknown) as WidgetConfig[];
     const widgetData = await Promise.all(
       widgets.map((widget) => this.calculateWidgetData(widget))
     );
@@ -273,7 +273,7 @@ class DashboardService {
       aggregation: 'sum',
     });
 
-    const value = snapshots[widget.metric] || 0;
+    const value = (snapshots as Record<string, number>)[widget.metric] || 0;
 
     // Get comparison with previous period
     const previousRange = this.getPreviousPeriod(timeRange);
@@ -286,7 +286,7 @@ class DashboardService {
       aggregation: 'sum',
     });
 
-    const previousValue = previousSnapshots[widget.metric] || 0;
+    const previousValue = (previousSnapshots as Record<string, number>)[widget.metric] || 0;
     const change = value - previousValue;
     const changePercent = previousValue !== 0 ? (change / previousValue) * 100 : 0;
 
@@ -344,7 +344,7 @@ class DashboardService {
       id: widget.id,
       type: 'table',
       title: widget.title,
-      data: snapshots.slice(0, 10), // Limit to 10 rows
+      data: (Array.isArray(snapshots) ? snapshots : []).slice(0, 10), // Limit to 10 rows
     };
   }
 
@@ -378,11 +378,11 @@ class DashboardService {
       endDate: timeRange.end,
     });
 
-    const uniqueEntities = _.uniqBy(snapshots, 'entityId').length;
+    const uniqueEntities = _.uniqBy(Array.isArray(snapshots) ? snapshots : [], 'entityId').length;
 
     return {
       totalEntities: uniqueEntities,
-      totalDataPoints: snapshots.length,
+      totalDataPoints: Array.isArray(snapshots) ? snapshots.length : 0,
     };
   }
 

@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/payout-client';
 import Redis from 'ioredis';
 import Stripe from 'stripe';
 

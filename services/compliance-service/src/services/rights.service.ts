@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { LicenseType } from '@prisma/client';
+import { LicenseType } from '.prisma/compliance-service-client';
 import pino from 'pino';
 
 const logger = pino({ name: 'rights-service' });

@@ -1,10 +1,93 @@
-import { PrismaClient, Subscription, SubscriptionStatus, PlanName } from '@prisma/client';
+import { PrismaClient, Subscription, SubscriptionStatus, PlanName } from '.prisma/billing-service-client';
+import Redis from 'ioredis';
 import stripeIntegration from '../integrations/stripe';
 import logger from '../utils/logger';
 import config from '../config';
 import { addDays, addMonths, addYears } from 'date-fns';
 
 const prisma = new PrismaClient();
+const redis = new Redis(config.redis.url);
+
+// Cache configuration
+const SUBSCRIPTION_CACHE_TTL = 300; // 5 minutes
+const ENTITLEMENT_CACHE_TTL = 60; // 1 minute for entitlements
+
+/**
+ * Get cached subscription data or fetch from database
+ */
+async function getCachedSubscription(userId: string): Promise<Subscription | null> {
+  const cacheKey = `subscription:${userId}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      logger.debug('Subscription cache hit', { userId });
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    logger.warn('Redis cache error, falling back to database', { error });
+  }
+
+  return null;
+}
+
+/**
+ * Cache subscription data
+ */
+async function cacheSubscription(userId: string, subscription: Subscription): Promise<void> {
+  const cacheKey = `subscription:${userId}`;
+
+  try {
+    await redis.setex(cacheKey, SUBSCRIPTION_CACHE_TTL, JSON.stringify(subscription));
+    logger.debug('Subscription cached', { userId });
+  } catch (error) {
+    logger.warn('Failed to cache subscription', { error, userId });
+  }
+}
+
+/**
+ * Invalidate subscription cache
+ */
+async function invalidateSubscriptionCache(userId: string): Promise<void> {
+  const cacheKey = `subscription:${userId}`;
+
+  try {
+    await redis.del(cacheKey);
+    logger.debug('Subscription cache invalidated', { userId });
+  } catch (error) {
+    logger.warn('Failed to invalidate subscription cache', { error, userId });
+  }
+}
+
+/**
+ * Log entitlement change for audit trail
+ */
+async function logEntitlementChange(params: {
+  userId: string;
+  action: 'CREATE' | 'UPDATE' | 'DELETE' | 'CHECK';
+  feature?: string;
+  oldValue?: any;
+  newValue?: any;
+  metadata?: Record<string, any>;
+}): Promise<void> {
+  try {
+    await (prisma as any).auditLog?.create({
+      data: {
+        userId: params.userId,
+        action: `ENTITLEMENT_${params.action}`,
+        resource: 'subscription',
+        resourceId: params.userId,
+        oldValue: params.oldValue ? JSON.stringify(params.oldValue) : null,
+        newValue: params.newValue ? JSON.stringify(params.newValue) : null,
+        metadata: params.metadata ? JSON.stringify(params.metadata) : null,
+        ipAddress: 'system',
+        userAgent: 'billing-service',
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to log entitlement change', { error, params });
+  }
+}
 
 export class SubscriptionService {
   async subscribe(params: {

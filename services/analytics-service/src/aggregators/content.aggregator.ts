@@ -182,7 +182,7 @@ class ContentAggregator {
     let count = 0;
 
     for (const snapshot of snapshots) {
-      const metrics = snapshot.metrics;
+      const metrics = snapshot.metrics as any || {};
 
       const score =
         (metrics.engagementRate || 0) * 0.3 +

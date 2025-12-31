@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/rights-service-client';
 import Redis from 'ioredis';
 
 const router: Router = Router();

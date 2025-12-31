@@ -2,7 +2,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/marketplace-service-client';
 import config, { validateConfig } from './config';
 import logger from './utils/logger';
 import marketplaceRoutes from './routes/marketplace.routes';

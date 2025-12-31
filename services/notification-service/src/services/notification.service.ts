@@ -4,7 +4,7 @@ import { smsProvider } from '../providers/sms';
 import { pushProvider } from '../providers/push';
 import { slackProvider } from '../providers/slack';
 import { webhookProvider } from '../providers/webhook';
-import { NotificationChannel, NotificationStatus, NotificationType, NotificationPriority } from '@prisma/client';
+import { NotificationChannel, NotificationStatus, NotificationType, NotificationPriority } from '.prisma/notification-service-client';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import Handlebars from 'handlebars';

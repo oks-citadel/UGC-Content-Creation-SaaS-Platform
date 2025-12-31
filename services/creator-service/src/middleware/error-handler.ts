@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/creator-service-client';
 import { ZodError } from 'zod';
 import logger from '../lib/logger';
 import { config } from '../config';

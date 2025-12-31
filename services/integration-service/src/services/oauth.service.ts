@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import { IntegrationProvider } from '@prisma/client';
+import { IntegrationProvider } from '.prisma/integration-service-client';
 import { tiktokConnector } from '../connectors/social/tiktok';
 import { metaConnector } from '../connectors/social/meta';
 import { youtubeConnector } from '../connectors/social/youtube';

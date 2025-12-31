@@ -39,7 +39,7 @@ class DocuSignIntegration {
     try {
       // Check if token is still valid
       if (this.accessToken && Date.now() < this.tokenExpiresAt) {
-        return this.accessToken;
+        return this.accessToken!;
       }
 
       // Read private key
@@ -65,7 +65,7 @@ class DocuSignIntegration {
       this.tokenExpiresAt = Date.now() + (response.data.expires_in * 1000);
 
       logger.info('DocuSign access token obtained');
-      return this.accessToken;
+      return this.accessToken!;
     } catch (error) {
       logger.error('Error getting DocuSign access token:', error);
       throw new AppError(500, 'Failed to authenticate with DocuSign');

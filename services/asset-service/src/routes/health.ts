@@ -3,7 +3,7 @@
 // =============================================================================
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '.prisma/asset-service-client';
 import { BlobServiceClient } from '@azure/storage-blob';
 import Redis from 'ioredis';
 

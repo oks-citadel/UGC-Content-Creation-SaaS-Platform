@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/errors';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '.prisma/campaign-service-client';
 
 export interface CreateCampaignInput {
   name: string;

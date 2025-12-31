@@ -1,5 +1,5 @@
 import { prisma } from '../lib/prisma';
-import { WebhookStatus } from '@prisma/client';
+import { WebhookStatus } from '.prisma/integration-service-client';
 import axios from 'axios';
 import crypto from 'crypto';
 import pino from 'pino';
