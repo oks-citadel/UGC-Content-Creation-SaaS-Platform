@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  output: 'standalone',
+  output: process.env.CI || process.env.DOCKER ? 'standalone' : undefined,
   transpilePackages: [],
   images: {
     domains: ['localhost', 'nexus-platform.com'],

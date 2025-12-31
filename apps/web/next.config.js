@@ -4,7 +4,7 @@ const nextConfig = {
   swcMinify: true,
 
   // Output as standalone for Docker
-  output: 'standalone',
+  output: process.env.CI || process.env.DOCKER ? 'standalone' : undefined,
 
   // Image domains
   images: {

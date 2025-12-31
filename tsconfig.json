@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "resolveJsonModule": true,
@@ -11,7 +15,6 @@
     "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
@@ -40,12 +43,37 @@
     "experimentalDecorators": true,
     "baseUrl": ".",
     "paths": {
-      "@nexus/types": ["packages/types/src"],
-      "@nexus/utils": ["packages/utils/src"],
-      "@nexus/ui": ["packages/ui/src"],
-      "@nexus/config": ["packages/config"],
-      "@nexus/api-client": ["packages/api-client/src"]
+      "@nexus/types": [
+        "packages/types/src"
+      ],
+      "@nexus/utils": [
+        "packages/utils/src"
+      ],
+      "@nexus/ui": [
+        "packages/ui/src"
+      ],
+      "@nexus/config": [
+        "packages/config"
+      ],
+      "@nexus/api-client": [
+        "packages/api-client/src"
+      ]
     }
   },
-  "exclude": ["node_modules", "dist", ".next", "build", "coverage"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next",
+    "build",
+    "coverage",
+    "apps",
+    "services",
+    "packages",
+    "workers",
+    "ai",
+    "database",
+    "infrastructure",
+    "tests",
+    "workflows"
+  ]
 }
