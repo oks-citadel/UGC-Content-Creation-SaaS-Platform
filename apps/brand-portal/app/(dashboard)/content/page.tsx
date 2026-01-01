@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, Filter, Grid, List, Download, Eye, Heart, Plus, Folder } from 'lucide-react'
 
 export default function ContentLibraryPage() {
@@ -183,10 +184,11 @@ export default function ContentLibraryPage() {
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group"
             >
               <div className="relative aspect-square">
-                <img
+                <Image
                   src={item.thumbnail}
                   alt={item.campaign}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="absolute inset-0 flex items-center justify-center gap-2">
@@ -260,10 +262,12 @@ export default function ContentLibraryPage() {
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img
+                      <Image
                         src={item.thumbnail}
                         alt={item.campaign}
-                        className="w-16 h-16 rounded object-cover"
+                        width={64}
+                        height={64}
+                        className="rounded object-cover"
                       />
                       <div>
                         <p className="text-sm font-medium text-gray-900 capitalize">{item.type}</p>

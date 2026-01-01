@@ -33,7 +33,7 @@ export default function LoginScreen() {
       // Simulated login - replace with actual API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       router.replace('/(tabs)');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Plus, Grid, Eye, ShoppingCart, ExternalLink, MoreVertical } from 'lucide-react'
 
 export default function GalleriesPage() {
@@ -109,10 +110,11 @@ export default function GalleriesPage() {
             className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
           >
             <div className="relative aspect-video">
-              <img
+              <Image
                 src={gallery.thumbnail}
                 alt={gallery.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute top-3 right-3">
                 <span

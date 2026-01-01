@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { Search, Plus, X, Loader2 } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -89,10 +90,12 @@ export function ProductTagger({ contentId, onSave }: { contentId: string; onSave
                 key={product.id}
                 className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg"
               >
-                <img
+                <Image
                   src={product.image}
                   alt={product.name}
-                  className="w-12 h-12 rounded object-cover"
+                  width={48}
+                  height={48}
+                  className="rounded object-cover"
                 />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -164,10 +167,12 @@ export function ProductTagger({ contentId, onSave }: { contentId: string; onSave
                 }`}
                 onClick={() => handleAddProduct(product)}
               >
-                <img
+                <Image
                   src={product.image}
                   alt={product.name}
-                  className="w-12 h-12 rounded object-cover"
+                  width={48}
+                  height={48}
+                  className="rounded object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/placeholder-product.png'
                   }}

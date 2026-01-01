@@ -133,10 +133,11 @@ export default function CampaignContentPage({ params }: { params: Promise<{ id: 
               className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
             >
               <div className="relative aspect-square">
-                <img
+                <Image
                   src={content.thumbnail}
                   alt={content.caption}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                 />
                 <div className="absolute top-3 right-3">
                   <span
@@ -155,10 +156,12 @@ export default function CampaignContentPage({ params }: { params: Promise<{ id: 
               </div>
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <img
+                  <Image
                     src={content.creatorAvatar}
                     alt={content.creatorName}
-                    className="w-10 h-10 rounded-full object-cover"
+                    width={40}
+                    height={40}
+                    className="rounded-full object-cover"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
@@ -220,10 +223,12 @@ export default function CampaignContentPage({ params }: { params: Promise<{ id: 
                 <tr key={content.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img
+                      <Image
                         src={content.thumbnail}
                         alt={content.caption}
-                        className="w-16 h-16 rounded object-cover"
+                        width={64}
+                        height={64}
+                        className="rounded object-cover"
                       />
                       <div>
                         <p className="text-sm font-medium text-gray-900 line-clamp-1">
@@ -235,10 +240,12 @@ export default function CampaignContentPage({ params }: { params: Promise<{ id: 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <img
+                      <Image
                         src={content.creatorAvatar}
                         alt={content.creatorName}
-                        className="w-8 h-8 rounded-full"
+                        width={32}
+                        height={32}
+                        className="rounded-full"
                       />
                       <span className="text-sm text-gray-900">{content.creatorName}</span>
                     </div>

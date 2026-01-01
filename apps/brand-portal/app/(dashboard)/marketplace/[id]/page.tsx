@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   ArrowLeft,
   MapPin,
@@ -91,19 +92,22 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
       {/* Cover and Profile */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="relative h-64">
-          <img
+          <Image
             src={creator.coverImage}
             alt="Cover"
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
         </div>
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row gap-6 -mt-16 relative">
             <div className="relative">
-              <img
+              <Image
                 src={creator.avatar}
                 alt={creator.name}
-                className="w-32 h-32 rounded-full border-4 border-white object-cover"
+                width={128}
+                height={128}
+                className="rounded-full border-4 border-white object-cover"
               />
               {creator.verified && (
                 <div className="absolute bottom-2 right-2 bg-primary-500 rounded-full p-1">
@@ -228,11 +232,12 @@ export default function CreatorProfilePage({ params }: { params: Promise<{ id: s
         <h2 className="text-xl font-bold text-gray-900 mb-4">Portfolio</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {portfolio.map((item) => (
-            <div key={item.id} className="relative group cursor-pointer">
-              <img
+            <div key={item.id} className="relative group cursor-pointer aspect-square">
+              <Image
                 src={item.image}
                 alt={`Portfolio ${item.id}`}
-                className="w-full aspect-square object-cover rounded-lg"
+                fill
+                className="object-cover rounded-lg"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                 <div className="absolute bottom-3 left-3 right-3 text-white text-sm">

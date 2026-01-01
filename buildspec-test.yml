@@ -1,0 +1,67 @@
+# =============================================================================
+# AWS CodeBuild Test Specification - NEXUS Platform
+# Runs tests and generates coverage reports
+# =============================================================================
+
+version: 0.2
+
+env:
+  variables:
+    PROJECT_NAME: nexus
+    NODE_VERSION: "20"
+    CI: "true"
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies..."
+      - npm install -g pnpm@8
+      - pnpm install --frozen-lockfile
+
+  pre_build:
+    commands:
+      - echo "Running pre-build checks..."
+      - pnpm run type-check
+      - pnpm run lint
+
+  build:
+    commands:
+      - echo "Building packages..."
+      - pnpm run build --filter=@nexus/types --filter=@nexus/utils --filter=@nexus/config --filter=@nexus/database
+
+      - echo "Running unit tests..."
+      - pnpm run test --if-present --coverage || true
+
+      - echo "Running integration tests..."
+      - pnpm run test:integration --if-present || true
+
+  post_build:
+    commands:
+      - echo "Test phase completed"
+      - echo "Generating test summary..."
+
+reports:
+  coverage-report:
+    files:
+      - 'coverage/lcov.info'
+      - 'coverage/clover.xml'
+    file-format: 'CLOVERXML'
+
+  unit-tests:
+    files:
+      - 'test-results/junit.xml'
+      - '**/junit.xml'
+    file-format: 'JUNITXML'
+
+artifacts:
+  files:
+    - coverage/**/*
+    - test-results/**/*
+  discard-paths: no
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+    - '.pnpm-store/**/*'

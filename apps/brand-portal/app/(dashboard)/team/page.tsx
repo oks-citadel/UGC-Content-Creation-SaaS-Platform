@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Plus, Search, MoreVertical, Mail, Shield, UserX } from 'lucide-react'
 
 export default function TeamPage() {
@@ -157,10 +158,12 @@ export default function TeamPage() {
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <img
+                      <Image
                         src={member.avatar}
                         alt={member.name}
-                        className="w-10 h-10 rounded-full object-cover"
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
                       />
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">{member.name}</div>

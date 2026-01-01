@@ -324,12 +324,12 @@ class ApiClient {
   }
 
   async getPayoutMethods(): Promise<{
-    methods: Array<{
+    methods: {
       id: string;
       type: 'paypal' | 'bank_transfer' | 'venmo';
       details: string;
       isDefault: boolean;
-    }>;
+    }[];
   }> {
     return this.request('/creators/payout-methods');
   }
@@ -338,7 +338,7 @@ class ApiClient {
     views: number;
     engagement: number;
     earnings: number;
-    chartData: Array<{ date: string; value: number }>;
+    chartData: { date: string; value: number }[];
   }> {
     const query = period ? `?period=${period}` : '';
     return this.request(`/creators/analytics${query}`);

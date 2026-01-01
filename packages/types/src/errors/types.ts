@@ -3,7 +3,6 @@
 // =============================================================================
 
 import type { ErrorCode } from './codes';
-import type { HttpStatusCode } from './http-status';
 
 /**
  * Standard API error response structure

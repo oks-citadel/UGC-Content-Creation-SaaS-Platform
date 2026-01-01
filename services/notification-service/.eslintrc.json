@@ -25,5 +25,6 @@
     "prefer-const": "warn",
     "no-var": "warn",
     "no-case-declarations": "warn"
-  }
+  },
+  "ignorePatterns": ["dist", "node_modules"]
 }

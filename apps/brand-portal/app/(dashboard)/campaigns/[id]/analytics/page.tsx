@@ -2,6 +2,7 @@
 
 import { use } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, TrendingUp, Eye, Heart, Share2, DollarSign } from 'lucide-react'
 import { MetricsChart } from '@/components/analytics/MetricsChart'
 import { AttributionTable } from '@/components/analytics/AttributionTable'
@@ -190,11 +191,12 @@ export default function CampaignAnalyticsPage({ params }: { params: Promise<{ id
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="relative group">
-              <img
+            <div key={i} className="relative group aspect-square">
+              <Image
                 src={`https://images.unsplash.com/photo-${1500000000000 + i * 100000}?w=400`}
                 alt={`Top content ${i}`}
-                className="w-full aspect-square object-cover rounded-lg"
+                fill
+                className="object-cover rounded-lg"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="absolute bottom-4 left-4 right-4 text-white">

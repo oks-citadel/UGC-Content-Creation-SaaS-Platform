@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -67,7 +66,6 @@ const aiTools = [
 export default function CreateScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
 
   const handleTakePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();

@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, Search, Filter, Plus, Mail, MessageCircle, MoreVertical } from 'lucide-react'
 import { CreatorCard } from '@/components/marketplace/CreatorCard'
 
@@ -108,10 +109,12 @@ export default function CampaignCreatorsPage({ params }: { params: Promise<{ id:
             className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
           >
             <div className="flex items-start gap-6">
-              <img
+              <Image
                 src={creator.avatar}
                 alt={creator.name}
-                className="w-20 h-20 rounded-full object-cover"
+                width={80}
+                height={80}
+                className="rounded-full object-cover"
               />
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-3">

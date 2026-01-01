@@ -9,26 +9,12 @@ import {
   Alert,
   Linking,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '../../store/authStore';
 import Card from '../../components/common/Card';
 
-interface SettingItem {
-  id: string;
-  name: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  type: 'toggle' | 'link' | 'action';
-  value?: boolean;
-  onPress?: () => void;
-}
-
 export default function SettingsScreen() {
-  const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
-
-  const { logout } = useAuthStore();
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);

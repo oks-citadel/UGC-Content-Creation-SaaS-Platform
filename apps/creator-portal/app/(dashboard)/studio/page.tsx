@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Upload, Image as ImageIcon, Video, FileText, Download, Share2, Edit, Loader2 } from 'lucide-react';
 
 interface Project {
@@ -191,9 +192,11 @@ export default function StudioPage() {
               >
                 <div className="aspect-video bg-gray-200 flex items-center justify-center overflow-hidden">
                   {project.thumbnail ? (
-                    <img
+                    <Image
                       src={project.thumbnail}
                       alt={project.name}
+                      width={320}
+                      height={180}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to icon if image fails to load

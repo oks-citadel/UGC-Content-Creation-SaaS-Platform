@@ -1,0 +1,21 @@
+# Build output directories
+**/dist/
+**/build/
+
+# Dependencies
+**/node_modules/
+
+# Generated files
+**/*.d.ts
+!**/src/**/*.d.ts
+
+# Service dist folders
+services/*/dist/
+apps/*/dist/
+packages/*/dist/
+
+# Other common patterns
+*.min.js
+coverage/
+.next/
+.turbo/

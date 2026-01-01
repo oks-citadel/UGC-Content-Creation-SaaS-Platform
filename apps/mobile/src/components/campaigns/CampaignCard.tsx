@@ -17,22 +17,6 @@ export default function CampaignCard({
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const getStatusColor = () => {
-    switch (campaign.status) {
-      case 'open':
-        return { bg: '#dcfce7', text: '#166534' };
-      case 'in_progress':
-        return { bg: '#dbeafe', text: '#1e40af' };
-      case 'completed':
-        return { bg: '#f3f4f6', text: '#374151' };
-      case 'closed':
-        return { bg: '#fef2f2', text: '#991b1b' };
-      default:
-        return { bg: '#f3f4f6', text: '#374151' };
-    }
-  };
-
-  const statusColor = getStatusColor();
   const daysLeft = Math.ceil(
     (new Date(campaign.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
   );

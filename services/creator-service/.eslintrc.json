@@ -10,7 +10,7 @@
     "sourceType": "module",
     "project": "./tsconfig.json"
   },
-  "ignorePatterns": ["**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
+  "ignorePatterns": ["dist", "node_modules", "**/*.test.ts", "**/*.spec.ts", "**/tests/**"],
   "env": {
     "node": true,
     "es2022": true

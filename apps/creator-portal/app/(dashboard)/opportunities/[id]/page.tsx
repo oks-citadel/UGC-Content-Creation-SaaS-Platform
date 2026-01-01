@@ -180,9 +180,11 @@ export default function OpportunityDetailPage({ params }: { params: { id: string
             <div className="flex items-start gap-4 mb-6">
               <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                 {opportunity.brandLogo && !brandLogoError ? (
-                  <img
+                  <Image
                     src={opportunity.brandLogo}
                     alt={`${opportunity.brand} logo`}
+                    width={64}
+                    height={64}
                     className="w-full h-full object-cover"
                     onError={() => setBrandLogoError(true)}
                   />

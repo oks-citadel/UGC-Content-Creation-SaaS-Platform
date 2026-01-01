@@ -47,7 +47,7 @@ export default function ContentPreviewScreen() {
             try {
               await deleteContent(contentId);
               navigation.goBack();
-            } catch (error) {
+            } catch {
               Alert.alert('Error', 'Failed to delete content');
             } finally {
               setIsDeleting(false);

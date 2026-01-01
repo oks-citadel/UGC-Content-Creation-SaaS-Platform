@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   useColorScheme,
   RefreshControl,
-  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,9 +28,7 @@ export default function EarningsScreen() {
     totalEarnings,
     availableBalance,
     pendingBalance,
-    earningsLoading,
     payouts,
-    payoutsLoading,
     fetchEarnings,
     fetchPayouts,
   } = useContentStore();

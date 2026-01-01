@@ -54,7 +54,7 @@ export default function RegisterScreen() {
       // Simulated registration - replace with actual API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
       router.replace('/(tabs)');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);

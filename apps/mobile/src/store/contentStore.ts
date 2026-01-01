@@ -97,7 +97,7 @@ export const useContentStore = create<ContentState>((set, get) => ({
         pendingBalance: response.pendingBalance,
         earningsLoading: false,
       });
-    } catch (error) {
+    } catch {
       set({ earningsLoading: false });
     }
   },
@@ -107,7 +107,7 @@ export const useContentStore = create<ContentState>((set, get) => ({
     try {
       const response = await apiClient.getPayouts();
       set({ payouts: response.payouts, payoutsLoading: false });
-    } catch (error) {
+    } catch {
       set({ payoutsLoading: false });
     }
   },

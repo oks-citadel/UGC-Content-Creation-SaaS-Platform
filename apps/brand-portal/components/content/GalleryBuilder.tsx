@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Plus, X, Save, ShoppingBag, Loader2 } from 'lucide-react'
 import { ProductTagger } from './ProductTagger'
 import { toast } from 'sonner'
@@ -166,11 +167,12 @@ export function GalleryBuilder({ galleryId }: { galleryId: string }) {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Content</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {availableContent.map((content) => (
-            <div key={content.id} className="relative group">
-              <img
+            <div key={content.id} className="relative group aspect-square">
+              <Image
                 src={content.thumbnail}
                 alt="Content"
-                className="w-full aspect-square object-cover rounded-lg cursor-pointer"
+                fill
+                className="object-cover rounded-lg cursor-pointer"
                 onClick={() => {
                   if (selectedContent.includes(content.id)) {
                     setSelectedContent(selectedContent.filter((id) => id !== content.id))
@@ -227,11 +229,12 @@ export function GalleryBuilder({ galleryId }: { galleryId: string }) {
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedContent.map((id, index) => (
-              <div key={id} className="relative">
-                <img
-                  src={availableContent.find((c) => c.id === id)?.thumbnail}
+              <div key={id} className="relative w-20 h-20">
+                <Image
+                  src={availableContent.find((c) => c.id === id)?.thumbnail || ''}
                   alt="Selected"
-                  className="w-20 h-20 object-cover rounded-lg"
+                  fill
+                  className="object-cover rounded-lg"
                 />
                 <button
                   onClick={() => setSelectedContent(selectedContent.filter((cid) => cid !== id))}

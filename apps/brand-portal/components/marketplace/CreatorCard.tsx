@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { MapPin, Star, TrendingUp, CheckCircle } from 'lucide-react'
 
 type Creator = {
@@ -24,10 +25,11 @@ export function CreatorCard({ creator }: { creator: Creator }) {
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group">
       {/* Cover Image */}
       <div className="relative h-32">
-        <img
+        <Image
           src={creator.coverImage}
           alt={creator.name}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
       </div>
@@ -35,10 +37,12 @@ export function CreatorCard({ creator }: { creator: Creator }) {
       {/* Avatar */}
       <div className="relative px-6 -mt-12">
         <div className="relative">
-          <img
+          <Image
             src={creator.avatar}
             alt={creator.name}
-            className="w-20 h-20 rounded-full border-4 border-white object-cover"
+            width={80}
+            height={80}
+            className="rounded-full border-4 border-white object-cover"
           />
           {creator.verified && (
             <div className="absolute bottom-0 right-0 bg-primary-500 rounded-full p-1">

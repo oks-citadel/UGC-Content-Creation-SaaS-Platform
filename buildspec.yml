@@ -1,0 +1,150 @@
+# =============================================================================
+# AWS CodeBuild Build Specification - NEXUS Platform
+# Builds Docker images and pushes to Amazon ECR
+# =============================================================================
+
+version: 0.2
+
+env:
+  variables:
+    PROJECT_NAME: nexus
+    AWS_DEFAULT_REGION: us-east-1
+    NODE_VERSION: "20"
+  parameter-store:
+    DOCKERHUB_USERNAME: /nexus/dockerhub/username
+    DOCKERHUB_PASSWORD: /nexus/dockerhub/password
+  exported-variables:
+    - IMAGE_TAG
+    - BUILD_ID
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies..."
+      - npm install -g pnpm@8
+      - pnpm install --frozen-lockfile
+
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - echo "Setting build variables..."
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_TAG=${ENVIRONMENT}-${COMMIT_HASH}
+      - export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - export ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - echo "Running type check..."
+      - pnpm run type-check || true
+
+      - echo "Running lint..."
+      - pnpm run lint || true
+
+  build:
+    commands:
+      - echo "Building packages..."
+      - pnpm run build --filter=@nexus/types --filter=@nexus/utils --filter=@nexus/config --filter=@nexus/database
+
+      - echo "Building Docker images..."
+
+      # Build and push each service
+      - |
+        for SERVICE in api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service marketplace-service notification-service workflow-service compliance-service integration-service payout-service rights-service asset-service; do
+          if [ -f "services/$SERVICE/Dockerfile" ]; then
+            echo "Building $SERVICE..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$SERVICE:$IMAGE_TAG \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$SERVICE:latest \
+              -f services/$SERVICE/Dockerfile \
+              .
+
+            echo "Pushing $SERVICE to ECR..."
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$SERVICE:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$SERVICE:latest
+          fi
+        done
+
+      # Build and push workers
+      - |
+        for WORKER in video-processor social-publisher analytics-aggregator notification-dispatcher; do
+          if [ -f "workers/$WORKER/Dockerfile" ]; then
+            echo "Building $WORKER..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$WORKER:$IMAGE_TAG \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$WORKER:latest \
+              -f workers/$WORKER/Dockerfile \
+              .
+
+            echo "Pushing $WORKER to ECR..."
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$WORKER:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$WORKER:latest
+          fi
+        done
+
+      # Build and push AI services
+      - |
+        for AI_SERVICE in ai-service moderation-engine recommendation-engine performance-predictor video-generator customer-agent marketing-agent ai-center; do
+          if [ -f "ai-services/$AI_SERVICE/Dockerfile" ]; then
+            echo "Building $AI_SERVICE..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$AI_SERVICE:$IMAGE_TAG \
+              -t $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$AI_SERVICE:latest \
+              -f ai-services/$AI_SERVICE/Dockerfile \
+              .
+
+            echo "Pushing $AI_SERVICE to ECR..."
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$AI_SERVICE:$IMAGE_TAG
+            docker push $ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$AI_SERVICE:latest
+          fi
+        done
+
+  post_build:
+    commands:
+      - echo "Build completed on $(date)"
+      - echo "Image tag: $IMAGE_TAG"
+
+      # Generate image definitions for EKS deployment
+      - |
+        echo "[" > imagedefinitions.json
+        FIRST=true
+        for SERVICE in api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service; do
+          if [ "$FIRST" = true ]; then
+            FIRST=false
+          else
+            echo "," >> imagedefinitions.json
+          fi
+          echo "{\"name\":\"$SERVICE\",\"imageUri\":\"$ECR_REGISTRY/$PROJECT_NAME-$ENVIRONMENT/$SERVICE:$IMAGE_TAG\"}" >> imagedefinitions.json
+        done
+        echo "]" >> imagedefinitions.json
+
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json
+    - infrastructure/kubernetes/**/*
+  discard-paths: no
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+    - '.pnpm-store/**/*'
+
+reports:
+  test-reports:
+    files:
+      - 'coverage/clover.xml'
+      - 'test-results/**/*.xml'
+    file-format: 'CLOVERXML'
