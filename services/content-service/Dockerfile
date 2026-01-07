@@ -1,70 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Content Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma and build dependencies
-RUN apk add --no-cache openssl libc6-compat python3 make g++
+RUN apk add --no-cache openssl libc6-compat vips-dev
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Copy source code
-COPY src ./src
+COPY services/content-service/package.json services/content-service/
+COPY services/content-service/prisma services/content-service/prisma/
 
-# Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/content-service/src services/content-service/src
+COPY services/content-service/tsconfig.json services/content-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/content-service && npx prisma generate
 
-# Install tini for proper signal handling and runtime dependencies for sharp and Prisma
-RUN apk add --no-cache tini vips-dev openssl libc6-compat
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/content-service && pnpm tsc --outDir dist
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat vips-dev
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Copy Prisma schema (needed for migrations)
-COPY --from=builder /app/prisma ./prisma
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy generated Prisma client from builder (DO NOT regenerate)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Create logs directory with proper permissions
-RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Switch to non-root user
-USER nodejs
+COPY --from=builder /app/services/content-service/package.json services/content-service/
+COPY --from=builder /app/services/content-service/dist services/content-service/dist
+COPY --from=builder /app/services/content-service/prisma services/content-service/prisma
+COPY --from=builder /app/services/content-service/node_modules/.prisma services/content-service/node_modules/.prisma
 
-# Expose port
-EXPOSE 3004
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3004/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+RUN chown -R nexus:nodejs /app
 
-# Use tini to handle signals properly
-ENTRYPOINT ["/sbin/tini", "--"]
+USER nexus
 
-# Start application
-CMD ["node", "dist/index.js"]
+ENV NODE_ENV=production
+ENV PORT=3005
+
+EXPOSE 3005
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3005/health || exit 1
+
+CMD ["node", "services/content-service/dist/index.js"]

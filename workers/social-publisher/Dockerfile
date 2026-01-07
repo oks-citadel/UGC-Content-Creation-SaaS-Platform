@@ -1,64 +1,71 @@
-# Multi-stage build for production-ready social-publisher worker
+# =============================================================================
+# NEXUS Social Publisher Worker - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache python3 make g++ openssl libc6-compat
+
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy package files
-COPY package*.json ./
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Copy source code
-COPY src ./src
+COPY workers/social-publisher/package.json workers/social-publisher/
 
-# Build TypeScript
-RUN npm run build
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Production stage
-FROM node:20-alpine
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY workers/social-publisher/src workers/social-publisher/src
+COPY workers/social-publisher/tsconfig.json workers/social-publisher/
+
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd workers/social-publisher && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Install tini for proper signal handling
-RUN apk add --no-cache tini
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy package files
-COPY package*.json ./
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Copy built application from builder
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Change ownership to non-root user
-RUN chown -R nodejs:nodejs /app
+COPY --from=builder /app/workers/social-publisher/package.json workers/social-publisher/
+COPY --from=builder /app/workers/social-publisher/dist workers/social-publisher/dist
 
-# Switch to non-root user
-USER nodejs
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Expose health check port
-EXPOSE 3002
+RUN chown -R nexus:nodejs /app
 
-# Set environment
+USER nexus
+
 ENV NODE_ENV=production
+ENV PORT=4002
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"
+EXPOSE 4002
 
-# Use tini to handle signals properly
-ENTRYPOINT ["/sbin/tini", "--"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:4002/health || exit 1
 
-# Start the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "workers/social-publisher/dist/index.js"]

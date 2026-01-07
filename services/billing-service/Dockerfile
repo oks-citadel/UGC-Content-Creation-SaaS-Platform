@@ -1,71 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Billing Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Copy source code
-COPY src ./src
+COPY services/billing-service/package.json services/billing-service/
+COPY services/billing-service/prisma services/billing-service/prisma/
 
-# Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/billing-service/src services/billing-service/src
+COPY services/billing-service/tsconfig.json services/billing-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/billing-service && npx prisma generate
+
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/billing-service && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Install tini for proper signal handling
-RUN apk add --no-cache tini
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Copy Prisma schema (needed for migrations)
-COPY prisma ./prisma/
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Copy generated Prisma client from builder (avoid regeneration)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/services/billing-service/package.json services/billing-service/
+COPY --from=builder /app/services/billing-service/dist services/billing-service/dist
+COPY --from=builder /app/services/billing-service/prisma services/billing-service/prisma
+COPY --from=builder /app/services/billing-service/node_modules/.prisma services/billing-service/node_modules/.prisma
 
-# Create logs directory
-RUN mkdir -p /app/logs
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN chown -R nexus:nodejs /app
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-
-USER nodejs
-
-# Expose port
-EXPOSE 3004
+USER nexus
 
 ENV NODE_ENV=production
+ENV PORT=3008
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3004/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+EXPOSE 3008
 
-ENTRYPOINT ["/sbin/tini", "--"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3008/health || exit 1
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "services/billing-service/dist/index.js"]

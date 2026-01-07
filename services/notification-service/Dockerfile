@@ -1,77 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Notification Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma
 RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Copy source code
-COPY src ./src
+COPY services/notification-service/package.json services/notification-service/
+COPY services/notification-service/prisma services/notification-service/prisma/
 
-# Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/notification-service/src services/notification-service/src
+COPY services/notification-service/tsconfig.json services/notification-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/notification-service && npx prisma generate
 
-# Install OpenSSL for Prisma runtime and tini for proper signal handling
-RUN apk add --no-cache openssl libc6-compat tini
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/notification-service && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy Prisma schema (needed for migrations)
-COPY prisma ./prisma/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Copy generated Prisma client from builder (avoid regeneration)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Copy templates if they exist
-COPY --from=builder /app/src/templates ./dist/templates
+COPY --from=builder /app/services/notification-service/package.json services/notification-service/
+COPY --from=builder /app/services/notification-service/dist services/notification-service/dist
+COPY --from=builder /app/services/notification-service/prisma services/notification-service/prisma
+COPY --from=builder /app/services/notification-service/node_modules/.prisma services/notification-service/node_modules/.prisma
 
-# Create logs directory
-RUN mkdir -p /app/logs
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+RUN chown -R nexus:nodejs /app
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-
-USER nodejs
-
-# Expose port
-EXPOSE 3008
+USER nexus
 
 ENV NODE_ENV=production
+ENV PORT=3010
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3008/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+EXPOSE 3010
 
-ENTRYPOINT ["/sbin/tini", "--"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3010/health || exit 1
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "services/notification-service/dist/index.js"]

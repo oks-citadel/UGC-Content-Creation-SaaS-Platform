@@ -1,71 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Rights Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma and tini
-RUN apk add --no-cache openssl libc6-compat tini
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Generate Prisma Client
-RUN npx prisma generate
+COPY services/rights-service/package.json services/rights-service/
+COPY services/rights-service/prisma services/rights-service/prisma/
 
-# Copy source code
-COPY src ./src
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/rights-service/src services/rights-service/src
+COPY services/rights-service/tsconfig.json services/rights-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/rights-service && npx prisma generate
 
-# Install OpenSSL for Prisma runtime and tini
-RUN apk add --no-cache openssl libc6-compat tini
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/rights-service && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Copy Prisma schema (needed for migrations)
-COPY prisma ./prisma/
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy generated Prisma client from builder (DO NOT regenerate)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Create logs directory with proper permissions
-RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+COPY --from=builder /app/services/rights-service/package.json services/rights-service/
+COPY --from=builder /app/services/rights-service/dist services/rights-service/dist
+COPY --from=builder /app/services/rights-service/prisma services/rights-service/prisma
+COPY --from=builder /app/services/rights-service/node_modules/.prisma services/rights-service/node_modules/.prisma
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-USER nodejs
+RUN chown -R nexus:nodejs /app
 
-# Expose port
-EXPOSE 8089
+USER nexus
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8089/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+ENV NODE_ENV=production
+ENV PORT=3015
 
-# Use tini as entrypoint
-ENTRYPOINT ["/sbin/tini", "--"]
+EXPOSE 3015
 
-# Start application
-CMD ["node", "dist/index.js"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3015/health || exit 1
+
+CMD ["node", "services/rights-service/dist/index.js"]

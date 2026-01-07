@@ -1,71 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Asset Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma and tini
-RUN apk add --no-cache openssl libc6-compat tini
+RUN apk add --no-cache openssl libc6-compat vips-dev
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install all dependencies (including devDependencies)
-RUN npm ci
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Generate Prisma Client
-RUN npx prisma generate
+COPY services/asset-service/package.json services/asset-service/
+COPY services/asset-service/prisma services/asset-service/prisma/
 
-# Copy source code
-COPY src ./src
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/asset-service/src services/asset-service/src
+COPY services/asset-service/tsconfig.json services/asset-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/asset-service && npx prisma generate
+
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/asset-service && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
+RUN apk add --no-cache openssl libc6-compat vips-dev
 
 WORKDIR /app
 
-# Install runtime dependencies for sharp, Prisma, and tini
-RUN apk add --no-cache vips-dev openssl libc6-compat tini
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Copy package files and install production dependencies only
-COPY package*.json ./
-RUN npm ci --only=production
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy Prisma schema (needed for migrations)
-COPY prisma ./prisma/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Copy generated Prisma client from builder (DO NOT regenerate)
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+COPY --from=builder /app/services/asset-service/package.json services/asset-service/
+COPY --from=builder /app/services/asset-service/dist services/asset-service/dist
+COPY --from=builder /app/services/asset-service/prisma services/asset-service/prisma
+COPY --from=builder /app/services/asset-service/node_modules/.prisma services/asset-service/node_modules/.prisma
 
-# Create logs directory with proper permissions
-RUN mkdir -p /app/logs && chown -R nodejs:nodejs /app/logs
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+RUN chown -R nexus:nodejs /app
 
-USER nodejs
+USER nexus
 
-# Expose port
-EXPOSE 8088
+ENV NODE_ENV=production
+ENV PORT=3016
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8088/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+EXPOSE 3016
 
-# Use tini as entrypoint
-ENTRYPOINT ["/sbin/tini", "--"]
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3016/health || exit 1
 
-# Start application
-CMD ["node", "dist/index.js"]
+CMD ["node", "services/asset-service/dist/index.js"]

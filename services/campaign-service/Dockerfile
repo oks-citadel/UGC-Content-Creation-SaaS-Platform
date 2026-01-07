@@ -1,62 +1,76 @@
-# Build stage
+# =============================================================================
+# NEXUS Campaign Service - Dockerfile (Monorepo Compatible)
+# =============================================================================
+
 FROM node:20-alpine AS builder
 
-# Install OpenSSL for Prisma
 RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+RUN corepack enable && corepack prepare pnpm@8 --activate
+
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
-COPY prisma ./prisma/
 
-# Install dependencies
-RUN npm install
+COPY packages/types/package.json packages/types/
+COPY packages/utils/package.json packages/utils/
 
-# Copy source code
-COPY src ./src
+COPY services/campaign-service/package.json services/campaign-service/
+COPY services/campaign-service/prisma services/campaign-service/prisma/
 
-# Generate Prisma Client
-RUN npx prisma generate
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Build TypeScript
-RUN npm run build
+COPY packages/types packages/types
+COPY packages/utils packages/utils
+COPY services/campaign-service/src services/campaign-service/src
+COPY services/campaign-service/tsconfig.json services/campaign-service/
 
-# Production stage
-FROM node:20-alpine
+RUN cd services/campaign-service && npx prisma generate
 
-# Install OpenSSL for Prisma runtime
+RUN cd packages/types && pnpm tsc --outDir dist || true
+RUN cd packages/utils && pnpm tsc --outDir dist || true
+RUN cd services/campaign-service && pnpm tsc --outDir dist
+
+FROM node:20-alpine AS runner
+
 RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-# Install production dependencies only
-COPY package*.json ./
-RUN npm install --only=production
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nexus
 
-# Copy Prisma schema and generate client
-COPY prisma ./prisma/
-RUN npx prisma generate
+RUN corepack enable && corepack prepare pnpm@8 --activate
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/pnpm-lock.yaml ./
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+COPY --from=builder /app/packages/types/package.json packages/types/
+COPY --from=builder /app/packages/types/dist packages/types/dist
 
-# Change ownership
-RUN chown -R nodejs:nodejs /app
+COPY --from=builder /app/packages/utils/package.json packages/utils/
+COPY --from=builder /app/packages/utils/dist packages/utils/dist
 
-USER nodejs
+COPY --from=builder /app/services/campaign-service/package.json services/campaign-service/
+COPY --from=builder /app/services/campaign-service/dist services/campaign-service/dist
+COPY --from=builder /app/services/campaign-service/prisma services/campaign-service/prisma
+COPY --from=builder /app/services/campaign-service/node_modules/.prisma services/campaign-service/node_modules/.prisma
 
-# Expose port
-EXPOSE 3003
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3003/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+RUN chown -R nexus:nodejs /app
 
-# Start application
-CMD ["node", "dist/index.js"]
+USER nexus
+
+ENV NODE_ENV=production
+ENV PORT=3004
+
+EXPOSE 3004
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3004/health || exit 1
+
+CMD ["node", "services/campaign-service/dist/index.js"]
