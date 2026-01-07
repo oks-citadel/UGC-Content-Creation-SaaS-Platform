@@ -48,6 +48,8 @@ RUN corepack enable && corepack prepare pnpm@8 --activate
 # Copy workspace files
 COPY pnpm-workspace.yaml ./
 COPY package.json pnpm-lock.yaml ./
+COPY turbo.json ./
+COPY tsconfig.json ./
 
 # Copy packages
 COPY packages/types/package.json packages/types/
@@ -58,7 +60,7 @@ COPY packages/ui/package.json packages/ui/
 COPY apps/web/package.json apps/web/
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
 COPY packages/types packages/types
@@ -113,7 +115,7 @@ COPY --from=builder /app/apps/web/public apps/web/public
 COPY --from=builder /app/apps/web/.next apps/web/.next
 
 # Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
