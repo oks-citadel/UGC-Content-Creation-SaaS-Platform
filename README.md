@@ -1,393 +1,484 @@
 # NEXUS
 
-### Enterprise UGC & Creator Marketing Platform
+**Enterprise UGC & Creator Marketing Platform**
 
-[![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
-[![AWS](https://img.shields.io/badge/AWS-Deployed-FF9900.svg)](https://aws.amazon.com/)
+![License](https://img.shields.io/badge/license-Proprietary-blue)
+![Node.js](https://img.shields.io/badge/node-18%2B-green)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![TypeScript](https://img.shields.io/badge/typescript-5.3%2B-blue)
+![AWS](https://img.shields.io/badge/cloud-AWS-orange)
 
 ---
 
 ## Executive Summary
 
-### The Problem
+NEXUS is an AI-powered, end-to-end creator marketing platform that unifies creator discovery, campaign orchestration, content production, automated multi-platform distribution, shoppable commerce, real-time analytics, and compliance automation into a single enterprise system.
 
-The creator economy is projected to reach **$480 billion by 2027**, yet brands face critical challenges:
-
-| Challenge | Impact |
-|-----------|--------|
-| **Tool Fragmentation** | Marketing teams juggle 8-15 separate tools for content, creators, scheduling, and analytics |
-| **Manual Creator Discovery** | Finding the right creators takes weeks of manual research |
-| **Content Underperformance** | 70% of UGC fails to meet engagement benchmarks |
-| **Attribution Blindness** | No clear path from content creation to actual sales conversion |
-| **Compliance Risks** | Manual rights management creates legal exposure |
-| **Payment Complexity** | Creator payouts across multiple currencies and methods |
-
-**Result**: Brands waste **$2.4M annually** on inefficient creator marketing operations.
-
-### The NEXUS Solution
-
-NEXUS is an **AI-powered, end-to-end creator marketing platform** that unifies:
-
-- **Creator Discovery & Management** - AI-matched creators from a verified marketplace
-- **Campaign Orchestration** - Brief-to-delivery workflow automation
-- **Content Production** - AI video generation, script writing, and optimization
-- **Shoppable Commerce** - Direct purchase from UGC without redirects
-- **Performance Analytics** - Real-time attribution across all touchpoints
-- **Compliance Automation** - Blockchain-verified rights and FTC compliance
-
-### Business Impact
-
-| Metric | Improvement |
-|--------|-------------|
-| Campaign Launch Time | **75% faster** (weeks to days) |
-| Creator Match Accuracy | **92% relevance** vs 34% manual |
-| Content Performance | **3.2x higher engagement** with AI optimization |
-| Revenue Attribution | **100% trackable** from content to sale |
-| Operational Cost | **60% reduction** through automation |
+The platform eliminates tool fragmentation, manual creator workflows, content underperformance, attribution blind spots, compliance risk, and global payout complexity—enabling brands to scale creator marketing with measurable ROI.
 
 ---
 
-## User Research & Target Personas
+## Table of Contents
 
-### Primary Users
+1. [Problem Statement](#problem-statement)
+2. [Solution Overview](#solution-overview)
+3. [Business Impact](#business-impact)
+4. [Target Users](#target-users)
+5. [Platform Architecture](#platform-architecture)
+6. [Automated Content Posting Platform](#automated-content-posting-platform)
+7. [Technology Stack](#technology-stack)
+8. [Project Structure](#project-structure)
+9. [Core Business Modules](#core-business-modules)
+10. [Subscription Plans](#subscription-plans)
+11. [AWS Deployment](#aws-deployment)
+12. [Getting Started](#getting-started)
+13. [Performance & Security](#performance--security)
+14. [Support](#support)
 
-#### 1. Brand Marketing Managers
-**Demographics**: 28-45 years old, mid-to-senior level, B2C companies
-**Pain Points**:
-- Spending 15+ hours/week managing creator relationships
-- No visibility into which content drives sales
-- Struggling to scale UGC programs beyond 10-20 creators
+---
 
-**NEXUS Value**: Automated creator matching, campaign management, and attribution
+## Problem Statement
 
-#### 2. Content Creators & Influencers
-**Demographics**: 18-35 years old, 10K-1M followers, multi-platform presence
-**Pain Points**:
-- Difficulty finding brand opportunities matching their niche
-- Delayed and complicated payment processes
-- No centralized portfolio to showcase work
+The creator economy is projected to reach **$480 billion by 2027**, yet brands face critical structural failures:
 
-**NEXUS Value**: Opportunity marketplace, instant payouts, professional portfolio
+| Challenge | Impact |
+|-----------|--------|
+| Tool Fragmentation | Marketing teams juggle 8–15 separate tools for content, creators, scheduling, and analytics |
+| Manual Creator Discovery | Finding the right creators takes weeks of manual research |
+| Content Underperformance | 70% of UGC fails to meet engagement benchmarks |
+| Attribution Blindness | No clear path from content creation to actual sales conversion |
+| Compliance Risks | Manual rights management creates legal exposure |
+| Payment Complexity | Creator payouts across multiple currencies and methods are slow and error-prone |
 
-#### 3. E-Commerce Directors
-**Demographics**: 35-50 years old, VP/Director level, DTC brands
-**Pain Points**:
-- UGC content not converting to sales
-- Cannot measure ROI of creator partnerships
-- Disconnected systems between content and commerce
+**Result:** Brands waste an average of **$2.4M annually** on inefficient creator marketing operations.
 
-**NEXUS Value**: Shoppable galleries, conversion tracking, revenue attribution
+---
 
-#### 4. Agency Account Managers
-**Demographics**: 25-40 years old, agency environment, multi-client management
-**Pain Points**:
-- Managing 20+ brand accounts with different creator rosters
-- Manual reporting consuming 30% of billable time
-- Scaling operations without proportional headcount
+## Solution Overview
 
-**NEXUS Value**: Multi-tenant management, automated reporting, white-label options
+NEXUS is a unified creator marketing operating system providing:
+
+- **Creator Discovery & Management** — AI-matched creators from a verified marketplace
+- **Campaign Orchestration** — Brief-to-delivery workflow automation
+- **Content Production** — AI video generation, script writing, and optimization
+- **Automated Multi-Platform Posting** — Scheduled, compliant distribution across all social channels
+- **Shoppable Commerce** — Direct purchase from UGC without redirects
+- **Performance Analytics** — Real-time attribution across all touchpoints
+- **Compliance Automation** — Blockchain-verified rights and FTC compliance
+
+---
+
+## Business Impact
+
+| Metric | Improvement |
+|--------|-------------|
+| Campaign Launch Time | 75% faster (weeks → days) |
+| Creator Match Accuracy | 92% relevance vs 34% manual |
+| Content Performance | 3.2× higher engagement with AI optimization |
+| Revenue Attribution | 100% trackable from content to sale |
+| Operational Cost | 60% reduction through automation |
+
+---
+
+## Target Users
+
+### Brand Marketing Managers
+- **Profile:** 28–45 years old, mid-to-senior level, B2C companies
+- **Pain Points:** 15+ hours/week managing creators, no sales visibility, scaling limits
+- **NEXUS Value:** Automated creator matching, campaign management, and attribution
+
+### Content Creators & Influencers
+- **Profile:** 18–35 years old, 10K–1M followers, multi-platform presence
+- **Pain Points:** Finding brand opportunities, delayed payments, no centralized portfolio
+- **NEXUS Value:** Opportunity marketplace, instant payouts, professional portfolio
+
+### E-Commerce Directors
+- **Profile:** 35–50 years old, VP/Director level, DTC brands
+- **Pain Points:** UGC not converting, unmeasurable ROI, disconnected systems
+- **NEXUS Value:** Shoppable galleries, conversion tracking, revenue attribution
+
+### Agency Account Managers
+- **Profile:** 25–40 years old, agency environment, multi-client management
+- **Pain Points:** Managing 20+ accounts, manual reporting consuming 30% of billable time
+- **NEXUS Value:** Multi-tenant management, automated reporting, white-label options
 
 ### User Research Insights
 
 Based on interviews with 150+ marketing professionals:
 
-- **89%** want a single platform for creator management
-- **76%** cite payment processing as their biggest operational headache
-- **94%** would pay premium for AI-powered content optimization
-- **82%** need better content-to-commerce attribution
-- **71%** struggle with FTC compliance tracking
+- 89% want a single platform for creator management
+- 76% cite payment processing as their biggest operational headache
+- 94% would pay premium for AI-powered content optimization
+- 82% need better content-to-commerce attribution
+- 71% struggle with FTC compliance tracking
 
 ---
 
-## Architecture
+## Platform Architecture
 
 ### System Architecture Diagram
 
 ```
-                                    NEXUS PLATFORM ARCHITECTURE
+                              NEXUS PLATFORM ARCHITECTURE (AWS)
 
-    ================================= CLIENT LAYER ==================================
+  ══════════════════════════════ CLIENT LAYER ══════════════════════════════
 
-    +-------------+  +----------------+  +--------------+  +-------------+  +--------+
-    |   Web App   |  | Creator Portal |  | Brand Portal |  |    Admin    |  | Mobile |
-    |  (Next.js)  |  |   (Next.js)    |  |  (Next.js)   |  |  Dashboard  |  | (React |
-    |             |  |                |  |              |  |  (Next.js)  |  | Native)|
-    +------+------+  +-------+--------+  +------+-------+  +------+------+  +---+----+
-           |                 |                  |                 |             |
-           +--------+--------+--------+---------+--------+--------+-------------+
-                                      |
-                             +--------v--------+
-                             |   CDN / WAF     |
-                             | (Azure Front    |
-                             |    Door)        |
-                             +--------+--------+
-                                      |
-    ================================= API LAYER =====================================
-                                      |
-                             +--------v--------+
-                             |   API GATEWAY   |
-                             |  Rate Limiting  |
-                             |  Auth / JWT     |
-                             |  Load Balance   |
-                             +--------+--------+
-                                      |
-           +------------+-------------+-------------+------------+
-           |            |             |             |            |
-    +------v------+ +---v----+ +------v------+ +----v-----+ +----v-----+
-    |    AUTH     | |  USER  | |   CREATOR   | | CAMPAIGN | | CONTENT  |
-    |   SERVICE   | | SERVICE| |   SERVICE   | | SERVICE  | | SERVICE  |
-    | - OAuth 2.0 | | - CRUD | | - Portfolio | | - Brief  | | - Upload |
-    | - MFA/2FA   | | - Orgs | | - Matching  | | - Workflow| | - Moderate|
-    | - Sessions  | | - Teams| | - Verify    | | - Milestones| - Rights |
-    +-------------+ +--------+ +-------------+ +----------+ +----------+
-           |            |             |             |            |
-    +------v------+ +---v----+ +------v------+ +----v-----+ +----v-----+
-    |   BILLING   | |COMMERCE| | MARKETPLACE | | ANALYTICS| | WORKFLOW |
-    |   SERVICE   | | SERVICE| |   SERVICE   | | SERVICE  | | SERVICE  |
-    | - Stripe    | | - Shop | | - Bidding   | | - Metrics| | - n8n    |
-    | - Invoices  | | - Cart | | - Contracts | | - Reports| | - Automate|
-    | - Usage     | | - Attr | | - Payouts   | | - Alerts | | - Triggers|
-    +-------------+ +--------+ +-------------+ +----------+ +----------+
-           |            |             |             |            |
-    +------v------+ +---v----+ +------v------+ +----v-----+ +----v-----+
-    | NOTIFICATION| | RIGHTS | | COMPLIANCE  | |  ASSET   | |INTEGRATION|
-    |   SERVICE   | | SERVICE| |   SERVICE   | | SERVICE  | |  SERVICE  |
-    | - Email     | | - DRM  | | - GDPR      | | - S3     | | - Shopify |
-    | - SMS       | | - Chain| | - FTC       | | - CDN    | | - HubSpot |
-    | - Push      | | - License| - Audit    | | - Process| | - APIs    |
-    +-------------+ +--------+ +-------------+ +----------+ +----------+
+  ┌─────────────┐  ┌────────────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────┐
+  │   Web App   │  │ Creator Portal │  │ Brand Portal │  │    Admin    │  │ Mobile │
+  │  (Next.js)  │  │   (Next.js)    │  │  (Next.js)   │  │  Dashboard  │  │ (React │
+  │             │  │                │  │              │  │  (Next.js)  │  │ Native)│
+  └──────┬──────┘  └───────┬────────┘  └──────┬───────┘  └──────┬──────┘  └───┬────┘
+         │                 │                  │                 │             │
+         └────────┬────────┴────────┬─────────┴────────┬────────┴─────────────┘
+                                    │
+                           ┌────────▼────────┐
+                           │  CloudFront +   │
+                           │      WAF        │
+                           │  (CDN / Edge)   │
+                           └────────┬────────┘
+                                    │
+  ══════════════════════════════ API LAYER ══════════════════════════════════
+                                    │
+                           ┌────────▼────────┐
+                           │  API Gateway    │
+                           │  Rate Limiting  │
+                           │  Auth / JWT     │
+                           │  Load Balance   │
+                           └────────┬────────┘
+                                    │
+         ┌────────────┬─────────────┼─────────────┬────────────┐
+         │            │             │             │            │
+  ┌──────▼──────┐ ┌───▼────┐ ┌──────▼──────┐ ┌────▼─────┐ ┌────▼─────┐
+  │    AUTH     │ │  USER  │ │   CREATOR   │ │ CAMPAIGN │ │ CONTENT  │
+  │   SERVICE   │ │ SERVICE│ │   SERVICE   │ │ SERVICE  │ │ SERVICE  │
+  │ • Cognito   │ │ • CRUD │ │ • Portfolio │ │ • Brief  │ │ • Upload │
+  │ • MFA/2FA   │ │ • Orgs │ │ • Matching  │ │ • Workflow│ │ • Moderate│
+  │ • Sessions  │ │ • Teams│ │ • Verify    │ │ • Milestones│ • Rights │
+  └─────────────┘ └────────┘ └─────────────┘ └──────────┘ └──────────┘
+         │            │             │             │            │
+  ┌──────▼──────┐ ┌───▼────┐ ┌──────▼──────┐ ┌────▼─────┐ ┌────▼─────┐
+  │   BILLING   │ │COMMERCE│ │ MARKETPLACE │ │ ANALYTICS│ │ WORKFLOW │
+  │   SERVICE   │ │ SERVICE│ │   SERVICE   │ │ SERVICE  │ │ SERVICE  │
+  │ • Stripe    │ │ • Shop │ │ • Bidding   │ │ • Metrics│ │ • n8n    │
+  │ • Invoices  │ │ • Cart │ │ • Contracts │ │ • Reports│ │ • Automate│
+  │ • Usage     │ │ • Attr │ │ • Payouts   │ │ • Alerts │ │ • Triggers│
+  └─────────────┘ └────────┘ └─────────────┘ └──────────┘ └──────────┘
+         │            │             │             │            │
+  ┌──────▼──────┐ ┌───▼────┐ ┌──────▼──────┐ ┌────▼─────┐ ┌────▼─────┐
+  │ NOTIFICATION│ │ RIGHTS │ │ COMPLIANCE  │ │  ASSET   │ │INTEGRATION│
+  │   SERVICE   │ │ SERVICE│ │   SERVICE   │ │ SERVICE  │ │  SERVICE  │
+  │ • SES       │ │ • DRM  │ │ • GDPR      │ │ • S3     │ │ • Shopify │
+  │ • SNS       │ │ • Chain│ │ • FTC       │ │ • CDN    │ │ • HubSpot │
+  │ • Push      │ │ • License│ • Audit    │ │ • Process│ │ • APIs    │
+  └─────────────┘ └────────┘ └─────────────┘ └──────────┘ └──────────┘
 
-    ================================= AI/ML LAYER ==================================
+  ══════════════════════════════ AI/ML LAYER ═══════════════════════════════
 
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
-    |   VIDEO     | |   SCRIPT    | | PERFORMANCE | | RECOMMEND   | |   TREND     |
-    | GENERATOR   | | GENERATOR   | | PREDICTOR   | |   ENGINE    | |   ENGINE    |
-    | - AI Video  | | - GPT-4     | | - ML Scoring| | - Matching  | | - Detection |
-    | - Templates | | - Hooks     | | - Optimize  | | - Products  | | - Forecast  |
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
+  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+  │   VIDEO     │ │   SCRIPT    │ │ PERFORMANCE │ │ RECOMMEND   │ │   TREND     │
+  │ GENERATOR   │ │ GENERATOR   │ │ PREDICTOR   │ │   ENGINE    │ │   ENGINE    │
+  │ • AI Video  │ │ • Bedrock   │ │ • SageMaker │ │ • Matching  │ │ • Detection │
+  │ • Templates │ │ • Claude    │ │ • Optimize  │ │ • Products  │ │ • Forecast  │
+  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
 
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
-    |  CAPTION    | | VOICEOVER   | | MODERATION  | |  CUSTOMER   | | MARKETING   |
-    |  SERVICE    | |  SERVICE    | |   ENGINE    | |   AGENT     | |   AGENT     |
-    | - Auto-cap  | | - TTS       | | - Safety    | | - Support   | | - Copywrite |
-    | - 40+ langs | | - 50 voices | | - FTC Check | | - NLU       | | - Campaigns |
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
+  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+  │  CAPTION    │ │ VOICEOVER   │ │ MODERATION  │ │  CUSTOMER   │ │ MARKETING   │
+  │  SERVICE    │ │  SERVICE    │ │   ENGINE    │ │   AGENT     │ │   AGENT     │
+  │ • Transcribe│ │ • Polly     │ │ • Rekognition│ │ • Lex      │ │ • Bedrock   │
+  │ • 40+ langs │ │ • 50 voices │ │ • Safety    │ │ • NLU       │ │ • Campaigns │
+  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
 
-    ================================ WORKER LAYER ==================================
+  ═══════════════════════════ WORKER LAYER (ECS) ════════════════════════════
 
-    +------------------+ +------------------+ +------------------+ +------------------+
-    |  VIDEO PROCESSOR | | SOCIAL PUBLISHER | |  NOTIFICATION    | |    ANALYTICS     |
-    |     WORKER       | |     WORKER       | |   DISPATCHER     | |   AGGREGATOR     |
-    | - Transcode      | | - Multi-platform | | - Queue Process  | | - ETL Pipeline   |
-    | - Thumbnail      | | - Schedule       | | - Retry Logic    | | - Aggregations   |
-    +------------------+ +------------------+ +------------------+ +------------------+
+  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  │  VIDEO PROCESSOR │ │ SOCIAL PUBLISHER │ │  NOTIFICATION    │ │    ANALYTICS     │
+  │     WORKER       │ │     WORKER       │ │   DISPATCHER     │ │   AGGREGATOR     │
+  │ • MediaConvert   │ │ • Multi-platform │ │ • SQS Process    │ │ • ETL Pipeline   │
+  │ • Thumbnail      │ │ • Schedule       │ │ • Retry Logic    │ │ • Aggregations   │
+  │ • Normalize      │ │ • Compliance     │ │ • Rate Limit     │ │ • Attribution    │
+  └──────────────────┘ └──────────────────┘ └──────────────────┘ └──────────────────┘
 
-    ================================= DATA LAYER ===================================
+  ══════════════════════════════ DATA LAYER ═════════════════════════════════
 
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
-    | PostgreSQL  | |   MongoDB   | |    Redis    | |Elasticsearch| |    MinIO    |
-    |  (Primary)  | |  (Content)  | |   (Cache)   | |  (Search)   | |  (Storage)  |
-    | - Users     | | - Media     | | - Sessions  | | - Full-text | | - Assets    |
-    | - Campaigns | | - Analytics | | - Rate Limit| | - Logs      | | - Uploads   |
-    | - Commerce  | | - Events    | | - Pub/Sub   | | - Metrics   | | - Backups   |
-    +-------------+ +-------------+ +-------------+ +-------------+ +-------------+
+  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+  │ Aurora      │ │  DocumentDB │ │ ElastiCache │ │ OpenSearch  │ │     S3      │
+  │ PostgreSQL  │ │  (MongoDB)  │ │   (Redis)   │ │  Service    │ │  (Storage)  │
+  │ • Users     │ │ • Media     │ │ • Sessions  │ │ • Full-text │ │ • Assets    │
+  │ • Campaigns │ │ • Analytics │ │ • Rate Limit│ │ • Logs      │ │ • Uploads   │
+  │ • Commerce  │ │ • Events    │ │ • Pub/Sub   │ │ • Metrics   │ │ • Backups   │
+  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘
 ```
 
 ### Technology Flow
 
 ```
-User Request --> CDN --> API Gateway --> Service Discovery --> Microservice
-                                              |
-                                              v
-                                    +------------------+
-                                    |   Message Queue  |
-                                    |   (Redis/Bull)   |
-                                    +------------------+
-                                              |
-                          +-------------------+-------------------+
-                          |                   |                   |
-                          v                   v                   v
-                    +----------+        +----------+        +----------+
-                    |  Worker  |        |  Worker  |        |  Worker  |
-                    | (Process)|        | (Publish)|        | (Notify) |
-                    +----------+        +----------+        +----------+
-                          |                   |                   |
-                          +-------------------+-------------------+
-                                              |
-                                              v
-                                    +------------------+
-                                    |    Data Layer    |
-                                    | (Write/Read)     |
-                                    +------------------+
+User Request → CloudFront → API Gateway → ECS Service Discovery → Microservice
+                                                   │
+                                                   ▼
+                                         ┌──────────────────┐
+                                         │   Amazon SQS     │
+                                         │   Message Queue  │
+                                         └──────────────────┘
+                                                   │
+                           ┌───────────────────────┼───────────────────────┐
+                           │                       │                       │
+                           ▼                       ▼                       ▼
+                     ┌──────────┐           ┌──────────┐           ┌──────────┐
+                     │  ECS     │           │  ECS     │           │  ECS     │
+                     │ (Process)│           │ (Publish)│           │ (Notify) │
+                     └──────────┘           └──────────┘           └──────────┘
+                           │                       │                       │
+                           └───────────────────────┼───────────────────────┘
+                                                   │
+                                                   ▼
+                                         ┌──────────────────┐
+                                         │    Data Layer    │
+                                         │ Aurora/S3/Redis  │
+                                         └──────────────────┘
 ```
 
 ---
 
-## Project Structure
+## Automated Content Posting Platform
+
+NEXUS includes a native, enterprise-grade automated content posting engine designed specifically for UGC distribution at scale.
+
+### What This Solves
+
+- Eliminates manual posting across social platforms
+- Ensures brand, platform, and FTC compliance before publish
+- Enables time-zone aware, rate-limit safe scheduling
+- Tracks post-level performance back to revenue
+
+### Supported Channels
+
+| Platform | Direct API | Partner/Scheduler | Status |
+|----------|------------|-------------------|--------|
+| TikTok | ✓ | ✓ | Supported |
+| Instagram Reels | ✓ | ✓ | Supported |
+| X (Twitter) | ✓ | — | Supported |
+| LinkedIn | ✓ | — | Supported |
+| YouTube Shorts | ✓ | ✓ | Supported |
+| Pinterest | ✓ | — | Supported |
+
+### Posting Capabilities
+
+- **Multi-platform publishing** with platform-specific optimization
+- **Scheduling modes:** immediate, scheduled, queued, event-triggered
+- **Caption automation:** AI-optimized captions, hashtags, and CTAs per platform
+- **Workflow options:** fully automatic, human-approved queue, or hybrid rules + approvals
+- **Status tracking:** webhooks + polling reconciliation
+- **Guardrails:** global pause, campaign-level disable, per-platform throttling, auto-shutdown on failures
+
+### AWS Architecture (Posting Subsystem)
 
 ```
-nexus-platform/
-├── apps/                          # Client Applications (5)
-│   ├── web/                       # Main SaaS web application (Next.js 14)
-│   ├── creator-portal/            # Creator dashboard & portfolio
-│   ├── brand-portal/              # Brand campaign management
-│   ├── admin/                     # Internal administration
-│   └── mobile/                    # React Native iOS/Android app
-│
-├── packages/                      # Shared NPM Packages (10)
-│   ├── ui/                        # React component library (shadcn/ui)
-│   ├── types/                     # Shared TypeScript definitions
-│   ├── utils/                     # Common utility functions
-│   ├── config/                    # Shared configurations
-│   ├── database/                  # Prisma client & migrations
-│   ├── auth/                      # Authentication utilities
-│   ├── api-client/                # HTTP client SDK
-│   ├── analytics-sdk/             # Client analytics tracking
-│   ├── video-editor/              # Browser video editing (FFmpeg.wasm)
-│   └── shoppable-embed/           # Embeddable commerce widget
-│
-├── services/                      # Backend Microservices (17)
-│   ├── api-gateway/               # Central routing & auth (Port 4000)
-│   ├── auth-service/              # Authentication & MFA (Port 3001)
-│   ├── user-service/              # User & org management (Port 3002)
-│   ├── creator-service/           # Creator profiles & matching
-│   ├── campaign-service/          # Campaign lifecycle management
-│   ├── content-service/           # UGC upload & moderation
-│   ├── commerce-service/          # Shoppable galleries & checkout
-│   ├── marketplace-service/       # Creator opportunity bidding
-│   ├── billing-service/           # Subscriptions & payments (Stripe)
-│   ├── analytics-service/         # Metrics & reporting
-│   ├── notification-service/      # Email, SMS, push notifications
-│   ├── payout-service/            # Creator payment processing
-│   ├── rights-service/            # Content licensing & DRM
-│   ├── asset-service/             # Media storage & CDN
-│   ├── compliance-service/        # GDPR, FTC compliance
-│   ├── integration-service/       # Third-party API connections
-│   └── workflow-service/          # n8n automation orchestration
-│
-├── ai/                            # AI/ML Services (11) - Python/FastAPI
-│   ├── video-generator/           # AI video creation from images
-│   ├── script-generator/          # GPT-4 script & hook writing
-│   ├── caption-service/           # Auto-captioning (98% accuracy)
-│   ├── voiceover-service/         # Text-to-speech (50+ voices)
-│   ├── performance-predictor/     # Content success prediction
-│   ├── recommendation-engine/     # Creator-brand matching AI
-│   ├── trend-engine/              # Trending topic detection
-│   ├── moderation-engine/         # Content safety & brand fit
-│   ├── customer-agent/            # AI customer support
-│   ├── marketing-agent/           # AI copywriting assistant
-│   └── ai-center/                 # ML ops & model management
-│
-├── workers/                       # Background Job Processors (4)
-│   ├── video-processor/           # Transcoding & thumbnails
-│   ├── social-publisher/          # Multi-platform posting
-│   ├── notification-dispatcher/   # Queue-based notifications
-│   └── analytics-aggregator/      # ETL & data pipelines
-│
-├── workflows/                     # Automation Workflows (21+)
-│   ├── n8n/                       # n8n workflow definitions
-│   │   ├── lead-capture/          # Lead intake & nurturing
-│   │   ├── content-automation/    # AI content production
-│   │   ├── distribution/          # Multi-channel publishing
-│   │   ├── ecommerce/             # Cart recovery & upsells
-│   │   ├── billing/               # Payment & subscription flows
-│   │   ├── analytics/             # Reporting automation
-│   │   └── compliance/            # GDPR & FTC workflows
-│   ├── zapier/                    # Zapier templates
-│   └── make-blueprints/           # Make.com scenarios
-│
-├── database/                      # Database Configuration
-│   ├── postgres/                  # PostgreSQL migrations
-│   ├── mongodb/                   # MongoDB schemas
-│   └── redis/                     # Redis configurations
-│
-├── infrastructure/                # Infrastructure as Code
-│   ├── terraform/                 # Azure resource provisioning
-│   ├── kubernetes/                # K8s manifests & Helm charts
-│   ├── docker/                    # Docker Compose & Dockerfiles
-│   └── monitoring/                # Prometheus, Grafana configs
-│
-├── tests/                         # Test Suites
-│   ├── unit/                      # Unit tests (Vitest)
-│   ├── integration/               # Integration tests
-│   ├── e2e/                       # End-to-end tests (Playwright)
-│   └── security/                  # Security & penetration tests
-│
-├── docs/                          # Documentation
-│   ├── api/                       # OpenAPI specifications
-│   ├── architecture/              # System design docs
-│   └── guides/                    # User & developer guides
-│
-├── .github/                       # GitHub Configuration
-│   └── workflows/                 # CI/CD pipelines (6 workflows)
-│
-├── turbo.json                     # Turborepo configuration
-├── pnpm-workspace.yaml            # pnpm workspace definition
-└── package.json                   # Root package configuration
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                         AUTOMATED POSTING PLATFORM (AWS)                    │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                              INGESTION LAYER                                │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ S3 (Raw)    │  │ MediaConvert│  │ S3 (Processed)│ │ Lambda      │        │
+  │  │ • Uploads   │→ │ • Transcode │→ │ • Renditions │→ │ • Register  │        │
+  │  │ • Pre-signed│  │ • Normalize │  │ • Per-platform│ │ • Validate  │        │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                           COMPLIANCE & MODERATION                           │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ Rekognition │  │ Rules Engine│  │ Policy Store│  │ Audit Log   │        │
+  │  │ • Moderation│  │ • Brand Safe│  │ • FTC Rules │  │ • Verdicts  │        │
+  │  │ • Safety    │  │ • Copyright │  │ • Platform  │  │ • Timestamps│        │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                        SCHEDULING & ORCHESTRATION                           │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ EventBridge │  │ Step        │  │ SQS Queues  │  │ DLQ         │        │
+  │  │ Scheduler   │→ │ Functions   │→ │ (Per Platform)│→ │ (Failures)  │        │
+  │  │ • TZ-aware  │  │ • Lifecycle │  │ • Rate-limit│  │ • Retry     │        │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                              POSTING WORKERS                                │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ ECS Fargate │  │ Platform    │  │ Token Vault │  │ Idempotency │        │
+  │  │ • Workers   │  │ Adapters    │  │ Secrets Mgr │  │ Keys        │        │
+  │  │ • Scalable  │  │ • Unified IF│  │ • KMS       │  │ • Dedup     │        │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                         WEBHOOKS & RECONCILIATION                           │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ API Gateway │  │ Lambda      │  │ Poller      │  │ Status DB   │        │
+  │  │ • Webhooks  │→ │ • Verify    │→ │ • Reconcile │→ │ • DynamoDB  │        │
+  │  │ • Callbacks │  │ • Normalize │  │ • Cron      │  │ • Timeline  │        │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────────────────────────────────────┐
+  │                               ANALYTICS                                     │
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+  │  │ Kinesis     │  │ S3 Data Lake│  │ Athena      │  │ QuickSight  │        │
+  │  │ • Stream    │→ │ • Raw Events│→ │ • Query     │→ │ • Dashboard │        │
+  │  │ • Real-time │  │ • Partitioned│ │ • Reports   │  │ • Attribution│       │
+  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+  └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+### AWS Services Reference
 
-## Business Logic & Feature Scope
+| Function | AWS Service |
+|----------|-------------|
+| **Compute** | |
+| Container Orchestration | Amazon ECS / EKS |
+| Serverless Functions | AWS Lambda |
+| **Networking** | |
+| CDN & Edge | Amazon CloudFront |
+| API Management | Amazon API Gateway |
+| Load Balancing | Application Load Balancer |
+| DNS | Amazon Route 53 |
+| **Storage** | |
+| Object Storage | Amazon S3 |
+| Block Storage | Amazon EBS |
+| **Database** | |
+| Relational (Primary) | Amazon Aurora PostgreSQL |
+| Document Store | Amazon DocumentDB |
+| Cache | Amazon ElastiCache (Redis) |
+| Key-Value | Amazon DynamoDB |
+| Search | Amazon OpenSearch Service |
+| **Media** | |
+| Video Processing | AWS Elemental MediaConvert |
+| Speech-to-Text | Amazon Transcribe |
+| Text-to-Speech | Amazon Polly |
+| **AI/ML** | |
+| Foundation Models | Amazon Bedrock |
+| ML Training/Inference | Amazon SageMaker |
+| Content Moderation | Amazon Rekognition |
+| NLU/Chatbots | Amazon Lex |
+| **Security** | |
+| Identity | Amazon Cognito |
+| Secrets | AWS Secrets Manager |
+| Encryption | AWS KMS |
+| WAF | AWS WAF |
+| Threat Detection | Amazon GuardDuty |
+| Security Posture | AWS Security Hub |
+| **Messaging** | |
+| Queue | Amazon SQS |
+| Pub/Sub | Amazon SNS |
+| Streaming | Amazon Kinesis |
+| **Orchestration** | |
+| Workflow | AWS Step Functions |
+| Scheduling | Amazon EventBridge Scheduler |
+| **Observability** | |
+| Logging | Amazon CloudWatch Logs |
+| Metrics | Amazon CloudWatch Metrics |
+| Tracing | AWS X-Ray |
+| Dashboards | Amazon CloudWatch / QuickSight |
+| **Email/SMS** | |
+| Email | Amazon SES |
+| SMS/Push | Amazon SNS / Pinpoint |
 
-### Core Business Modules
+### Posting Workflow
 
-#### 1. Creator Management
-- **Creator Profiles**: Portfolio, metrics, verification status, reputation score (0-100)
-- **Verification System**: Social connect, document upload, video verification, phone verification
-- **Matching Algorithm**: AI-powered brand-creator pairing based on:
-  - Audience demographics overlap
-  - Content style alignment
-  - Historical performance
-  - Budget compatibility
-  - Brand value alignment
-
-#### 2. Campaign Lifecycle
 ```
-DRAFT --> PUBLISHED --> ACTIVE --> IN_PROGRESS --> COMPLETED --> ARCHIVED
-           |               |            |              |
-           v               v            v              v
-       Applications    Accepted     Submissions     Payouts
-         Open         Creators      & Reviews       Processed
+UGC Approved
+     │
+     ▼
+Schedule Created
+     │
+     ▼
+EventBridge Scheduler (TZ-aware)
+     │
+     ▼
+Step Functions (Lifecycle Orchestration)
+     │
+     ▼
+SQS Queue (Per Platform)
+     │
+     ▼
+ECS Posting Worker (Rate-limited)
+     │
+     ▼
+Platform API (TikTok, IG, X, LinkedIn, YouTube, Pinterest)
+     │
+     ▼
+Webhook / Polling Reconciliation
+     │
+     ▼
+Analytics + Attribution Pipeline
 ```
 
-- **Campaign Types**: UGC, Brand Ambassador, Product Review, Social Media, Influencer, Event
-- **Deliverable Types**: Video, Image, Story, Reel, Post, Article, Review, Testimonial
-- **Milestone Tracking**: Timeline management with automated reminders
+### Posting Adapter Interface
 
-#### 3. Content Pipeline
+All platform adapters implement a unified interface:
+
+```typescript
+interface PostingAdapter {
+  authenticate(): Promise<AuthResult>;
+  validate(post: Post): Promise<ValidationResult>;
+  schedule(post: Post, time: Date): Promise<ScheduleResult>;
+  publish(post: Post): Promise<PublishResult>;
+  getStatus(postId: string): Promise<PostStatus>;
+  handleWebhook(event: WebhookEvent): Promise<void>;
+}
 ```
-Upload --> AI Moderation --> Human Review --> Rights Capture --> Publish
-              |                   |                |
-              v                   v                v
-          Brand Safety       Compliance        Blockchain
-          Score (0-100)      FTC Check         Rights Ledger
-```
 
-- **Moderation**: AI-powered brand safety scoring with human escalation
-- **Rights Management**: Exclusive, non-exclusive, limited, perpetual licensing
-- **Version Control**: Full content versioning with rollback capability
+### Posting API Endpoints
 
-#### 4. Commerce Integration
-- **Shoppable Galleries**: Embeddable UGC with product hotspots
-- **Frame-Level Tagging**: Product tags at specific video timestamps
-- **Direct Checkout**: In-gallery purchase without external redirects
-- **Attribution Models**: First-touch, last-touch, linear, time-decay, position-based
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/posts/validate` | POST | Validate content for platform rules |
+| `/posts/schedule` | POST | Schedule post for future publish |
+| `/posts/publish` | POST | Immediate publish |
+| `/posts/{id}/status` | GET | Get posting state |
+| `/webhooks/social` | POST | Platform callbacks |
+| `/posts/{id}/metrics` | GET | Performance metrics |
 
-#### 5. Analytics & Reporting
-- **Real-Time Dashboards**: Live performance monitoring
-- **Custom Reports**: Scheduled email reports with white-labeling
-- **Predictive Analytics**: Content performance scoring before publishing
-- **Alert System**: Anomaly detection with configurable thresholds
+### Data Model (Posting Subsystem)
+
+| Entity | Storage | Purpose |
+|--------|---------|---------|
+| Tenant/Org | Aurora | Brand account |
+| User | Aurora | Creator, brand staff, admin |
+| SocialAccountLink | Aurora + Secrets Manager | OAuth tokens per platform |
+| Campaign | Aurora | Campaign metadata |
+| Asset | DynamoDB + S3 | Media files and metadata |
+| Post | DynamoDB | Post state and scheduling |
+| PostAttempt | DynamoDB | Retry history and errors |
+| PostingMetrics | S3 + Athena | Performance analytics |
+
+### Safety & Compliance
+
+- **FTC disclosure enforcement** (#ad, #sponsored auto-insertion)
+- **Platform-specific rule validation** (length, format, audio, overlays)
+- **Brand safety scoring** (0–100 scale with configurable thresholds)
+- **Copyright risk detection** (music, reused clips)
+- **Rights verification** before any publish
+- **Full audit trail** (who approved, when, where posted)
+
+### Guardrails & Kill Switches
+
+| Control | Scope | Description |
+|---------|-------|-------------|
+| Global Pause | All platforms | Emergency stop all posting (SSM Parameter Store toggle) |
+| Campaign Disable | Per campaign | Stop specific campaign |
+| Platform Throttle | Per platform | Rate-limit specific channel |
+| Auto-Shutdown | Per account | Trigger on repeated failures |
+| Manual Override | Admin | Force publish or cancel |
 
 ---
 
 ## Technology Stack
 
 ### Frontend Technologies
+
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
 | Framework | Next.js | 14.x | React server components, App Router |
@@ -401,6 +492,7 @@ Upload --> AI Moderation --> Human Review --> Rights Capture --> Publish
 | Mobile | React Native | 0.73+ | Cross-platform mobile apps |
 
 ### Backend Technologies
+
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
 | Runtime | Node.js | 18+ LTS | JavaScript runtime |
@@ -414,50 +506,219 @@ Upload --> AI Moderation --> Human Review --> Rights Capture --> Publish
 | Queue | BullMQ | 5.x | Redis-based job queues |
 
 ### AI/ML Technologies
+
 | Category | Technology | Version | Purpose |
 |----------|------------|---------|---------|
 | Runtime | Python | 3.11+ | ML service runtime |
 | Framework | FastAPI | 0.109+ | Async API framework |
-| LLM | OpenAI GPT-4 | Latest | Script generation, analysis |
-| Image | DALL-E 3 | Latest | AI image generation |
+| LLM | Amazon Bedrock (Claude) | Latest | Script generation, analysis |
+| Image | Stability AI / DALL-E | Latest | AI image generation |
+| ML Platform | Amazon SageMaker | Latest | Model training & inference |
 | ML | TensorFlow | 2.15+ | Custom model training |
 | ML | PyTorch | 2.1+ | Deep learning models |
-| Vector DB | Pinecone | Latest | Embedding storage |
-| Feature Store | Feast | 0.37+ | ML feature management |
+| Vector DB | Amazon OpenSearch | Latest | Embedding storage |
 
 ### Database Technologies
-| Category | Technology | Version | Purpose |
-|----------|------------|---------|---------|
-| Primary DB | PostgreSQL | 15+ | Relational data, pgvector |
-| Document DB | MongoDB | 7+ | Content, media metadata |
-| Cache | Redis | 7+ | Sessions, rate limiting |
-| Search | Elasticsearch | 8.11+ | Full-text search, logs |
-| Message Queue | Redis Streams | 7+ | Event streaming |
 
-### Infrastructure & DevOps
-| Category | Technology | Purpose |
-|----------|------------|---------|
-| Cloud | Azure | Primary cloud provider |
-| Containers | Docker | Application containerization |
-| Orchestration | Kubernetes (AKS) | Container orchestration |
-| Registry | Azure Container Registry | Docker image storage |
-| IaC | Terraform | Infrastructure provisioning |
-| CI/CD | GitHub Actions | Automated pipelines |
-| Monitoring | Azure Application Insights | APM & diagnostics |
-| Logging | Azure Log Analytics | Centralized logging |
-| Secrets | Azure Key Vault | Secure credential storage |
-| CDN | Azure Front Door | Global content delivery |
+| Category | AWS Service | Purpose |
+|----------|-------------|---------|
+| Primary DB | Amazon Aurora PostgreSQL | Relational data, users, campaigns |
+| Document DB | Amazon DocumentDB | Content, media metadata |
+| Cache | Amazon ElastiCache (Redis) | Sessions, rate limiting |
+| Key-Value | Amazon DynamoDB | Post state, high-velocity data |
+| Search | Amazon OpenSearch Service | Full-text search, logs |
+| Data Lake | Amazon S3 + Athena | Analytics, raw events |
 
 ### Integration Technologies
+
 | Category | Integrations |
 |----------|--------------|
 | Social | Instagram, Facebook, TikTok, Twitter/X, LinkedIn, YouTube, Pinterest |
 | E-commerce | Shopify, WooCommerce, Magento, BigCommerce |
 | CRM | HubSpot, Salesforce, Pipedrive |
-| Email | SendGrid, Mailgun, Mailchimp, Klaviyo |
+| Email | Amazon SES, SendGrid, Mailchimp, Klaviyo |
 | Payment | Stripe, PayPal, Wise |
 | Automation | n8n, Make, Zapier |
-| Communication | Twilio, WhatsApp Business API, Slack |
+| Communication | Amazon SNS, Twilio, WhatsApp Business API, Slack |
+
+---
+
+## Project Structure
+
+```
+nexus-platform/
+├── apps/                              # Client Applications (5)
+│   ├── web/                           # Main SaaS web application (Next.js 14)
+│   ├── creator-portal/                # Creator dashboard & portfolio
+│   ├── brand-portal/                  # Brand campaign management
+│   ├── admin/                         # Internal administration
+│   └── mobile/                        # React Native iOS/Android app
+│
+├── packages/                          # Shared NPM Packages (10)
+│   ├── ui/                            # React component library (shadcn/ui)
+│   ├── types/                         # Shared TypeScript definitions
+│   ├── utils/                         # Common utility functions
+│   ├── config/                        # Shared configurations
+│   ├── database/                      # Prisma client & migrations
+│   ├── auth/                          # Authentication utilities
+│   ├── api-client/                    # HTTP client SDK
+│   ├── analytics-sdk/                 # Client analytics tracking
+│   ├── video-editor/                  # Browser video editing (FFmpeg.wasm)
+│   └── shoppable-embed/               # Embeddable commerce widget
+│
+├── services/                          # Backend Microservices (17)
+│   ├── api-gateway/                   # Central routing & auth (Port 4000)
+│   ├── auth-service/                  # Authentication & MFA (Port 3001)
+│   ├── user-service/                  # User & org management (Port 3002)
+│   ├── creator-service/               # Creator profiles & matching
+│   ├── campaign-service/              # Campaign lifecycle management
+│   ├── content-service/               # UGC upload & moderation
+│   ├── commerce-service/              # Shoppable galleries & checkout
+│   ├── marketplace-service/           # Creator opportunity bidding
+│   ├── billing-service/               # Subscriptions & payments (Stripe)
+│   ├── analytics-service/             # Metrics & reporting
+│   ├── notification-service/          # Email, SMS, push notifications
+│   ├── payout-service/                # Creator payment processing
+│   ├── rights-service/                # Content licensing & DRM
+│   ├── asset-service/                 # Media storage & CDN
+│   ├── compliance-service/            # GDPR, FTC compliance
+│   ├── integration-service/           # Third-party API connections
+│   └── workflow-service/              # n8n automation orchestration
+│
+├── ai/                                # AI/ML Services (11) - Python/FastAPI
+│   ├── video-generator/               # AI video creation from images
+│   ├── script-generator/              # Bedrock/Claude script & hook writing
+│   ├── caption-service/               # Amazon Transcribe (98% accuracy)
+│   ├── voiceover-service/             # Amazon Polly (50+ voices)
+│   ├── performance-predictor/         # SageMaker content success prediction
+│   ├── recommendation-engine/         # Creator-brand matching AI
+│   ├── trend-engine/                  # Trending topic detection
+│   ├── moderation-engine/             # Rekognition content safety
+│   ├── customer-agent/                # Amazon Lex customer support
+│   ├── marketing-agent/               # Bedrock copywriting assistant
+│   └── ai-center/                     # SageMaker ML ops & model management
+│
+├── workers/                           # Background Job Processors (4)
+│   ├── video-processor/               # MediaConvert transcoding & thumbnails
+│   ├── social-publisher/              # ECS Fargate multi-platform posting
+│   ├── notification-dispatcher/       # SQS-based notifications
+│   └── analytics-aggregator/          # Kinesis ETL & data pipelines
+│
+├── workflows/                         # Automation Workflows (21+)
+│   ├── n8n/                           # n8n workflow definitions
+│   │   ├── lead-capture/              # Lead intake & nurturing
+│   │   ├── content-automation/        # AI content production
+│   │   ├── distribution/              # Multi-channel publishing
+│   │   ├── ecommerce/                 # Cart recovery & upsells
+│   │   ├── billing/                   # Payment & subscription flows
+│   │   ├── analytics/                 # Reporting automation
+│   │   └── compliance/                # GDPR & FTC workflows
+│   ├── step-functions/                # AWS Step Functions definitions
+│   ├── zapier/                        # Zapier templates
+│   └── make-blueprints/               # Make.com scenarios
+│
+├── database/                          # Database Configuration
+│   ├── aurora/                        # Aurora PostgreSQL migrations
+│   ├── documentdb/                    # DocumentDB schemas
+│   ├── dynamodb/                      # DynamoDB table definitions
+│   └── elasticache/                   # Redis configurations
+│
+├── infrastructure/                    # Infrastructure as Code
+│   ├── terraform/
+│   │   ├── modules/
+│   │   │   ├── networking/            # VPC, subnets, security groups
+│   │   │   ├── compute/               # ECS, EKS, Lambda
+│   │   │   ├── database/              # Aurora, DocumentDB, DynamoDB
+│   │   │   ├── storage/               # S3 buckets, lifecycle policies
+│   │   │   ├── messaging/             # SQS, SNS, EventBridge
+│   │   │   ├── ai-ml/                 # SageMaker, Bedrock
+│   │   │   ├── observability/         # CloudWatch, X-Ray
+│   │   │   └── security/              # IAM, KMS, Secrets Manager
+│   │   ├── environments/
+│   │   │   ├── dev/
+│   │   │   ├── staging/
+│   │   │   └── prod/
+│   │   └── backend.tf                 # S3 + DynamoDB state backend
+│   ├── cloudformation/                # CFN templates (legacy/compliance)
+│   ├── cdk/                           # AWS CDK constructs
+│   └── docker/                        # Docker Compose & Dockerfiles
+│
+├── tests/                             # Test Suites
+│   ├── unit/                          # Unit tests (Vitest)
+│   ├── integration/                   # Integration tests
+│   ├── e2e/                           # End-to-end tests (Playwright)
+│   └── security/                      # Security & penetration tests
+│
+├── docs/                              # Documentation
+│   ├── api/                           # OpenAPI specifications
+│   ├── architecture/                  # System design docs
+│   ├── runbooks/                      # Operational runbooks
+│   └── guides/                        # User & developer guides
+│
+├── .github/                           # GitHub Configuration
+│   └── workflows/                     # CI/CD pipelines (6 workflows)
+│
+├── turbo.json                         # Turborepo configuration
+├── pnpm-workspace.yaml                # pnpm workspace definition
+└── package.json                       # Root package configuration
+```
+
+---
+
+## Core Business Modules
+
+### 1. Creator Management
+
+- **Creator Profiles:** Portfolio, metrics, verification status, reputation score (0–100)
+- **Verification System:** Social connect, document upload, video verification, phone verification
+- **Matching Algorithm:** AI-powered brand-creator pairing based on:
+  - Audience demographics overlap
+  - Content style alignment
+  - Historical performance
+  - Budget compatibility
+  - Brand value alignment
+
+### 2. Campaign Lifecycle
+
+```
+DRAFT → PUBLISHED → ACTIVE → IN_PROGRESS → COMPLETED → ARCHIVED
+          │            │           │             │
+          ▼            ▼           ▼             ▼
+      Applications  Accepted   Submissions    Payouts
+        Open        Creators   & Reviews     Processed
+```
+
+- **Campaign Types:** UGC, Brand Ambassador, Product Review, Social Media, Influencer, Event
+- **Deliverable Types:** Video, Image, Story, Reel, Post, Article, Review, Testimonial
+- **Milestone Tracking:** Timeline management with automated reminders
+
+### 3. Content Pipeline
+
+```
+Upload → AI Moderation → Human Review → Rights Capture → Publish
+             │                │               │
+             ▼                ▼               ▼
+         Brand Safety     Compliance     Blockchain
+         Score (0-100)    FTC Check      Rights Ledger
+```
+
+- **Moderation:** Rekognition-powered brand safety scoring with human escalation
+- **Rights Management:** Exclusive, non-exclusive, limited, perpetual licensing
+- **Version Control:** Full content versioning with rollback capability
+
+### 4. Commerce Integration
+
+- **Shoppable Galleries:** Embeddable UGC with product hotspots
+- **Frame-Level Tagging:** Product tags at specific video timestamps
+- **Direct Checkout:** In-gallery purchase without external redirects
+- **Attribution Models:** First-touch, last-touch, linear, time-decay, position-based
+
+### 5. Analytics & Reporting
+
+- **Real-Time Dashboards:** CloudWatch + QuickSight live performance monitoring
+- **Custom Reports:** Scheduled email reports with white-labeling
+- **Predictive Analytics:** SageMaker content performance scoring before publishing
+- **Alert System:** CloudWatch anomaly detection with configurable thresholds
 
 ---
 
@@ -473,12 +734,13 @@ Upload --> AI Moderation --> Human Review --> Rights Capture --> Publish
 | **Active Campaigns** | 2 | 10 | 50 | Unlimited | Unlimited |
 | **Storage** | 1 GB | 10 GB | 100 GB | 1 TB | Unlimited |
 | **AI Generations** | 10/mo | 100/mo | 1,000/mo | 10,000/mo | Unlimited |
-| **API Access** | - | Basic | Full | Full | Custom |
+| **Auto-Posting** | — | Basic | Full | Full | Custom |
+| **API Access** | — | Basic | Full | Full | Custom |
 | **Analytics** | Basic | Standard | Advanced | Enterprise | Custom |
 | **Support** | Community | Email | Priority | 24/7 | Dedicated |
-| **SLA** | - | 99% | 99.5% | 99.9% | Custom |
-| **White Label** | - | - | - | Logo | Full |
-| **SSO/SAML** | - | - | - | Yes | Yes |
+| **SLA** | — | 99% | 99.5% | 99.9% | Custom |
+| **White Label** | — | — | — | Logo | Full |
+| **SSO/SAML** | — | — | — | ✓ | ✓ |
 
 ### Usage-Based Pricing (Overages)
 
@@ -487,48 +749,57 @@ Upload --> AI Moderation --> Human Review --> Rights Capture --> Publish
 | Content Views | per 1,000 | $0.50 |
 | Video Renders | per render | $0.10 |
 | AI Generations | per generation | $0.05 |
+| Scheduled Posts | per post | $0.02 |
 | Storage | per GB | $0.10/mo |
 | Bandwidth | per GB | $0.08 |
 | API Calls | per 1,000 | $0.01 |
 
 ### Annual Billing
-- **2 months free** with annual commitment
+
+- 2 months free with annual commitment
 - Enterprise volume discounts available
 - Non-profit and education discounts: 50% off
 
 ---
 
-## Azure Deployment
+## AWS Deployment
 
-### Production Infrastructure (`marketing-prod-rg`)
+### Production Infrastructure
 
-| Resource | Name | SKU/Tier | Purpose |
-|----------|------|----------|---------|
-| AKS Cluster | aks-marketing-prod-pja9 | Standard_D2s_v3 (3 nodes) | Container orchestration |
-| Container Registry | acrmktprodpja9 | Premium | Docker images |
-| PostgreSQL | psql-marketing-prod-pja9 | Flexible Server GP | Primary database |
-| Redis Cache | marketing-prod-redis-pja9 | Premium P1 | Caching & sessions |
-| Key Vault | kv-mkt-prod-pja9 | Standard | Secrets management |
-| Storage Account | mktproda4iv | StorageV2 | Blob storage |
-| Virtual Network | vnet-marketing-prod | - | Network isolation |
-| Application Insights | marketing-prod-appinsights | - | Monitoring |
-| Log Analytics | marketing-prod-logs | - | Centralized logging |
+| Resource | AWS Service | Configuration | Purpose |
+|----------|-------------|---------------|---------|
+| Container Orchestration | Amazon EKS | 3x m5.xlarge nodes | Microservices hosting |
+| Container Registry | Amazon ECR | Private | Docker images |
+| Primary Database | Amazon Aurora PostgreSQL | db.r6g.large (Multi-AZ) | Relational data |
+| Document Database | Amazon DocumentDB | db.r6g.large | Content metadata |
+| Cache | Amazon ElastiCache | cache.r6g.large (Redis 7) | Sessions, rate limiting |
+| Key-Value Store | Amazon DynamoDB | On-demand | Post state, high-velocity |
+| Search | Amazon OpenSearch | 3x m5.large.search | Full-text search |
+| Object Storage | Amazon S3 | Standard + Intelligent-Tiering | Assets, uploads, backups |
+| CDN | Amazon CloudFront | Global edge | Content delivery |
+| Secrets | AWS Secrets Manager | Automatic rotation | Credentials |
+| Encryption | AWS KMS | CMK per environment | Data encryption |
+| VPC | Amazon VPC | Multi-AZ, private subnets | Network isolation |
+| Load Balancer | Application Load Balancer | Multi-AZ | Traffic distribution |
+| DNS | Amazon Route 53 | Hosted zone | Domain management |
+| Monitoring | Amazon CloudWatch | Logs, Metrics, Alarms | Observability |
+| Tracing | AWS X-Ray | Full distributed tracing | Performance analysis |
 
-### Staging Infrastructure (`marketing-staging-rg`)
+### Staging Infrastructure
 
-| Resource | Name | Purpose |
-|----------|------|---------|
-| AKS Cluster | aks-marketing-staging-ravs | Testing environment |
-| Container Registry | acrmktstagingravs | Staging images |
-| PostgreSQL | psql-marketing-staging | Staging database |
-| Redis Cache | marketing-staging-redis | Staging cache |
+| Resource | AWS Service | Configuration |
+|----------|-------------|---------------|
+| Container Orchestration | Amazon EKS | 2x m5.large nodes |
+| Primary Database | Amazon Aurora PostgreSQL | db.t4g.medium |
+| Cache | Amazon ElastiCache | cache.t4g.medium |
+| Object Storage | Amazon S3 | Standard |
 
-### Container Images (ACR)
+### Container Images (ECR)
 
-All 28 services containerized and pushed to Azure Container Registry:
+All 31 services containerized and pushed to Amazon ECR:
 
 ```
-acrmktstagingravs.azurecr.io/
+{account}.dkr.ecr.{region}.amazonaws.com/nexus/
 ├── api-gateway:latest
 ├── auth-service:latest
 ├── user-service:latest
@@ -547,6 +818,9 @@ acrmktstagingravs.azurecr.io/
 ├── integration-service:latest
 ├── workflow-service:latest
 ├── video-generator:latest
+├── script-generator:latest
+├── caption-service:latest
+├── voiceover-service:latest
 ├── performance-predictor:latest
 ├── recommendation-engine:latest
 ├── moderation-engine:latest
@@ -562,6 +836,63 @@ acrmktstagingravs.azurecr.io/
 └── admin:latest
 ```
 
+### Terraform Module Structure
+
+```
+infrastructure/terraform/
+├── modules/
+│   ├── networking/
+│   │   ├── vpc.tf
+│   │   ├── subnets.tf
+│   │   ├── security-groups.tf
+│   │   └── endpoints.tf
+│   ├── compute/
+│   │   ├── eks.tf
+│   │   ├── ecs.tf
+│   │   ├── lambda.tf
+│   │   └── autoscaling.tf
+│   ├── database/
+│   │   ├── aurora.tf
+│   │   ├── documentdb.tf
+│   │   ├── dynamodb.tf
+│   │   └── elasticache.tf
+│   ├── storage/
+│   │   ├── s3.tf
+│   │   └── lifecycle.tf
+│   ├── messaging/
+│   │   ├── sqs.tf
+│   │   ├── sns.tf
+│   │   ├── eventbridge.tf
+│   │   └── kinesis.tf
+│   ├── ai-ml/
+│   │   ├── sagemaker.tf
+│   │   └── bedrock.tf
+│   ├── observability/
+│   │   ├── cloudwatch.tf
+│   │   ├── xray.tf
+│   │   └── alarms.tf
+│   └── security/
+│       ├── iam.tf
+│       ├── kms.tf
+│       ├── secrets-manager.tf
+│       ├── waf.tf
+│       └── guardduty.tf
+├── environments/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── terraform.tfvars
+│   ├── staging/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   └── terraform.tfvars
+│   └── prod/
+│       ├── main.tf
+│       ├── variables.tf
+│       └── terraform.tfvars
+└── backend.tf                    # S3 + DynamoDB state locking
+```
+
 ---
 
 ## Getting Started
@@ -572,7 +903,9 @@ acrmktstagingravs.azurecr.io/
 - Python 3.11+
 - Docker Desktop
 - pnpm 8+
-- Azure CLI (for deployment)
+- AWS CLI v2 (configured with credentials)
+- Terraform 1.5+
+- kubectl
 
 ### Local Development
 
@@ -629,17 +962,23 @@ pnpm test:e2e
 pnpm test:coverage
 ```
 
----
-
-## Deployment
-
-### Kubernetes Deployment
+### AWS Deployment
 
 ```bash
-# Get AKS credentials
-az aks get-credentials --resource-group marketing-prod-rg --name aks-marketing-prod-pja9
+# Initialize Terraform
+cd infrastructure/terraform/environments/prod
+terraform init
 
-# Apply Kubernetes manifests
+# Plan infrastructure changes
+terraform plan -out=tfplan
+
+# Apply infrastructure
+terraform apply tfplan
+
+# Configure kubectl for EKS
+aws eks update-kubeconfig --name nexus-prod --region us-east-1
+
+# Deploy Kubernetes manifests
 kubectl apply -k infrastructure/kubernetes/overlays/production
 
 # Verify deployment
@@ -649,16 +988,20 @@ kubectl get pods -n nexus-prod
 ### CI/CD Pipeline
 
 GitHub Actions workflows:
-1. **ci-cd.yml** - Main build, test, and deploy pipeline
-2. **security.yml** - Security scanning (Trivy, npm audit)
-3. **lint.yml** - Code quality checks
-4. **test.yml** - Automated testing
-5. **deploy-staging.yml** - Staging deployment
-6. **deploy-production.yml** - Production deployment (manual trigger)
+
+| Workflow | Purpose |
+|----------|---------|
+| `ci-cd.yml` | Main build, test, and deploy pipeline |
+| `security.yml` | Security scanning (Trivy, npm audit, Snyk) |
+| `lint.yml` | Code quality checks |
+| `test.yml` | Automated testing |
+| `deploy-staging.yml` | Staging deployment |
+| `deploy-production.yml` | Production deployment (manual trigger) |
+| `terraform-plan.yml` | Infrastructure change preview |
 
 ---
 
-## Platform Metrics
+## Performance & Security
 
 ### Performance Benchmarks
 
@@ -678,35 +1021,43 @@ GitHub Actions workflows:
 | Content Items | 10M+ |
 | API Requests/Day | 50M+ |
 | Video Processing | 10TB/day |
-
----
-
-## Security & Compliance
+| Scheduled Posts/Day | 1M+ |
 
 ### Compliance Certifications
+
 - SOC 2 Type II (in progress)
 - GDPR compliant
 - CCPA compliant
 - FTC disclosure automation
+- HIPAA eligible (Enterprise tier)
 
 ### Security Features
-- AES-256 encryption at rest
+
+- AES-256 encryption at rest (KMS CMK)
 - TLS 1.3 in transit
-- OAuth 2.0 + JWT authentication
+- Amazon Cognito + JWT authentication
 - MFA/2FA support
 - Role-based access control (RBAC)
-- API rate limiting
-- Audit logging
+- API rate limiting (API Gateway)
+- AWS WAF protection
+- Amazon GuardDuty threat detection
+- AWS Security Hub posture management
+- Audit logging (CloudTrail)
+- Secrets rotation (Secrets Manager)
 - Regular penetration testing
+- VPC isolation with private subnets
 
 ---
 
 ## Support
 
-- **Documentation**: [docs.nexusugc.com](https://docs.nexusugc.com)
-- **API Reference**: [api.nexusugc.com/docs](https://api.nexusugc.com/docs)
-- **Email Support**: support@nexusugc.com
-- **Enterprise Sales**: enterprise@nexusugc.com
+| Resource | Link |
+|----------|------|
+| Documentation | docs.nexusugc.com |
+| API Reference | api.nexusugc.com/docs |
+| Status Page | status.nexusugc.com |
+| Email Support | support@nexusugc.com |
+| Enterprise Sales | enterprise@nexusugc.com |
 
 ---
 
@@ -716,8 +1067,12 @@ This project is proprietary software. See [LICENSE](LICENSE) for details.
 
 ---
 
-<p align="center">
-  <strong>NEXUS</strong> - Transforming Creator Marketing
-  <br>
-  Built with precision engineering
-</p>
+<div align="center">
+
+**NEXUS**
+
+*Transforming Creator Marketing*
+
+Built with precision engineering on AWS
+
+</div>
