@@ -47,6 +47,11 @@ output "eks_nodes_security_group_id" {
   value       = aws_security_group.eks_nodes.id
 }
 
+output "ecs_tasks_security_group_id" {
+  description = "ECS tasks security group ID"
+  value       = aws_security_group.ecs_tasks.id
+}
+
 output "database_security_group_id" {
   description = "Database security group ID"
   value       = aws_security_group.database.id

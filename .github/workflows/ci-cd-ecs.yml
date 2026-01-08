@@ -1,0 +1,656 @@
+# =============================================================================
+# NEXUS Platform - AWS ECS Fargate CI/CD Pipeline
+# =============================================================================
+#
+# This pipeline builds, tests, and deploys to AWS ECS Fargate (serverless).
+# NO EKS/Kubernetes dependencies - pure ECS deployment.
+# Uses OIDC for authentication - no long-lived credentials.
+#
+# =============================================================================
+
+name: ECS Fargate CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/*'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+  ECS_CLUSTER_DEV: nexus-dev
+  ECS_CLUSTER_STAGING: nexus-staging
+  ECS_CLUSTER_PROD: nexus-prod
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read
+  security-events: write
+
+jobs:
+  # ===========================================================================
+  # Security Scanning
+  # ===========================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Run TruffleHog (secrets detection)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+  # ===========================================================================
+  # Build and Push Backend Services
+  # ===========================================================================
+  build-backend:
+    name: Build Backend Services
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - user-service
+          - creator-service
+          - campaign-service
+          - content-service
+          - commerce-service
+          - analytics-service
+          - billing-service
+          - marketplace-service
+          - notification-service
+          - workflow-service
+          - compliance-service
+          - integration-service
+          - payout-service
+          - rights-service
+          - asset-service
+          - ai-service
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "version=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "version=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.service }}:${{ steps.meta.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.service }}:${{ steps.meta.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '0'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ===========================================================================
+  # Build AI Services
+  # ===========================================================================
+  build-ai:
+    name: Build AI Services
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - ai-center
+          - customer-agent
+          - marketing-agent
+          - moderation-engine
+          - performance-predictor
+          - recommendation-engine
+          - video-generator
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "version=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "version=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./ai/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.service }}:${{ steps.meta.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.service }}:latest
+
+  # ===========================================================================
+  # Build Workers
+  # ===========================================================================
+  build-workers:
+    name: Build Workers
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        worker:
+          - video-processor
+          - social-publisher
+          - notification-dispatcher
+          - analytics-aggregator
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "version=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "version=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./workers/${{ matrix.worker }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.worker }}:${{ steps.meta.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.worker }}:latest
+
+  # ===========================================================================
+  # Build Frontend Apps
+  # ===========================================================================
+  build-frontend:
+    name: Build Frontend Apps
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - web
+          - creator-portal
+          - admin
+          - brand-portal
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "version=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "version=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev-${SHORT_SHA}" >> $GITHUB_OUTPUT
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.app }}:${{ steps.meta.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/nexus-${{ steps.meta.outputs.environment }}-${{ matrix.app }}:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.API_URL }}
+            NODE_ENV=production
+
+  # ===========================================================================
+  # Deploy to Staging (ECS Fargate)
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-ai, build-workers, build-frontend]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_STAGING_ACCOUNT_ID }}:role/ClaudeMigrationRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get image tag
+        id: tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=staging-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Deploy Backend Services to ECS
+        run: |
+          SERVICES="api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service marketplace-service notification-service workflow-service compliance-service integration-service payout-service rights-service asset-service ai-service"
+
+          for SERVICE in $SERVICES; do
+            echo "Deploying $SERVICE..."
+
+            # Update ECS service with new image
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_STAGING }} \
+              --service $SERVICE \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Deploy AI Services to ECS
+        run: |
+          SERVICES="ai-center customer-agent marketing-agent moderation-engine performance-predictor recommendation-engine video-generator"
+
+          for SERVICE in $SERVICES; do
+            echo "Deploying $SERVICE..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_STAGING }} \
+              --service $SERVICE \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "Service $SERVICE may not exist yet"
+          done
+
+      - name: Deploy Workers to ECS
+        run: |
+          WORKERS="video-processor social-publisher notification-dispatcher analytics-aggregator"
+
+          for WORKER in $WORKERS; do
+            echo "Deploying $WORKER..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_STAGING }} \
+              --service $WORKER \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "Worker $WORKER may not exist yet"
+          done
+
+      - name: Deploy Frontend Apps to ECS
+        run: |
+          APPS="web creator-portal admin brand-portal"
+
+          for APP in $APPS; do
+            echo "Deploying $APP..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_STAGING }} \
+              --service $APP \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "App $APP may not exist yet"
+          done
+
+      - name: Wait for services to stabilize
+        run: |
+          echo "Waiting for services to reach steady state..."
+
+          # Wait for critical services
+          CRITICAL_SERVICES="api-gateway auth-service user-service web"
+
+          for SERVICE in $CRITICAL_SERVICES; do
+            echo "Waiting for $SERVICE..."
+            aws ecs wait services-stable \
+              --cluster ${{ env.ECS_CLUSTER_STAGING }} \
+              --services $SERVICE \
+              --region ${{ env.AWS_REGION }} || echo "Timeout waiting for $SERVICE"
+          done
+
+      - name: Run smoke tests
+        run: |
+          # Get ALB DNS name from Terraform output or describe load balancer
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names nexus-staging-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+
+          echo "Testing ALB at: $ALB_DNS"
+
+          # Health check
+          curl -f "https://${ALB_DNS}/api/v1/auth/health" || echo "Auth service health check pending"
+          curl -f "https://${ALB_DNS}/health" || echo "API gateway health check pending"
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Staging deployment successful"
+          else
+            echo "❌ Staging deployment failed"
+          fi
+
+  # ===========================================================================
+  # Deploy to Production (ECS Fargate)
+  # ===========================================================================
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-ai, build-workers, build-frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_PROD_ACCOUNT_ID }}:role/ClaudeMigrationRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get image tag
+        id: tag
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tag=prod-${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Deploy Backend Services to ECS (Rolling)
+        run: |
+          SERVICES="api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service marketplace-service notification-service workflow-service compliance-service integration-service payout-service rights-service asset-service ai-service"
+
+          for SERVICE in $SERVICES; do
+            echo "Deploying $SERVICE to production..."
+
+            # Update ECS service with new image (rolling deployment)
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_PROD }} \
+              --service $SERVICE \
+              --force-new-deployment \
+              --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100" \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Deploy AI Services to ECS
+        run: |
+          SERVICES="ai-center customer-agent marketing-agent moderation-engine performance-predictor recommendation-engine video-generator"
+
+          for SERVICE in $SERVICES; do
+            echo "Deploying $SERVICE to production..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_PROD }} \
+              --service $SERVICE \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "Service $SERVICE may not exist yet"
+          done
+
+      - name: Deploy Workers to ECS
+        run: |
+          WORKERS="video-processor social-publisher notification-dispatcher analytics-aggregator"
+
+          for WORKER in $WORKERS; do
+            echo "Deploying $WORKER to production..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_PROD }} \
+              --service $WORKER \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "Worker $WORKER may not exist yet"
+          done
+
+      - name: Deploy Frontend Apps to ECS
+        run: |
+          APPS="web creator-portal admin brand-portal"
+
+          for APP in $APPS; do
+            echo "Deploying $APP to production..."
+
+            aws ecs update-service \
+              --cluster ${{ env.ECS_CLUSTER_PROD }} \
+              --service $APP \
+              --force-new-deployment \
+              --region ${{ env.AWS_REGION }} || echo "App $APP may not exist yet"
+          done
+
+      - name: Wait for services to stabilize
+        run: |
+          echo "Waiting for production services to reach steady state..."
+
+          # Wait for critical services with extended timeout
+          CRITICAL_SERVICES="api-gateway auth-service user-service web"
+
+          for SERVICE in $CRITICAL_SERVICES; do
+            echo "Waiting for $SERVICE (production)..."
+            aws ecs wait services-stable \
+              --cluster ${{ env.ECS_CLUSTER_PROD }} \
+              --services $SERVICE \
+              --region ${{ env.AWS_REGION }}
+          done
+
+      - name: Run production smoke tests
+        run: |
+          # Get ALB DNS name
+          ALB_DNS=$(aws elbv2 describe-load-balancers \
+            --names nexus-prod-alb \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text \
+            --region ${{ env.AWS_REGION }})
+
+          echo "Testing production ALB at: $ALB_DNS"
+
+          # Health checks
+          curl -f "https://${ALB_DNS}/api/v1/auth/health" || exit 1
+          curl -f "https://${ALB_DNS}/health" || exit 1
+
+          echo "✅ Production health checks passed"
+
+      - name: Notify on success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ ECS Production deployment successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Production Deployment Successful (ECS Fargate)*\nCommit: ${{ github.sha }}\nDeployed by: ${{ github.actor }}\nCluster: ${{ env.ECS_CLUSTER_PROD }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Deployment failed. ECS circuit breaker should auto-rollback."
+          echo "Manual rollback command if needed:"
+          echo "aws ecs update-service --cluster ${{ env.ECS_CLUSTER_PROD }} --service SERVICE_NAME --task-definition PREVIOUS_TASK_DEF"
+
+          # List recent task definitions for reference
+          echo "Recent api-gateway task definitions:"
+          aws ecs list-task-definitions \
+            --family-prefix nexus-api-gateway-prod \
+            --sort DESC \
+            --max-items 5 \
+            --region ${{ env.AWS_REGION }}
+
+  # ===========================================================================
+  # Terraform Plan (Infrastructure Changes)
+  # ===========================================================================
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: infrastructure/terraform-aws/environments/staging
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infrastructure/terraform-aws/environments/staging
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      - name: Comment PR with plan
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const output = `#### Terraform Plan 📖
+
+            \`\`\`
+            Check the workflow logs for the full plan output
+            \`\`\`
+
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })

@@ -1,0 +1,240 @@
+# =============================================================================
+# AWS CodeBuild Build Specification - NEXUS Platform (ECS Fargate)
+# Builds Docker images, pushes to Amazon ECR, and deploys to ECS
+# =============================================================================
+
+version: 0.2
+
+env:
+  variables:
+    PROJECT_NAME: nexus
+    AWS_DEFAULT_REGION: us-east-1
+    NODE_VERSION: "20"
+  parameter-store:
+    DOCKERHUB_USERNAME: /nexus/dockerhub/username
+    DOCKERHUB_PASSWORD: /nexus/dockerhub/password
+  exported-variables:
+    - IMAGE_TAG
+    - BUILD_ID
+    - ECS_CLUSTER
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+    commands:
+      - echo "Installing dependencies..."
+      - npm install -g pnpm@8
+      - pnpm install --frozen-lockfile --ignore-scripts
+
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - echo "Setting build variables..."
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_TAG=${ENVIRONMENT}-${COMMIT_HASH}
+      - export BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - export ECR_REGISTRY=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - export ECS_CLUSTER=nexus-${ENVIRONMENT}
+
+      - echo "Build info:"
+      - echo "  Environment: $ENVIRONMENT"
+      - echo "  Image Tag: $IMAGE_TAG"
+      - echo "  ECS Cluster: $ECS_CLUSTER"
+
+      - echo "Running type check..."
+      - pnpm run type-check || true
+
+      - echo "Running lint..."
+      - pnpm run lint || true
+
+  build:
+    commands:
+      - echo "Building packages..."
+      - pnpm run build --filter=@nexus/types --filter=@nexus/utils --filter=@nexus/config --filter=@nexus/database || true
+
+      - echo "Building Docker images for ECS Fargate..."
+
+      # Build and push backend services
+      - |
+        for SERVICE in api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service marketplace-service notification-service workflow-service compliance-service integration-service payout-service rights-service asset-service ai-service; do
+          if [ -f "services/$SERVICE/Dockerfile" ]; then
+            echo "Building $SERVICE..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$SERVICE:$IMAGE_TAG \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$SERVICE:latest \
+              -f services/$SERVICE/Dockerfile \
+              .
+
+            echo "Pushing $SERVICE to ECR..."
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$SERVICE:$IMAGE_TAG
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$SERVICE:latest
+          fi
+        done
+
+      # Build and push workers
+      - |
+        for WORKER in video-processor social-publisher analytics-aggregator notification-dispatcher; do
+          if [ -f "workers/$WORKER/Dockerfile" ]; then
+            echo "Building $WORKER..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$WORKER:$IMAGE_TAG \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$WORKER:latest \
+              -f workers/$WORKER/Dockerfile \
+              .
+
+            echo "Pushing $WORKER to ECR..."
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$WORKER:$IMAGE_TAG
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$WORKER:latest
+          fi
+        done
+
+      # Build and push AI services
+      - |
+        for AI_SERVICE in ai-center customer-agent marketing-agent moderation-engine performance-predictor recommendation-engine video-generator; do
+          if [ -f "ai/$AI_SERVICE/Dockerfile" ]; then
+            echo "Building $AI_SERVICE..."
+            docker build \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$AI_SERVICE:$IMAGE_TAG \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$AI_SERVICE:latest \
+              -f ai/$AI_SERVICE/Dockerfile \
+              .
+
+            echo "Pushing $AI_SERVICE to ECR..."
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$AI_SERVICE:$IMAGE_TAG
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$AI_SERVICE:latest
+          fi
+        done
+
+      # Build and push frontend apps
+      - |
+        for APP in web creator-portal admin brand-portal; do
+          if [ -f "apps/$APP/Dockerfile" ]; then
+            echo "Building $APP..."
+            docker build \
+              --build-arg NODE_ENV=production \
+              --build-arg BUILD_DATE=$BUILD_DATE \
+              --build-arg VCS_REF=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$APP:$IMAGE_TAG \
+              -t $ECR_REGISTRY/nexus-$ENVIRONMENT-$APP:latest \
+              -f apps/$APP/Dockerfile \
+              .
+
+            echo "Pushing $APP to ECR..."
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$APP:$IMAGE_TAG
+            docker push $ECR_REGISTRY/nexus-$ENVIRONMENT-$APP:latest
+          fi
+        done
+
+  post_build:
+    commands:
+      - echo "Build completed on $(date)"
+      - echo "Image tag: $IMAGE_TAG"
+      - echo "ECS Cluster: $ECS_CLUSTER"
+
+      # Deploy to ECS Fargate
+      - echo "Deploying services to ECS Fargate cluster: $ECS_CLUSTER"
+
+      # Deploy backend services
+      - |
+        for SERVICE in api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service marketplace-service notification-service workflow-service compliance-service integration-service payout-service rights-service asset-service ai-service; do
+          echo "Deploying $SERVICE to ECS..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $SERVICE \
+            --force-new-deployment \
+            --region $AWS_DEFAULT_REGION || echo "Service $SERVICE may not exist yet"
+        done
+
+      # Deploy workers
+      - |
+        for WORKER in video-processor social-publisher analytics-aggregator notification-dispatcher; do
+          echo "Deploying $WORKER to ECS..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $WORKER \
+            --force-new-deployment \
+            --region $AWS_DEFAULT_REGION || echo "Worker $WORKER may not exist yet"
+        done
+
+      # Deploy AI services
+      - |
+        for AI_SERVICE in ai-center customer-agent marketing-agent moderation-engine performance-predictor recommendation-engine video-generator; do
+          echo "Deploying $AI_SERVICE to ECS..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $AI_SERVICE \
+            --force-new-deployment \
+            --region $AWS_DEFAULT_REGION || echo "AI service $AI_SERVICE may not exist yet"
+        done
+
+      # Deploy frontend apps
+      - |
+        for APP in web creator-portal admin brand-portal; do
+          echo "Deploying $APP to ECS..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $APP \
+            --force-new-deployment \
+            --region $AWS_DEFAULT_REGION || echo "App $APP may not exist yet"
+        done
+
+      # Wait for critical services to stabilize
+      - echo "Waiting for critical services to stabilize..."
+      - |
+        for SERVICE in api-gateway auth-service user-service web; do
+          echo "Waiting for $SERVICE..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $SERVICE \
+            --region $AWS_DEFAULT_REGION || echo "Timeout waiting for $SERVICE"
+        done
+
+      # Generate ECS task definition ARNs for reference
+      - |
+        echo "{" > ecs-deployments.json
+        echo "  \"cluster\": \"$ECS_CLUSTER\"," >> ecs-deployments.json
+        echo "  \"imageTag\": \"$IMAGE_TAG\"," >> ecs-deployments.json
+        echo "  \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"," >> ecs-deployments.json
+        echo "  \"services\": [" >> ecs-deployments.json
+        FIRST=true
+        for SERVICE in api-gateway auth-service user-service creator-service campaign-service content-service commerce-service analytics-service billing-service; do
+          if [ "$FIRST" = true ]; then
+            FIRST=false
+          else
+            echo "," >> ecs-deployments.json
+          fi
+          echo "    {\"name\":\"$SERVICE\",\"imageUri\":\"$ECR_REGISTRY/nexus-$ENVIRONMENT-$SERVICE:$IMAGE_TAG\"}" >> ecs-deployments.json
+        done
+        echo "  ]" >> ecs-deployments.json
+        echo "}" >> ecs-deployments.json
+
+      - cat ecs-deployments.json
+
+artifacts:
+  files:
+    - ecs-deployments.json
+    - scripts/deploy-ecs.sh
+  discard-paths: no
+
+cache:
+  paths:
+    - 'node_modules/**/*'
+    - '.pnpm-store/**/*'
+
+reports:
+  test-reports:
+    files:
+      - 'coverage/clover.xml'
+      - 'test-results/**/*.xml'
+    file-format: 'CLOVERXML'

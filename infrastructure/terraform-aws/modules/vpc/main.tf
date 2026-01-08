@@ -390,44 +390,7 @@ resource "aws_security_group" "eks_nodes" {
   })
 }
 
-# Database Security Group
-resource "aws_security_group" "database" {
-  name        = "${local.name_prefix}-database-sg"
-  description = "Security group for RDS and ElastiCache"
-  vpc_id      = aws_vpc.main.id
-
-  # PostgreSQL from EKS nodes
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.eks_nodes.id]
-    description     = "PostgreSQL from EKS nodes"
-  }
-
-  # Redis from EKS nodes
-  ingress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [aws_security_group.eks_nodes.id]
-    description     = "Redis from EKS nodes"
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "Allow all outbound"
-  }
-
-  tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-database-sg"
-  })
-}
-
-# ALB Security Group
+# ALB Security Group (defined first - no dependencies)
 resource "aws_security_group" "alb" {
   name        = "${local.name_prefix}-alb-sg"
   description = "Security group for Application Load Balancer"
@@ -459,6 +422,103 @@ resource "aws_security_group" "alb" {
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-alb-sg"
+  })
+}
+
+# ECS Tasks Security Group (depends on ALB SG)
+resource "aws_security_group" "ecs_tasks" {
+  name        = "${local.name_prefix}-ecs-tasks-sg"
+  description = "Security group for ECS Fargate tasks"
+  vpc_id      = aws_vpc.main.id
+
+  # Allow inbound from ALB
+  ingress {
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+    description     = "Allow traffic from ALB"
+  }
+
+  # Allow inbound from self (service-to-service via Service Connect)
+  ingress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    self        = true
+    description = "Allow traffic from other ECS tasks"
+  }
+
+  # Allow all outbound
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ecs-tasks-sg"
+  })
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Database Security Group (depends on EKS nodes and ECS tasks SGs)
+resource "aws_security_group" "database" {
+  name        = "${local.name_prefix}-database-sg"
+  description = "Security group for RDS and ElastiCache"
+  vpc_id      = aws_vpc.main.id
+
+  # PostgreSQL from EKS nodes (legacy - will be removed after ECS migration)
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.eks_nodes.id]
+    description     = "PostgreSQL from EKS nodes"
+  }
+
+  # Redis from EKS nodes (legacy - will be removed after ECS migration)
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.eks_nodes.id]
+    description     = "Redis from EKS nodes"
+  }
+
+  # PostgreSQL from ECS tasks
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+    description     = "PostgreSQL from ECS tasks"
+  }
+
+  # Redis from ECS tasks
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ecs_tasks.id]
+    description     = "Redis from ECS tasks"
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-database-sg"
   })
 }
 
