@@ -144,8 +144,8 @@ resource "aws_elasticache_replication_group" "main" {
   auth_token                 = var.transit_encryption_enabled ? var.auth_token : null
 
   # Snapshots
-  snapshot_retention_limit = var.snapshot_retention_limit
-  snapshot_window          = var.snapshot_window
+  snapshot_retention_limit  = var.snapshot_retention_limit
+  snapshot_window           = var.snapshot_window
   final_snapshot_identifier = var.environment == "prod" ? "${local.cluster_id}-final" : null
 
   # Maintenance

@@ -60,7 +60,7 @@ variable "certificate_arn" {
 variable "price_class" {
   description = "CloudFront price class"
   type        = string
-  default     = "PriceClass_100"  # US, Canada, Europe
+  default     = "PriceClass_100" # US, Canada, Europe
 }
 
 variable "default_root_object" {

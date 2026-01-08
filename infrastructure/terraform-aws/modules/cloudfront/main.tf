@@ -70,8 +70,8 @@ resource "aws_cloudfront_cache_policy" "static" {
   name        = "${local.name_prefix}-static-cache-policy"
   comment     = "Cache policy for static assets"
   min_ttl     = 1
-  default_ttl = 86400      # 1 day
-  max_ttl     = 31536000   # 1 year
+  default_ttl = 86400    # 1 day
+  max_ttl     = 31536000 # 1 year
 
   parameters_in_cache_key_and_forwarded_to_origin {
     cookies_config {
@@ -332,7 +332,7 @@ resource "aws_cloudwatch_metric_alarm" "origin_latency" {
   namespace           = "AWS/CloudFront"
   period              = 300
   statistic           = "Average"
-  threshold           = 5000  # 5 seconds
+  threshold           = 5000 # 5 seconds
   alarm_description   = "CloudFront origin latency is above 5 seconds"
   alarm_actions       = var.alarm_actions
 

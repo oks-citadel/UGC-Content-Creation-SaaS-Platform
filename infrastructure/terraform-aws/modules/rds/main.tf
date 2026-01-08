@@ -21,7 +21,7 @@ terraform {
 # -----------------------------------------------------------------------------
 
 locals {
-  name_prefix = "${var.project}-${var.environment}"
+  name_prefix   = "${var.project}-${var.environment}"
   db_identifier = "${local.name_prefix}-postgres"
 
   common_tags = merge(var.tags, {
@@ -117,14 +117,14 @@ resource "aws_db_parameter_group" "main" {
   }
 
   parameter {
-    name  = "shared_buffers"
-    value = "{DBInstanceClassMemory/32768}"
+    name         = "shared_buffers"
+    value        = "{DBInstanceClassMemory/32768}"
     apply_method = "pending-reboot"
   }
 
   parameter {
     name  = "work_mem"
-    value = "16384"  # 16MB
+    value = "16384" # 16MB
   }
 
   parameter {
@@ -190,7 +190,7 @@ resource "aws_db_instance" "main" {
   max_allocated_storage = var.max_allocated_storage
   storage_type          = var.storage_type
   storage_encrypted     = true
-  kms_key_id           = var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn
+  kms_key_id            = var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn
 
   # Database
   db_name  = var.database_name
@@ -204,8 +204,8 @@ resource "aws_db_instance" "main" {
   port                   = 5432
 
   # Availability
-  multi_az               = var.multi_az
-  availability_zone      = var.multi_az ? null : var.availability_zone
+  multi_az          = var.multi_az
+  availability_zone = var.multi_az ? null : var.availability_zone
 
   # Backup
   backup_retention_period   = var.backup_retention_period
@@ -217,12 +217,12 @@ resource "aws_db_instance" "main" {
   final_snapshot_identifier = var.environment == "prod" ? "${local.db_identifier}-final-${formatdate("YYYYMMDD-hhmmss", timestamp())}" : null
 
   # Monitoring
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-  monitoring_interval             = var.monitoring_interval
-  monitoring_role_arn             = var.monitoring_interval > 0 ? aws_iam_role.rds_monitoring[0].arn : null
-  performance_insights_enabled    = var.performance_insights_enabled
+  enabled_cloudwatch_logs_exports       = ["postgresql", "upgrade"]
+  monitoring_interval                   = var.monitoring_interval
+  monitoring_role_arn                   = var.monitoring_interval > 0 ? aws_iam_role.rds_monitoring[0].arn : null
+  performance_insights_enabled          = var.performance_insights_enabled
   performance_insights_retention_period = var.performance_insights_enabled ? var.performance_insights_retention_days : null
-  performance_insights_kms_key_id = var.performance_insights_enabled ? (var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn) : null
+  performance_insights_kms_key_id       = var.performance_insights_enabled ? (var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn) : null
 
   # Protection
   deletion_protection = var.deletion_protection
@@ -307,7 +307,7 @@ resource "aws_cloudwatch_metric_alarm" "free_storage_space" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = var.allocated_storage * 1024 * 1024 * 1024 * 0.2  # 20% of allocated
+  threshold           = var.allocated_storage * 1024 * 1024 * 1024 * 0.2 # 20% of allocated
   alarm_description   = "RDS free storage space is below 20%"
   alarm_actions       = var.alarm_actions
 
@@ -326,7 +326,7 @@ resource "aws_cloudwatch_metric_alarm" "database_connections" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = var.max_connections * 0.9  # 90% of max
+  threshold           = var.max_connections * 0.9 # 90% of max
   alarm_description   = "RDS database connections are above 90% of max"
   alarm_actions       = var.alarm_actions
 
@@ -353,12 +353,12 @@ resource "aws_secretsmanager_secret" "db_credentials" {
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
-    username = var.master_username
-    password = var.master_password != null ? var.master_password : random_password.master[0].result
-    host     = aws_db_instance.main.address
-    port     = aws_db_instance.main.port
-    database = var.database_name
-    engine   = "postgres"
+    username          = var.master_username
+    password          = var.master_password != null ? var.master_password : random_password.master[0].result
+    host              = aws_db_instance.main.address
+    port              = aws_db_instance.main.port
+    database          = var.database_name
+    engine            = "postgres"
     connection_string = "postgresql://${var.master_username}:${var.master_password != null ? var.master_password : random_password.master[0].result}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.database_name}?sslmode=require"
   })
 }
@@ -377,7 +377,7 @@ resource "aws_db_instance" "replica" {
 
   # Storage (inherits from source)
   storage_encrypted = true
-  kms_key_id       = var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn
+  kms_key_id        = var.kms_key_arn != null ? var.kms_key_arn : aws_kms_key.rds[0].arn
 
   # Network
   vpc_security_group_ids = var.security_group_ids

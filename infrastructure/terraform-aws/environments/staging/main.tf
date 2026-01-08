@@ -38,11 +38,11 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Environment  = "staging"
-      Project      = "nexus"
-      ManagedBy    = "terraform"
-      CostCenter   = "staging"
-      Platform     = "ecs-fargate"
+      Environment = "staging"
+      Project     = "nexus"
+      ManagedBy   = "terraform"
+      CostCenter  = "staging"
+      Platform    = "ecs-fargate"
     }
   }
 }
@@ -122,42 +122,42 @@ locals {
   # Service port mapping
   service_ports = {
     # Backend services
-    "api-gateway"            = 3000
-    "auth-service"           = 3001
-    "user-service"           = 3002
-    "creator-service"        = 3003
-    "campaign-service"       = 3004
-    "content-service"        = 3005
-    "commerce-service"       = 3006
-    "analytics-service"      = 3007
-    "billing-service"        = 3008
-    "marketplace-service"    = 3009
-    "notification-service"   = 3010
-    "workflow-service"       = 3011
-    "compliance-service"     = 3012
-    "integration-service"    = 3013
-    "payout-service"         = 3014
-    "rights-service"         = 3015
-    "asset-service"          = 3016
-    "ai-service"             = 3017
+    "api-gateway"          = 3000
+    "auth-service"         = 3001
+    "user-service"         = 3002
+    "creator-service"      = 3003
+    "campaign-service"     = 3004
+    "content-service"      = 3005
+    "commerce-service"     = 3006
+    "analytics-service"    = 3007
+    "billing-service"      = 3008
+    "marketplace-service"  = 3009
+    "notification-service" = 3010
+    "workflow-service"     = 3011
+    "compliance-service"   = 3012
+    "integration-service"  = 3013
+    "payout-service"       = 3014
+    "rights-service"       = 3015
+    "asset-service"        = 3016
+    "ai-service"           = 3017
     # Frontend apps
-    "web"                    = 3000
-    "creator-portal"         = 3000
-    "admin"                  = 3000
-    "brand-portal"           = 3000
+    "web"            = 3000
+    "creator-portal" = 3000
+    "admin"          = 3000
+    "brand-portal"   = 3000
     # Workers
-    "video-processor"        = 4001
-    "social-publisher"       = 4002
+    "video-processor"         = 4001
+    "social-publisher"        = 4002
     "notification-dispatcher" = 4003
-    "analytics-aggregator"   = 4004
+    "analytics-aggregator"    = 4004
     # AI services
-    "ai-center"              = 5001
-    "customer-agent"         = 5002
-    "marketing-agent"        = 5003
-    "moderation-engine"      = 5004
-    "performance-predictor"  = 5005
-    "recommendation-engine"  = 5006
-    "video-generator"        = 5007
+    "ai-center"             = 5001
+    "customer-agent"        = 5002
+    "marketing-agent"       = 5003
+    "moderation-engine"     = 5004
+    "performance-predictor" = 5005
+    "recommendation-engine" = 5006
+    "video-generator"       = 5007
   }
 
   # ALB routing configuration
@@ -404,10 +404,10 @@ module "vpc" {
   environment = local.environment
   region      = local.region
 
-  vpc_cidr           = "10.2.0.0/16"  # Different CIDR from prod
+  vpc_cidr           = "10.2.0.0/16" # Different CIDR from prod
   az_count           = 3
   enable_nat_gateway = true
-  single_nat_gateway = true  # Cost optimization for staging
+  single_nat_gateway = true # Cost optimization for staging
 
   enable_vpc_endpoints     = true
   enable_flow_logs         = true
@@ -428,7 +428,7 @@ module "ecr" {
 
   repositories = local.all_services
 
-  image_tag_mutability = "MUTABLE"  # Allow retagging in staging
+  image_tag_mutability = "MUTABLE" # Allow retagging in staging
   scan_on_push         = true
 
   lifecycle_policy_rules = [
@@ -525,7 +525,7 @@ module "iam_ecs" {
 
   service_names = local.all_services
 
-  kms_key_arns = []  # Add KMS key ARNs if using encrypted secrets
+  kms_key_arns = [] # Add KMS key ARNs if using encrypted secrets
 
   s3_buckets = [
     module.s3.bucket_names["uploads"],
@@ -587,7 +587,7 @@ module "rds" {
   environment = local.environment
 
   engine_version = "15.4"
-  instance_class = "db.t3.medium"  # Smaller for staging
+  instance_class = "db.t3.medium" # Smaller for staging
 
   allocated_storage     = 20
   max_allocated_storage = 100
@@ -599,15 +599,15 @@ module "rds" {
   db_subnet_group_name = module.vpc.db_subnet_group_name
   security_group_ids   = [module.vpc.database_security_group_id]
 
-  multi_az                = false  # Single AZ for staging
+  multi_az                = false # Single AZ for staging
   backup_retention_period = 7
   backup_window           = "03:00-04:00"
   maintenance_window      = "Sun:04:00-Sun:05:00"
 
-  monitoring_interval          = 0  # Disabled for staging
+  monitoring_interval          = 0 # Disabled for staging
   performance_insights_enabled = false
 
-  deletion_protection         = false  # Allow deletion in staging
+  deletion_protection         = false # Allow deletion in staging
   iam_database_authentication = true
 
   create_read_replica = false
@@ -627,7 +627,7 @@ module "elasticache" {
   project     = local.project
   environment = local.environment
 
-  node_type                  = "cache.t3.micro"  # Small for staging
+  node_type                  = "cache.t3.micro" # Small for staging
   num_cache_clusters         = 1
   automatic_failover_enabled = false
 
@@ -762,7 +762,7 @@ module "backend_services" {
 
   target_group_arn = module.alb.service_target_group_arns[each.key]
 
-  enable_service_connect       = true
+  enable_service_connect        = true
   service_connect_namespace_arn = module.ecs_cluster.service_connect_namespace_arn
 
   environment_variables = {
@@ -834,7 +834,7 @@ module "frontend_apps" {
 
   target_group_arn = each.key == "web" ? module.alb.service_target_group_arns["web"] : module.alb.service_target_group_arns[each.key]
 
-  enable_service_connect       = true
+  enable_service_connect        = true
   service_connect_namespace_arn = module.ecs_cluster.service_connect_namespace_arn
 
   environment_variables = {
@@ -888,7 +888,7 @@ module "workers" {
   # Workers don't need ALB
   target_group_arn = ""
 
-  enable_service_connect       = true
+  enable_service_connect        = true
   service_connect_namespace_arn = module.ecs_cluster.service_connect_namespace_arn
 
   environment_variables = {
@@ -946,7 +946,7 @@ module "ai_services" {
   # AI services don't need ALB (internal only)
   target_group_arn = ""
 
-  enable_service_connect       = true
+  enable_service_connect        = true
   service_connect_namespace_arn = module.ecs_cluster.service_connect_namespace_arn
 
   environment_variables = {

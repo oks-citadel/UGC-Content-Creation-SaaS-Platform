@@ -77,8 +77,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = merge(local.common_tags, {
-    Name                                            = "${local.name_prefix}-public-${local.azs[count.index]}"
-    "kubernetes.io/role/elb"                        = "1"
+    Name                                             = "${local.name_prefix}-public-${local.azs[count.index]}"
+    "kubernetes.io/role/elb"                         = "1"
     "kubernetes.io/cluster/${local.name_prefix}-eks" = "shared"
   })
 }
@@ -95,8 +95,8 @@ resource "aws_subnet" "private" {
   availability_zone = local.azs[count.index]
 
   tags = merge(local.common_tags, {
-    Name                                            = "${local.name_prefix}-private-${local.azs[count.index]}"
-    "kubernetes.io/role/internal-elb"               = "1"
+    Name                                             = "${local.name_prefix}-private-${local.azs[count.index]}"
+    "kubernetes.io/role/internal-elb"                = "1"
     "kubernetes.io/cluster/${local.name_prefix}-eks" = "shared"
   })
 }
@@ -354,11 +354,11 @@ resource "aws_security_group" "eks_nodes" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port       = 0
-    to_port         = 0
-    protocol        = "-1"
-    self            = true
-    description     = "Allow nodes to communicate with each other"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+    description = "Allow nodes to communicate with each other"
   }
 
   ingress {

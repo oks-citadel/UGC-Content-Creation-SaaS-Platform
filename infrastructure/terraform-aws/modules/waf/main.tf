@@ -32,7 +32,7 @@ locals {
 resource "aws_wafv2_web_acl" "main" {
   name        = "${local.name_prefix}-waf"
   description = "WAF Web ACL for ${local.name_prefix}"
-  scope       = var.scope  # REGIONAL or CLOUDFRONT
+  scope       = var.scope # REGIONAL or CLOUDFRONT
 
   default_action {
     allow {}

@@ -41,8 +41,8 @@ output "alarm_arns" {
   description = "Map of alarm names to ARNs"
   value = merge(
     var.eks_cluster_name != null ? {
-      eks_cpu        = aws_cloudwatch_metric_alarm.eks_cpu[0].arn
-      eks_memory     = aws_cloudwatch_metric_alarm.eks_memory[0].arn
+      eks_cpu         = aws_cloudwatch_metric_alarm.eks_cpu[0].arn
+      eks_memory      = aws_cloudwatch_metric_alarm.eks_memory[0].arn
       eks_pod_restart = aws_cloudwatch_metric_alarm.eks_pod_restart[0].arn
     } : {},
     var.rds_identifier != null ? {

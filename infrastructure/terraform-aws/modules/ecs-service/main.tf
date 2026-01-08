@@ -103,16 +103,16 @@ resource "aws_ecs_task_definition" "main" {
 # ECS Service
 # -----------------------------------------------------------------------------
 resource "aws_ecs_service" "main" {
-  name                               = var.service_name
-  cluster                            = var.cluster_arn
-  task_definition                    = aws_ecs_task_definition.main.arn
-  desired_count                      = var.desired_count
-  launch_type                        = var.use_spot ? null : "FARGATE"
-  platform_version                   = var.platform_version
-  health_check_grace_period_seconds  = var.health_check_grace_period
-  enable_execute_command             = var.enable_execute_command
-  propagate_tags                     = "SERVICE"
-  enable_ecs_managed_tags            = true
+  name                              = var.service_name
+  cluster                           = var.cluster_arn
+  task_definition                   = aws_ecs_task_definition.main.arn
+  desired_count                     = var.desired_count
+  launch_type                       = var.use_spot ? null : "FARGATE"
+  platform_version                  = var.platform_version
+  health_check_grace_period_seconds = var.health_check_grace_period
+  enable_execute_command            = var.enable_execute_command
+  propagate_tags                    = "SERVICE"
+  enable_ecs_managed_tags           = true
 
   # Capacity provider strategy (for Spot support)
   dynamic "capacity_provider_strategy" {
@@ -167,10 +167,8 @@ resource "aws_ecs_service" "main" {
     }
   }
 
-  deployment_configuration {
-    maximum_percent         = var.deployment_maximum_percent
-    minimum_healthy_percent = var.deployment_minimum_healthy_percent
-  }
+  deployment_maximum_percent         = var.deployment_maximum_percent
+  deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
 
   deployment_circuit_breaker {
     enable   = true
@@ -179,7 +177,7 @@ resource "aws_ecs_service" "main" {
 
   lifecycle {
     ignore_changes = [
-      desired_count,  # Allow auto-scaling to manage this
+      desired_count, # Allow auto-scaling to manage this
     ]
   }
 

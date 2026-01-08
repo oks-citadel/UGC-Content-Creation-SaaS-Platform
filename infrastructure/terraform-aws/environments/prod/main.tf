@@ -59,11 +59,11 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Environment   = "prod"
-      Project       = "nexus"
-      ManagedBy     = "terraform"
-      CostCenter    = "production"
-      Organization  = "o-14wy6xb785"
+      Environment  = "prod"
+      Project      = "nexus"
+      ManagedBy    = "terraform"
+      CostCenter   = "production"
+      Organization = "o-14wy6xb785"
     }
   }
 }
@@ -122,7 +122,7 @@ module "vpc" {
   vpc_cidr           = "10.1.0.0/16"
   az_count           = 3
   enable_nat_gateway = true
-  single_nat_gateway = false  # HA for production
+  single_nat_gateway = false # HA for production
 
   enable_vpc_endpoints     = true
   enable_flow_logs         = true
@@ -441,11 +441,11 @@ module "cloudfront" {
   environment = local.environment
 
   # Origins
-  api_origin_domain  = module.eks.cluster_endpoint
-  web_origin_domain  = module.s3.bucket_regional_domain_names["assets"]
+  api_origin_domain = module.eks.cluster_endpoint
+  web_origin_domain = module.s3.bucket_regional_domain_names["assets"]
 
   # Custom domain (configure in Route 53)
-  aliases     = var.custom_domains
+  aliases         = var.custom_domains
   certificate_arn = var.acm_certificate_arn
 
   # WAF

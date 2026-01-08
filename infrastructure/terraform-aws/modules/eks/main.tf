@@ -21,7 +21,7 @@ terraform {
 # -----------------------------------------------------------------------------
 
 locals {
-  name_prefix = "${var.project}-${var.environment}"
+  name_prefix  = "${var.project}-${var.environment}"
   cluster_name = "${local.name_prefix}-eks"
 
   common_tags = merge(var.tags, {

@@ -186,7 +186,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 10737418240  # 10 GB
+  threshold           = 10737418240 # 10 GB
   alarm_description   = "RDS free storage space is below 10 GB"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 
@@ -248,7 +248,7 @@ resource "aws_cloudwatch_metric_alarm" "api_latency" {
   namespace           = "${local.name_prefix}/API"
   period              = 300
   extended_statistic  = "p95"
-  threshold           = 1000  # 1 second
+  threshold           = 1000 # 1 second
   alarm_description   = "API p95 latency is above 1 second"
   alarm_actions       = [aws_sns_topic.alerts.arn]
 

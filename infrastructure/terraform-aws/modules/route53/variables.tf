@@ -68,7 +68,7 @@ variable "records" {
       weight = number
     }), null)
     failover = optional(object({
-      type = string  # PRIMARY or SECONDARY
+      type = string # PRIMARY or SECONDARY
     }), null)
     set_identifier  = optional(string)
     health_check_id = optional(string)
