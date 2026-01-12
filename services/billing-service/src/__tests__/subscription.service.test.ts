@@ -67,8 +67,12 @@ jest.mock('../config', () => ({
     features: {
       proratedBilling: true,
     },
+    redis: {
+      url: 'redis://localhost:6379',
+    },
   },
 }));
+jest.mock('ioredis', () => {  return jest.fn().mockImplementation(() => ({    get: jest.fn().mockResolvedValue(null),    setex: jest.fn().mockResolvedValue('OK'),    del: jest.fn().mockResolvedValue(1),  }));});
 
 import subscriptionService from '../services/subscription.service';
 
