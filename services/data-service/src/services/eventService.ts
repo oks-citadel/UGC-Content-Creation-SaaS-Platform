@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { redis } from '../lib/redis';
 import { prisma } from '../lib/prisma';
-import { BaseEvent, ProcessedEvent, BatchEventRequest, BatchEventResult } from '../types/event';
+import { BaseEvent, ProcessedEvent, BatchEventRequest, BatchEventResult, EventQuery, EventQueryResult } from '../types/event';
 import { config } from '../config';
 import { logger } from '../lib/logger';
 
@@ -79,6 +79,69 @@ export class EventService {
         processedAt: new Date(event.processedAt),
       },
     });
+  }
+
+  async queryEvents(query: EventQuery): Promise<EventQueryResult> {
+    const { page, limit, sortBy, sortOrder, ...filters } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (filters.type) where.type = filters.type;
+    if (filters.source) where.source = filters.source;
+    if (filters.userId) where.userId = filters.userId;
+    if (filters.brandId) where.brandId = filters.brandId;
+    if (filters.entityType) where.entityType = filters.entityType;
+    if (filters.entityId) where.entityId = filters.entityId;
+    if (filters.priority) where.priority = filters.priority;
+
+    if (filters.startDate || filters.endDate) {
+      where.timestamp = {};
+      if (filters.startDate) where.timestamp.gte = new Date(filters.startDate);
+      if (filters.endDate) where.timestamp.lte = new Date(filters.endDate);
+    }
+
+    if (filters.tags) {
+      const tagsArray = filters.tags.split(',').map(t => t.trim());
+      where.tags = { hasSome: tagsArray };
+    }
+
+    const [events, total] = await Promise.all([
+      prisma.event.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      prisma.event.count({ where }),
+    ]);
+
+    const processedEvents: ProcessedEvent[] = events.map(event => ({
+      id: event.id,
+      type: event.type,
+      source: event.source,
+      timestamp: event.timestamp.toISOString(),
+      userId: event.userId || undefined,
+      brandId: event.brandId || undefined,
+      entityType: event.entityType || undefined,
+      entityId: event.entityId || undefined,
+      priority: event.priority as any,
+      payload: event.payload as Record<string, any>,
+      metadata: event.metadata as Record<string, any> | undefined,
+      tags: event.tags,
+      processedAt: event.processedAt?.toISOString() || event.createdAt.toISOString(),
+      streamKey: `${event.type}:${event.source}`,
+    }));
+
+    return {
+      events: processedEvents,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async getEventStats(brandId?: string): Promise<Record<string, number>> {

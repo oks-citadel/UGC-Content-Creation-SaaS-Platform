@@ -25,6 +25,9 @@ model Workflow {
 
   executions  WorkflowExecution[]
   schedules   WorkflowSchedule[]
+  flowTriggers FlowTrigger[]
+  flowActions  FlowAction[]
+  simulations  SimulationResult[]
 
   @@index([userId])
   @@index([isActive])
@@ -108,4 +111,113 @@ enum ExecutionStatus {
   FAILED
   CANCELLED
   TIMEOUT
+}
+
+// Flow Trigger Model - Unified trigger system
+model FlowTrigger {
+  id          String           @id @default(uuid()) @db.Uuid
+  workflowId  String?          @map("workflow_id") @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  name        String
+  description String?
+  type        FlowTriggerType
+  config      Json
+  conditions  Json?
+  isActive    Boolean          @default(true) @map("is_active")
+  metadata    Json?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  workflow Workflow? @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([userId])
+  @@index([type])
+  @@index([isActive])
+  @@map("flow_triggers")
+}
+
+// Flow Action Model - Unified action system
+model FlowAction {
+  id          String         @id @default(uuid()) @db.Uuid
+  workflowId  String?        @map("workflow_id") @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  name        String
+  description String?
+  type        FlowActionType
+  config      Json
+  order       Int            @default(0)
+  retryConfig Json?          @map("retry_config")
+  timeout     Int?           // milliseconds
+  isActive    Boolean        @default(true) @map("is_active")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  workflow Workflow? @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([userId])
+  @@index([type])
+  @@index([isActive])
+  @@map("flow_actions")
+}
+
+// Simulation Result Model
+model SimulationResult {
+  id             String          @id @default(uuid()) @db.Uuid
+  workflowId     String          @map("workflow_id") @db.Uuid
+  simulationType SimulationType
+  status         ExecutionStatus
+  testData       Json?           @map("test_data")
+  input          Json?
+  output         Json?
+  steps          Json?
+  errors         Json?
+  warnings       Json?
+  metrics        Json?
+  duration       Int?
+  startedAt      DateTime        @default(now()) @map("started_at")
+  completedAt    DateTime?       @map("completed_at")
+  createdBy      String?         @map("created_by") @db.Uuid
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("simulation_results")
+}
+
+enum FlowTriggerType {
+  EVENT           // event-based trigger
+  SCHEDULE        // cron/schedule-based
+  WEBHOOK         // incoming webhook
+  CONDITION       // condition-based
+  SEGMENT_ENTRY   // user enters segment
+  SEGMENT_EXIT    // user exits segment
+  API_CALL        // explicit API trigger
+}
+
+enum FlowActionType {
+  SEND_EMAIL
+  SEND_SMS
+  SEND_NOTIFICATION
+  SEND_PUSH
+  UPDATE_SEGMENT
+  UPDATE_PROFILE
+  CALL_WEBHOOK
+  CALL_API
+  DELAY
+  CONDITION
+  SPLIT
+  MERGE
+  TRANSFORM
+  LOG
+}
+
+enum SimulationType {
+  DRY_RUN
+  FULL_SIMULATION
+  STEP_BY_STEP
 }

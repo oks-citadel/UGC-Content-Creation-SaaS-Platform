@@ -74,3 +74,32 @@ export interface BatchEventResult {
   failed: number;
   events: Array<{ id: string; status: 'success' | 'failed'; error?: string }>;
 }
+
+export const eventQuerySchema = z.object({
+  type: z.string().optional(),
+  source: z.string().optional(),
+  userId: z.string().uuid().optional(),
+  brandId: z.string().uuid().optional(),
+  entityType: z.string().optional(),
+  entityId: z.string().uuid().optional(),
+  priority: z.nativeEnum(EventPriority).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  tags: z.string().optional(),
+  page: z.coerce.number().min(1).default(1),
+  limit: z.coerce.number().min(1).max(100).default(20),
+  sortBy: z.enum(['timestamp', 'createdAt', 'type', 'source']).default('timestamp'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+});
+
+export type EventQuery = z.infer<typeof eventQuerySchema>;
+
+export interface EventQueryResult {
+  events: ProcessedEvent[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

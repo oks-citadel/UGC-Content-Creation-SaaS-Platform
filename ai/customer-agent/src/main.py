@@ -26,6 +26,23 @@ from .models import (
     HandoffPriority,
 )
 from .agents import SupportAgent, TicketClassifier
+from .agents.sales_agent import (
+    sales_agent,
+    SalesChatRequest,
+    SalesChatResponse,
+    LeadQualifyRequest,
+    LeadQualifyResponse,
+    ProductRecommendationRequest,
+    ProductRecommendationResponse,
+)
+from .services.handoff_service import (
+    handoff_service,
+    HandoffRequest as ServiceHandoffRequest,
+    HandoffResponse as ServiceHandoffResponse,
+    TransferRequest,
+    TransferResponse,
+    HandoffStatusResponse,
+)
 
 # Configure logging
 logging.basicConfig(
@@ -386,6 +403,156 @@ async def clear_conversation(conversation_id: str):
     """
     support_agent.clear_conversation(conversation_id)
     return {"message": f"Conversation {conversation_id} cleared"}
+
+
+# ============================================
+# Sales Agent Endpoints
+# ============================================
+
+@app.post("/agent/sales/chat", response_model=SalesChatResponse)
+async def sales_chat(request: SalesChatRequest):
+    """
+    Handle sales chat inquiries.
+
+    Processes sales-related messages and provides product information,
+    pricing details, and guides prospects through the sales funnel.
+    """
+    try:
+        logger.info(f"Sales chat request: conversation={request.conversation_id}")
+        result = await sales_agent.chat(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in sales chat: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/sales/qualify", response_model=LeadQualifyResponse)
+async def qualify_lead(request: LeadQualifyRequest):
+    """
+    Qualify a sales lead using BANT criteria.
+
+    Analyzes lead information to score and qualify prospects:
+    - Budget: Can they afford the solution?
+    - Authority: Are they a decision maker?
+    - Need: Do they have a genuine need?
+    - Timeline: When do they plan to buy?
+    """
+    try:
+        logger.info(f"Lead qualification request: customer={request.customer_id}")
+        result = await sales_agent.qualify_lead(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in lead qualification: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/sales/recommendations", response_model=ProductRecommendationResponse)
+async def get_recommendations(request: ProductRecommendationRequest):
+    """
+    Get product recommendations based on customer needs.
+
+    Analyzes customer requirements and suggests the best-fit products
+    from the catalog.
+    """
+    try:
+        logger.info("Product recommendation request")
+        result = await sales_agent.get_recommendations(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in recommendations: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# Handoff Service Endpoints
+# ============================================
+
+@app.post("/agent/handoff/request", response_model=ServiceHandoffResponse)
+async def request_handoff(request: ServiceHandoffRequest):
+    """
+    Request a handoff to a human agent.
+
+    Initiates the transfer process to connect the customer with
+    a human support agent based on reason and priority.
+    """
+    try:
+        logger.info(f"Handoff request: conversation={request.conversation_id}, reason={request.reason}")
+        result = await handoff_service.request_handoff(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in handoff request: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/handoff/transfer", response_model=TransferResponse)
+async def transfer_handoff(request: TransferRequest):
+    """
+    Transfer a handoff to another agent or team.
+
+    Allows reassigning an existing handoff to a different agent
+    or team for specialized handling.
+    """
+    try:
+        logger.info(f"Transfer request: handoff={request.handoff_id}")
+        result = await handoff_service.transfer(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in transfer: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/agent/handoff/status/{handoff_id}", response_model=HandoffStatusResponse)
+async def get_handoff_status(handoff_id: str):
+    """
+    Get the status of a handoff request.
+
+    Returns current queue position, estimated wait time,
+    and assigned agent information.
+    """
+    try:
+        result = await handoff_service.get_status(handoff_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Handoff not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting handoff status: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/handoff/{handoff_id}/complete")
+async def complete_handoff(handoff_id: str, resolution_notes: Optional[str] = None):
+    """
+    Mark a handoff as completed.
+    """
+    try:
+        success = await handoff_service.complete_handoff(handoff_id, resolution_notes)
+        if not success:
+            raise HTTPException(status_code=404, detail="Handoff not found")
+        return {"success": True, "message": "Handoff completed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error completing handoff: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/agent/handoff/{handoff_id}/cancel")
+async def cancel_handoff(handoff_id: str, reason: Optional[str] = None):
+    """
+    Cancel a handoff request.
+    """
+    try:
+        success = await handoff_service.cancel_handoff(handoff_id, reason)
+        if not success:
+            raise HTTPException(status_code=404, detail="Handoff not found")
+        return {"success": True, "message": "Handoff cancelled"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling handoff: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

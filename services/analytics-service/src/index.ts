@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import config from './config';
 import analyticsRoutes from './routes/analytics.routes';
+import attributionRoutes from './routes/attribution.routes';
 import realtimeService from './services/realtime.service';
 
 const app: Application = express();
@@ -30,6 +31,7 @@ app.get('/health', (req: Request, res: Response) => {
 
 // Routes
 app.use('/api', analyticsRoutes);
+app.use('/api/attribution', attributionRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

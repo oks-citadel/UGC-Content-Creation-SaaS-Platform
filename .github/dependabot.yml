@@ -1,0 +1,161 @@
+# Dependabot configuration for NEXUS UGC Platform
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # Root package.json and pnpm workspace
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "nexus-platform/devops-team"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      typescript:
+        patterns:
+          - "typescript"
+          - "@types/*"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+      nextjs:
+        patterns:
+          - "next"
+          - "@next/*"
+      testing:
+        patterns:
+          - "jest"
+          - "@jest/*"
+          - "playwright"
+          - "@playwright/*"
+          - "vitest"
+      linting:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@typescript-eslint/*"
+          - "prettier"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+
+  # Python AI services
+  - package-ecosystem: "pip"
+    directory: "/ai/marketing-agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "nexus-platform/ai-team"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ai"
+    commit-message:
+      prefix: "deps(ai)"
+
+  - package-ecosystem: "pip"
+    directory: "/ai/customer-agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "nexus-platform/ai-team"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ai"
+
+  - package-ecosystem: "pip"
+    directory: "/ai/moderation-engine"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "nexus-platform/ai-team"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ai"
+
+  - package-ecosystem: "pip"
+    directory: "/ai/recommendation-engine"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "nexus-platform/ai-team"
+    labels:
+      - "dependencies"
+      - "python"
+      - "ai"
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/services/api-gateway"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "nexus-platform/devops-team"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/services/auth-service"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  - package-ecosystem: "docker"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "nexus-platform/devops-team"
+    labels:
+      - "dependencies"
+      - "ci-cd"
+    commit-message:
+      prefix: "ci"
+
+  # Terraform modules
+  - package-ecosystem: "terraform"
+    directory: "/infrastructure/terraform-aws"
+    schedule:
+      interval: "weekly"
+    reviewers:
+      - "nexus-platform/devops-team"
+    labels:
+      - "dependencies"
+      - "infrastructure"
+    commit-message:
+      prefix: "infra"

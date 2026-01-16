@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { eventService } from '../services/eventService';
-import { baseEventSchema, batchEventSchema } from '../types/event';
+import { baseEventSchema, batchEventSchema, eventQuerySchema } from '../types/event';
 import { rateLimiter } from '../middleware/rateLimiter';
 import { logger } from '../lib/logger';
 
@@ -29,6 +29,21 @@ router.post(
       const result = await eventService.ingestBatch(validatedBatch);
       const status = result.failed > 0 ? 207 : 201;
       res.status(status).json({ success: true, result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// GET /events - Query events with filters
+router.get(
+  '/',
+  rateLimiter({ maxRequests: 500, windowMs: 60000 }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const query = eventQuerySchema.parse(req.query);
+      const result = await eventService.queryEvents(query);
+      res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }

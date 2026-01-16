@@ -151,3 +151,123 @@ enum EmbedType {
   VUE_COMPONENT
   WEB_COMPONENT
 }
+
+// UGC Activation Models
+
+model UgcActivation {
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @map("organization_id") @db.Uuid
+  brandId         String               @map("brand_id") @db.Uuid
+  campaignId      String?              @map("campaign_id") @db.Uuid
+  contentId       String               @map("content_id") @db.Uuid
+  creatorId       String?              @map("creator_id") @db.Uuid
+  name            String
+  description     String?
+  status          UgcActivationStatus  @default(DRAFT)
+  targeting       Json?
+  attributionConfig Json?              @map("attribution_config")
+  utmParams       Json?                @map("utm_params")
+  startDate       DateTime?            @map("start_date")
+  endDate         DateTime?            @map("end_date")
+  metadata        Json?
+  createdBy       String               @map("created_by") @db.Uuid
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  embedCodes      UgcEmbedCode[]
+  trackingEvents  UgcTrackingEvent[]
+  conversions     UgcConversion[]
+
+  @@index([organizationId])
+  @@index([brandId])
+  @@index([campaignId])
+  @@index([contentId])
+  @@index([status])
+  @@map("ugc_activations")
+}
+
+model UgcEmbedCode {
+  id              String        @id @default(uuid()) @db.Uuid
+  activationId    String        @map("activation_id") @db.Uuid
+  type            UgcEmbedType  @default(JAVASCRIPT)
+  code            String
+  hash            String        @unique
+  settings        Json?
+  isActive        Boolean       @default(true) @map("is_active")
+  expiresAt       DateTime?     @map("expires_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  activation UgcActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+
+  @@index([activationId])
+  @@index([hash])
+  @@map("ugc_embed_codes")
+}
+
+model UgcTrackingEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  activationId    String   @map("activation_id") @db.Uuid
+  eventType       String   @map("event_type") // view, click, engagement, conversion
+  visitorId       String?  @map("visitor_id")
+  sessionId       String?  @map("session_id")
+  utmSource       String?  @map("utm_source")
+  utmMedium       String?  @map("utm_medium")
+  utmCampaign     String?  @map("utm_campaign")
+  utmContent      String?  @map("utm_content")
+  utmTerm         String?  @map("utm_term")
+  referrer        String?
+  userAgent       String?  @map("user_agent")
+  ipAddress       String?  @map("ip_address")
+  country         String?
+  device          String?
+  metadata        Json?
+  timestamp       DateTime @default(now())
+
+  activation UgcActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+
+  @@index([activationId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@index([visitorId])
+  @@map("ugc_tracking_events")
+}
+
+model UgcConversion {
+  id              String   @id @default(uuid()) @db.Uuid
+  activationId    String   @map("activation_id") @db.Uuid
+  visitorId       String   @map("visitor_id")
+  conversionType  String   @map("conversion_type") // purchase, signup, lead
+  value           Float    @default(0)
+  currency        String   @default("USD")
+  orderId         String?  @map("order_id")
+  productId       String?  @map("product_id")
+  touchpoints     Json?    // attribution touchpoint data
+  metadata        Json?
+  timestamp       DateTime @default(now())
+
+  activation UgcActivation @relation(fields: [activationId], references: [id], onDelete: Cascade)
+
+  @@index([activationId])
+  @@index([visitorId])
+  @@index([conversionType])
+  @@index([timestamp])
+  @@map("ugc_conversions")
+}
+
+enum UgcActivationStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  EXPIRED
+  ARCHIVED
+}
+
+enum UgcEmbedType {
+  JAVASCRIPT
+  IFRAME
+  DIRECT_LINK
+  REACT
+  VUE
+  WEB_COMPONENT
+  AMP
+}

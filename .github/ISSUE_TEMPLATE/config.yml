@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs.nexus-ugc.com
+    about: Check our documentation for guides and API references
+  - name: Discord Community
+    url: https://discord.gg/nexus-ugc
+    about: Join our community for discussions and support
+  - name: Security Issues
+    url: https://nexus-ugc.com/security
+    about: For security vulnerabilities, please use our responsible disclosure process

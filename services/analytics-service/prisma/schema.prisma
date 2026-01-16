@@ -175,3 +175,99 @@ model CachedMetric {
   @@index([cacheKey, expiresAt])
   @@map("cached_metrics")
 }
+
+// ============================================
+// Attribution System Models
+// ============================================
+
+model Touchpoint {
+  id          String   @id @default(uuid())
+  visitorId   String   @map("visitor_id")
+  sessionId   String?  @map("session_id")
+  channel     String   // organic, paid_search, social, email, referral, direct
+  source      String?  // google, facebook, twitter, newsletter
+  medium      String?  // cpc, organic, email, social
+  campaign    String?  // campaign identifier
+  content     String?  // ad content or creative ID
+  term        String?  // search term (for paid search)
+  landingPage String?  @map("landing_page")
+  referrer    String?
+  deviceType  String?  @map("device_type") // desktop, mobile, tablet
+  browser     String?
+  country     String?
+  region      String?
+  city        String?
+  metadata    Json?
+  timestamp   DateTime @default(now())
+  createdAt   DateTime @map("created_at") @default(now())
+
+  attributedConversions ConversionTouchpoint[]
+
+  @@index([visitorId, timestamp])
+  @@index([channel, timestamp])
+  @@index([campaign, timestamp])
+  @@index([source, medium])
+  @@map("touchpoints")
+}
+
+model Conversion {
+  id              String   @id @default(uuid())
+  visitorId       String   @map("visitor_id")
+  conversionType  String   @map("conversion_type") // purchase, signup, lead, subscription
+  value           Float    @default(0)
+  currency        String   @default("USD")
+  orderId         String?  @map("order_id")
+  productId       String?  @map("product_id")
+  metadata        Json?
+  timestamp       DateTime @default(now())
+  createdAt       DateTime @map("created_at") @default(now())
+
+  touchpoints        ConversionTouchpoint[]
+  attributionResults AttributionResult[]
+
+  @@index([visitorId, timestamp])
+  @@index([conversionType, timestamp])
+  @@index([timestamp])
+  @@map("conversions")
+}
+
+model ConversionTouchpoint {
+  id            String   @id @default(uuid())
+  conversionId  String   @map("conversion_id")
+  touchpointId  String   @map("touchpoint_id")
+  position      Int      // order in the customer journey (1 = first)
+  createdAt     DateTime @map("created_at") @default(now())
+
+  conversion Conversion @relation(fields: [conversionId], references: [id], onDelete: Cascade)
+  touchpoint Touchpoint @relation(fields: [touchpointId], references: [id], onDelete: Cascade)
+
+  @@unique([conversionId, touchpointId])
+  @@index([conversionId])
+  @@index([touchpointId])
+  @@map("conversion_touchpoints")
+}
+
+model AttributionResult {
+  id               String   @id @default(uuid())
+  conversionId     String   @map("conversion_id")
+  model            String   // first_touch, last_touch, linear, time_decay, position_based
+  channel          String
+  source           String?
+  medium           String?
+  campaign         String?
+  touchpointId     String?  @map("touchpoint_id")
+  attributedValue  Float    @map("attributed_value")
+  attributedPct    Float    @map("attributed_pct") // percentage 0-100
+  position         Int?
+  totalTouchpoints Int      @map("total_touchpoints")
+  metadata         Json?
+  calculatedAt     DateTime @map("calculated_at") @default(now())
+
+  conversion Conversion @relation(fields: [conversionId], references: [id], onDelete: Cascade)
+
+  @@index([conversionId, model])
+  @@index([channel, model, calculatedAt])
+  @@index([campaign, model, calculatedAt])
+  @@index([calculatedAt])
+  @@map("attribution_results")
+}

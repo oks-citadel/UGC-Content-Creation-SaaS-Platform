@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { workflowService } from '../services/workflow.service';
+import { simulationService } from '../services/simulation.service';
 import { TriggerType } from '.prisma/workflow-client';
 
 const router: Router = Router();
@@ -122,6 +123,62 @@ router.post('/executions/:executionId/cancel', async (req, res, next) => {
   try {
     await workflowService.pause(req.params.executionId);
     res.json({ success: true, data: { message: 'Execution cancelled' } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Simulation Routes
+
+// POST /:id/simulate - Simulate flow execution
+router.post('/:id/simulate', async (req, res, next) => {
+  try {
+    const { testData, simulationType, createdBy } = req.body;
+    const result = await simulationService.simulate({
+      workflowId: req.params.id,
+      testData,
+      simulationType,
+      createdBy,
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /:id/dry-run - Dry run with test data
+router.post('/:id/dry-run', async (req, res, next) => {
+  try {
+    const { testData, createdBy } = req.body;
+    const result = await simulationService.dryRun(req.params.id, testData || {}, createdBy);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /:id/simulation-results - Get simulation results
+router.get('/:id/simulation-results', async (req, res, next) => {
+  try {
+    const { page, limit } = req.query;
+    const result = await simulationService.getResults(req.params.id, {
+      page: page ? parseInt(page as string) : undefined,
+      limit: limit ? parseInt(limit as string) : undefined,
+    });
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /simulations/:simulationId - Get single simulation result
+router.get('/simulations/:simulationId', async (req, res, next) => {
+  try {
+    const result = await simulationService.getResultById(req.params.simulationId);
+    if (!result) {
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Simulation not found' } });
+    }
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

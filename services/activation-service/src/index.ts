@@ -6,6 +6,7 @@ import { config } from './config';
 import { logger } from './lib/logger';
 import activationsRouter from './routes/activations';
 import embedRouter from './routes/embed';
+import ugcActivationsRouter from './routes/ugcActivations';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -21,6 +22,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/activations', activationsRouter);
 app.use('/api/embed', embedRouter);
+app.use('/api/ugc', ugcActivationsRouter);
 
 app.use(errorHandler);
 

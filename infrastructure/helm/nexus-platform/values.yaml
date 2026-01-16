@@ -7,18 +7,12 @@ global:
   domain: nexusugc.com
 
   image:
-    registry: acrnexusprod.azurecr.io
+    registry: ghcr.io
     pullPolicy: IfNotPresent
     tag: latest
 
   imagePullSecrets:
-    - name: acr-secret
-
-  # Azure configuration
-  azure:
-    subscriptionId: ""
-    resourceGroup: rg-nexus-prod
-    location: eastus
+    - name: ghcr-secret
 
 # =============================================================================
 # API Gateway
@@ -337,17 +331,22 @@ workers:
 # Redis (Subchart)
 # =============================================================================
 redis:
-  enabled: false  # Using Azure Cache for Redis
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: ""
+  master:
+    persistence:
+      enabled: true
+      size: 8Gi
 
 # =============================================================================
 # External Secrets
 # =============================================================================
 externalSecrets:
-  enabled: true
+  enabled: false
   refreshInterval: 1h
-  secretStore:
-    kind: AzureKeyVault
-    name: nexus-keyvault
 
 # =============================================================================
 # Service Monitor (Prometheus)
@@ -369,23 +368,16 @@ networkPolicies:
 serviceAccount:
   create: true
   name: ""
-  annotations:
-    azure.workload.identity/client-id: ""
+  annotations: {}
 
 # =============================================================================
-# Secrets (only used when externalSecrets.enabled is false)
+# Secrets
 # =============================================================================
 secrets:
   databaseUrl: ""
   redisUrl: ""
   jwtSecret: ""
   jwtRefreshSecret: ""
-  azure:
-    clientId: ""
-    clientSecret: ""
-    tenantId: ""
-    storageConnectionString: ""
-    serviceBusConnectionString: ""
   stripe:
     secretKey: ""
     webhookSecret: ""

@@ -1,0 +1,105 @@
+# CODEOWNERS - NEXUS UGC Platform
+# These owners will be automatically requested for review when PRs modify their areas
+
+# Default owners for everything in the repo
+* @nexus-platform/core-team
+
+# ============================================
+# Frontend Applications
+# ============================================
+/apps/web/ @nexus-platform/frontend-team
+/apps/creator-portal/ @nexus-platform/frontend-team
+/apps/brand-portal/ @nexus-platform/frontend-team
+/apps/admin/ @nexus-platform/frontend-team
+
+# ============================================
+# Backend Services
+# ============================================
+/services/api-gateway/ @nexus-platform/backend-team
+/services/auth-service/ @nexus-platform/backend-team @nexus-platform/security-team
+/services/user-service/ @nexus-platform/backend-team
+/services/campaign-service/ @nexus-platform/backend-team
+/services/content-service/ @nexus-platform/backend-team
+/services/analytics-service/ @nexus-platform/data-team
+/services/billing-service/ @nexus-platform/backend-team @nexus-platform/finance-team
+/services/notification-service/ @nexus-platform/backend-team
+/services/marketplace-service/ @nexus-platform/backend-team
+/services/commerce-service/ @nexus-platform/backend-team
+/services/payout-service/ @nexus-platform/backend-team @nexus-platform/finance-team
+/services/rights-service/ @nexus-platform/backend-team @nexus-platform/legal-team
+/services/compliance-service/ @nexus-platform/backend-team @nexus-platform/legal-team
+/services/creator-service/ @nexus-platform/backend-team
+/services/asset-service/ @nexus-platform/backend-team
+/services/integration-service/ @nexus-platform/backend-team
+/services/workflow-service/ @nexus-platform/backend-team
+/services/data-service/ @nexus-platform/data-team
+/services/activation-service/ @nexus-platform/backend-team
+
+# ============================================
+# AI/ML Services
+# ============================================
+/ai/ @nexus-platform/ai-team
+/ai/marketing-agent/ @nexus-platform/ai-team
+/ai/customer-agent/ @nexus-platform/ai-team
+/ai/moderation-engine/ @nexus-platform/ai-team @nexus-platform/trust-safety
+/ai/recommendation-engine/ @nexus-platform/ai-team
+/ai/video-generator/ @nexus-platform/ai-team
+/ai/performance-predictor/ @nexus-platform/ai-team
+
+# ============================================
+# Workers
+# ============================================
+/workers/ @nexus-platform/backend-team
+
+# ============================================
+# Infrastructure
+# ============================================
+/infrastructure/ @nexus-platform/devops-team
+/infrastructure/terraform-aws/ @nexus-platform/devops-team
+/infrastructure/kubernetes/ @nexus-platform/devops-team
+/.github/workflows/ @nexus-platform/devops-team
+
+# ============================================
+# Database
+# ============================================
+/database/ @nexus-platform/data-team @nexus-platform/backend-team
+/prisma/ @nexus-platform/backend-team
+
+# ============================================
+# Shared Packages
+# ============================================
+/packages/ @nexus-platform/core-team
+/packages/types/ @nexus-platform/core-team
+/packages/ui/ @nexus-platform/frontend-team
+/packages/config/ @nexus-platform/devops-team
+
+# ============================================
+# Tests
+# ============================================
+/tests/ @nexus-platform/qa-team
+/tests/e2e/ @nexus-platform/qa-team @nexus-platform/frontend-team
+/tests/integration/ @nexus-platform/qa-team @nexus-platform/backend-team
+/tests/load/ @nexus-platform/qa-team @nexus-platform/devops-team
+
+# ============================================
+# Documentation
+# ============================================
+/docs/ @nexus-platform/docs-team
+/docs/api/ @nexus-platform/backend-team @nexus-platform/docs-team
+/docs/architecture/ @nexus-platform/core-team
+*.md @nexus-platform/docs-team
+
+# ============================================
+# Configuration Files
+# ============================================
+/config/ @nexus-platform/devops-team
+.env.example @nexus-platform/devops-team @nexus-platform/security-team
+docker-compose*.yml @nexus-platform/devops-team
+Dockerfile* @nexus-platform/devops-team
+
+# ============================================
+# Security-Sensitive Files
+# ============================================
+/SECURITY/ @nexus-platform/security-team
+**/auth/ @nexus-platform/security-team
+**/security/ @nexus-platform/security-team

@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/data-service-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String
+  source      String
+  timestamp   DateTime @default(now())
+  userId      String?  @map("user_id") @db.Uuid
+  brandId     String?  @map("brand_id") @db.Uuid
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id") @db.Uuid
+  priority    String   @default("normal")
+  payload     Json
+  metadata    Json?
+  tags        String[] @default([])
+  processedAt DateTime? @map("processed_at")
+  createdAt   DateTime @map("created_at") @default(now())
+
+  @@index([type])
+  @@index([source])
+  @@index([userId])
+  @@index([brandId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+  @@map("events")
+}
+
+model Segment {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @map("organization_id") @db.Uuid
+  name            String
+  description     String?
+  type            SegmentType   @default(STATIC)
+  rules           Json?
+  status          SegmentStatus @default(ACTIVE)
+  memberCount     Int           @default(0) @map("member_count")
+  metadata        Json?
+  createdBy       String        @map("created_by") @db.Uuid
+  createdAt       DateTime      @map("created_at") @default(now())
+  updatedAt       DateTime      @map("updated_at") @updatedAt
+
+  members SegmentMember[]
+  ruleSet SegmentRule[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([createdBy])
+  @@map("segments")
+}
+
+model SegmentMember {
+  id          String    @id @default(uuid()) @db.Uuid
+  segmentId   String    @map("segment_id") @db.Uuid
+  entityType  String    @map("entity_type")
+  entityId    String    @map("entity_id") @db.Uuid
+  attributes  Json?
+  addedAt     DateTime  @map("added_at") @default(now())
+  expiresAt   DateTime? @map("expires_at")
+
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, entityType, entityId])
+  @@index([segmentId])
+  @@index([entityType, entityId])
+  @@index([addedAt])
+  @@index([expiresAt])
+  @@map("segment_members")
+}
+
+model SegmentRule {
+  id          String   @id @default(uuid()) @db.Uuid
+  segmentId   String   @map("segment_id") @db.Uuid
+  field       String
+  operator    String
+  value       Json
+  groupId     String?  @map("group_id")
+  groupLogic  String?  @map("group_logic") @default("AND")
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @map("created_at") @default(now())
+  updatedAt   DateTime @map("updated_at") @updatedAt
+
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([field])
+  @@index([isActive])
+  @@map("segment_rules")
+}
+
+enum SegmentType {
+  STATIC
+  DYNAMIC
+  COMPUTED
+  HYBRID
+}
+
+enum SegmentStatus {
+  ACTIVE
+  INACTIVE
+  PROCESSING
+  ERROR
+  ARCHIVED
+}

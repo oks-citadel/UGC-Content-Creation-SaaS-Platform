@@ -6,6 +6,8 @@ import pinoHttp from 'pino-http';
 import cron from 'node-cron';
 import { config } from './config';
 import workflowRoutes from './routes/workflow.routes';
+import triggerRoutes from './routes/trigger.routes';
+import actionRoutes from './routes/action.routes';
 import { errorHandler } from './middleware/error-handler';
 import { WorkflowScheduler } from './engine/scheduler';
 
@@ -31,6 +33,8 @@ app.get('/ready', async (req, res) => {
 });
 
 app.use('/workflows', workflowRoutes);
+app.use('/triggers', triggerRoutes);
+app.use('/actions', actionRoutes);
 app.use((req, res) => res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Resource not found' } }));
 app.use(errorHandler);
 
