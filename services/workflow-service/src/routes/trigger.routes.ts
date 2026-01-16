@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { triggerService, CreateTriggerInput } from '../services/trigger.service';
 
-const router = Router();
+const router: Router = Router();
 
 const createSchema = z.object({
   workflowId: z.string().uuid().optional(),

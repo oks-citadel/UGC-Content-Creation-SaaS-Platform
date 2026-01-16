@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import attributionService, { AttributionModel } from '../services/attribution.service';
 
-const router = Router();
+const router: Router = Router();
 
 /**
  * GET /attribution/models
