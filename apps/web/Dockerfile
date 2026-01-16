@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Development stage
-FROM node:20-alpine AS development
+FROM node:25-alpine AS development
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ CMD ["pnpm", "--filter", "@nexus/web", "dev"]
 
 # =============================================================================
 # Builder stage
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -79,7 +79,7 @@ RUN pnpm --filter @nexus/web build
 
 # =============================================================================
 # Production runner stage
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 
 WORKDIR /app
 
