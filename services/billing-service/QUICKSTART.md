@@ -26,7 +26,7 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/nexus_billing"
-STRIPE_SECRET_KEY=sk_test_your_key
+STRIPE_SECRET_KEY=YOUR_STRIPE_KEY
 STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_secret
 REDIS_URL=redis://localhost:6379

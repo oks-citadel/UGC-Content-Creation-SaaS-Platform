@@ -68,7 +68,7 @@ NODE_ENV=development
 DATABASE_URL="postgresql://user:password@localhost:5432/nexus_billing"
 
 # Stripe
-STRIPE_SECRET_KEY=sk_test_your_key
+STRIPE_SECRET_KEY=YOUR_STRIPE_KEY
 STRIPE_PUBLISHABLE_KEY=pk_test_your_key
 STRIPE_WEBHOOK_SECRET=whsec_your_secret
 

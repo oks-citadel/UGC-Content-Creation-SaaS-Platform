@@ -470,7 +470,7 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/nexus_dev
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=debug
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_dummy}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-YOUR_STRIPE_TEST_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_dummy}
     ports:
       - "4006:4006"
