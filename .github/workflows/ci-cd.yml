@@ -132,6 +132,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         app: [web, creator-portal, admin]
     steps:
@@ -180,6 +181,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         service:
           - api-gateway
@@ -236,6 +238,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         service:
           - moderation-engine
@@ -281,6 +284,7 @@ jobs:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         worker:
           - video-processor
@@ -319,7 +323,7 @@ jobs:
     name: Deployment Summary
     runs-on: ubuntu-latest
     needs: [build-frontend, build-backend, build-ai, build-workers]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Deployment Summary
         run: |
@@ -328,10 +332,10 @@ jobs:
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Registry:** ${{ env.REGISTRY }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Images Built" >> $GITHUB_STEP_SUMMARY
-          echo "- Frontend: web, creator-portal, admin" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: 17 services" >> $GITHUB_STEP_SUMMARY
-          echo "- AI: 6 services" >> $GITHUB_STEP_SUMMARY
-          echo "- Workers: 4 workers" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend: ${{ needs.build-frontend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend: ${{ needs.build-backend.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- AI Services: ${{ needs.build-ai.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Workers: ${{ needs.build-workers.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All images tagged with: \`${{ github.sha }}\` and \`latest\`" >> $GITHUB_STEP_SUMMARY
