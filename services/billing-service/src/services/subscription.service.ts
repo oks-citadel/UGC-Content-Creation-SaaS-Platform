@@ -10,12 +10,12 @@ const redis = new Redis(config.redis.url);
 
 // Cache configuration
 const SUBSCRIPTION_CACHE_TTL = 300; // 5 minutes
-const ENTITLEMENT_CACHE_TTL = 60; // 1 minute for entitlements
+const _ENTITLEMENT_CACHE_TTL = 60; // 1 minute for entitlements (reserved for future use)
 
 /**
  * Get cached subscription data or fetch from database
  */
-async function getCachedSubscription(userId: string): Promise<Subscription | null> {
+async function _getCachedSubscription(userId: string): Promise<Subscription | null> {
   const cacheKey = `subscription:${userId}`;
 
   try {
@@ -34,7 +34,7 @@ async function getCachedSubscription(userId: string): Promise<Subscription | nul
 /**
  * Cache subscription data
  */
-async function cacheSubscription(userId: string, subscription: Subscription): Promise<void> {
+async function _cacheSubscription(userId: string, subscription: Subscription): Promise<void> {
   const cacheKey = `subscription:${userId}`;
 
   try {
@@ -48,7 +48,7 @@ async function cacheSubscription(userId: string, subscription: Subscription): Pr
 /**
  * Invalidate subscription cache
  */
-async function invalidateSubscriptionCache(userId: string): Promise<void> {
+async function _invalidateSubscriptionCache(userId: string): Promise<void> {
   const cacheKey = `subscription:${userId}`;
 
   try {
@@ -62,13 +62,13 @@ async function invalidateSubscriptionCache(userId: string): Promise<void> {
 /**
  * Log entitlement change for audit trail
  */
-async function logEntitlementChange(params: {
+async function _logEntitlementChange(params: {
   userId: string;
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'CHECK';
   feature?: string;
-  oldValue?: any;
-  newValue?: any;
-  metadata?: Record<string, any>;
+  oldValue?: unknown;
+  newValue?: unknown;
+  metadata?: Record<string, unknown>;
 }): Promise<void> {
   try {
     await (prisma as any).auditLog?.create({

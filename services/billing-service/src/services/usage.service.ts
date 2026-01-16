@@ -1,6 +1,7 @@
 import { PrismaClient, UsageType, UsageRecord } from '.prisma/billing-service-client';
 import logger from '../utils/logger';
-import subscriptionService from './subscription.service';
+// Subscription service is available for future use with entitlement checking
+import _subscriptionService from './subscription.service';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 const prisma = new PrismaClient();

@@ -31,7 +31,7 @@ export class DisclosureService {
     return disclosure;
   }
 
-  checkCompliance(platform: string, text: string, type: DisclosureType): boolean {
+  checkCompliance(platform: string, text: string, _type: DisclosureType): boolean {
     const platformLower = platform.toLowerCase();
     const textLower = text.toLowerCase();
     const required = REQUIRED_DISCLOSURES[platformLower] || [];

@@ -10,7 +10,7 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (err: Error | AppError, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: Error | AppError, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof AppError) {
     return res.status(err.statusCode).json({ success: false, error: { code: err.code, message: err.message } });
   }
