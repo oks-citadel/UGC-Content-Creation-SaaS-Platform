@@ -1,5 +1,3 @@
-import { PrismaClient, SubscriptionStatus, PlanName } from '.prisma/billing-service-client';
-
 const mockPrismaClient = {
   subscription: {
     create: jest.fn(),
@@ -18,7 +16,8 @@ const mockPrismaClient = {
   },
 };
 
-jest.mock('@prisma/client', () => ({
+// Mock the Prisma client from the generated path
+jest.mock('.prisma/billing-service-client', () => ({
   PrismaClient: jest.fn(() => mockPrismaClient),
   SubscriptionStatus: {
     ACTIVE: 'ACTIVE',
@@ -34,6 +33,9 @@ jest.mock('@prisma/client', () => ({
     ENTERPRISE: 'ENTERPRISE',
   },
 }));
+
+// Import types after mocking (for type safety in tests)
+import { SubscriptionStatus, PlanName } from '.prisma/billing-service-client';
 
 const mockStripeIntegration = {
   createCustomer: jest.fn(),
