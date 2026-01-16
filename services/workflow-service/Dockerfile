@@ -29,9 +29,9 @@ COPY services/workflow-service/tsconfig.json services/workflow-service/
 
 RUN cd services/workflow-service && npx prisma generate
 
-RUN cd packages/types && pnpm tsc --outDir dist || true
-RUN cd packages/utils && pnpm tsc --outDir dist || true
-RUN cd services/workflow-service && pnpm tsc --outDir dist
+RUN cd packages/types && npx tsc --outDir dist || true
+RUN cd packages/utils && npx tsc --outDir dist || true
+RUN cd services/workflow-service && npx tsc --outDir dist
 
 FROM node:20-alpine AS runner
 

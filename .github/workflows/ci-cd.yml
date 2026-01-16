@@ -260,7 +260,7 @@ jobs:
       - name: Build and Push ${{ matrix.service }}
         uses: docker/build-push-action@v5
         with:
-          context: ai/${{ matrix.service }}
+          context: .
           file: ai/${{ matrix.service }}/Dockerfile
           push: true
           tags: |
@@ -303,7 +303,7 @@ jobs:
       - name: Build and Push ${{ matrix.worker }}
         uses: docker/build-push-action@v5
         with:
-          context: workers/${{ matrix.worker }}
+          context: .
           file: workers/${{ matrix.worker }}/Dockerfile
           push: true
           tags: |
