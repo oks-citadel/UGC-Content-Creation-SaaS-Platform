@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { triggerService } from '../services/trigger.service';
+import { triggerService, CreateTriggerInput } from '../services/trigger.service';
 
 const router = Router();
 
@@ -34,7 +34,7 @@ router.get('/types', (req: Request, res: Response) => {
 // POST /triggers - Create trigger
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = createSchema.parse(req.body);
+    const data = createSchema.parse(req.body) as CreateTriggerInput;
     const trigger = await triggerService.create(data);
     res.status(201).json({ success: true, trigger });
   } catch (error) {

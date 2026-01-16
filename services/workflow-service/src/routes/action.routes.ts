@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { actionService } from '../services/action.service';
+import { actionService, CreateActionInput } from '../services/action.service';
 
 const router = Router();
 
@@ -46,7 +46,7 @@ router.get('/types', (req: Request, res: Response) => {
 // POST /actions - Create action
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = createSchema.parse(req.body);
+    const data = createSchema.parse(req.body) as CreateActionInput;
     const action = await actionService.create(data);
     res.status(201).json({ success: true, action });
   } catch (error) {
