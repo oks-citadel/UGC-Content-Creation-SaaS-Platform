@@ -228,7 +228,7 @@ export default function IntegrationsPage() {
             </button>
           </div>
           <code className="block bg-white border border-gray-200 rounded px-3 py-2 text-sm font-mono text-gray-900">
-            nexus_sk_live_abc123xyz789...
+            nexus_api_xxxxxxxxxxxxxxxx...
           </code>
         </div>
       </div>
