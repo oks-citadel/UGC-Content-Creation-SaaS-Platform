@@ -70,28 +70,28 @@ JWT_REFRESH_SECRET=GENERATE_SECURE_RANDOM_STRING_32_CHARS
 # Encryption
 ENCRYPTION_KEY=GENERATE_SECURE_RANDOM_STRING_32_CHARS
 
-# Azure Storage
-AZURE_STORAGE_ACCOUNT_NAME=your_storage_account
-AZURE_STORAGE_ACCOUNT_KEY=your_storage_key
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;...
+# Cloud Storage (S3/GCS/etc)
+STORAGE_BUCKET=YOUR_STORAGE_BUCKET_NAME
+STORAGE_ACCESS_KEY=YOUR_STORAGE_ACCESS_KEY_HERE
+STORAGE_SECRET_KEY=YOUR_STORAGE_SECRET_KEY_HERE
 
 # SendGrid
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxx
+SENDGRID_API_KEY=YOUR_SENDGRID_API_KEY_HERE
 
 # Stripe
-STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
+STRIPE_SECRET_KEY=YOUR_STRIPE_SECRET_KEY_HERE
+STRIPE_WEBHOOK_SECRET=YOUR_STRIPE_WEBHOOK_SECRET_HERE
 
 # OpenAI
-OPENAI_API_KEY=sk-xxxxxxxxxxxxx
+OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE
 
 # Social Media OAuth
-INSTAGRAM_CLIENT_ID=xxxxxxxxxxxxx
-INSTAGRAM_CLIENT_SECRET=xxxxxxxxxxxxx
-TIKTOK_CLIENT_ID=xxxxxxxxxxxxx
-TIKTOK_CLIENT_SECRET=xxxxxxxxxxxxx
-YOUTUBE_CLIENT_ID=xxxxxxxxxxxxx
-YOUTUBE_CLIENT_SECRET=xxxxxxxxxxxxx
+INSTAGRAM_CLIENT_ID=YOUR_INSTAGRAM_CLIENT_ID_HERE
+INSTAGRAM_CLIENT_SECRET=YOUR_INSTAGRAM_CLIENT_SECRET_HERE
+TIKTOK_CLIENT_ID=YOUR_TIKTOK_CLIENT_ID_HERE
+TIKTOK_CLIENT_SECRET=YOUR_TIKTOK_CLIENT_SECRET_HERE
+YOUTUBE_CLIENT_ID=YOUR_YOUTUBE_CLIENT_ID_HERE
+YOUTUBE_CLIENT_SECRET=YOUR_YOUTUBE_CLIENT_SECRET_HERE
 
 # RabbitMQ
 RABBITMQ_URL=amqp://username:password@rabbitmq-service:5672
@@ -147,7 +147,7 @@ echo -e "${GREEN}========================================${NC}"
 echo ""
 echo -e "${YELLOW}1. Never commit .env files to Git${NC}"
 echo -e "${YELLOW}2. Rotate secrets regularly${NC}"
-echo -e "${YELLOW}3. Use external secret management in production (Azure Key Vault, AWS Secrets Manager)${NC}"
+echo -e "${YELLOW}3. Use external secret management in production (AWS Secrets Manager, HashiCorp Vault)${NC}"
 echo -e "${YELLOW}4. Restrict access to secrets using RBAC${NC}"
 echo -e "${YELLOW}5. Monitor secret access and usage${NC}"
 echo ""
@@ -159,8 +159,9 @@ if [ "$ENV" = "production" ]; then
     echo -e "${RED}========================================${NC}"
     echo ""
     echo -e "${RED}For production, consider using:${NC}"
-    echo -e "${YELLOW}- Azure Key Vault Provider for Secrets Store CSI Driver${NC}"
+    echo -e "${YELLOW}- AWS Secrets Manager or Parameter Store${NC}"
     echo -e "${YELLOW}- External Secrets Operator${NC}"
+    echo -e "${YELLOW}- HashiCorp Vault${NC}"
     echo -e "${YELLOW}- Sealed Secrets${NC}"
     echo ""
 fi
