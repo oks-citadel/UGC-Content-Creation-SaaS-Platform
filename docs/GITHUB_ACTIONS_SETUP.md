@@ -1,110 +1,136 @@
 # GitHub Actions Setup Guide
 
-## Azure Credentials for GitHub Actions
+## CI/CD Pipeline Overview
 
-To enable the CI/CD pipeline to build and deploy all services, you need to configure the `AZURE_CREDENTIALS` secret in your GitHub repository.
+The NEXUS UGC Platform uses GitHub Actions for continuous integration and deployment. All container images are stored in GitHub Container Registry (ghcr.io).
 
-### Step 1: Go to GitHub Repository Settings
+## Required Permissions
 
-1. Navigate to: https://github.com/oks-citadel/UGC-Content-Creation-SaaS-Platform
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
+The CI/CD pipeline uses the built-in `GITHUB_TOKEN` which is automatically provided. No additional secrets are required for basic builds.
 
-### Step 2: Add AZURE_CREDENTIALS Secret
+### Repository Settings
 
-**Name:** `AZURE_CREDENTIALS`
+1. Go to **Settings** → **Actions** → **General**
+2. Under "Workflow permissions", select **Read and write permissions**
+3. Check **Allow GitHub Actions to create and approve pull requests**
 
-**Value:** (Copy the JSON below)
+## Pipeline Structure
 
-```json
-{
-  "clientId": "e44c83af-c15f-474e-9468-0d69c7ab7444",
-  "clientSecret": "m648Q~2N8_TGRi_UDjlAcAkUTOb5sZ2b.HtI6bQP",
-  "subscriptionId": "ba233460-2dbe-4603-a594-68f93ec9deb3",
-  "tenantId": "ed27e9a3-1b1c-46c9-8a73-a4f3609d75c0"
-}
+The main workflow (`.github/workflows/ci-cd.yml`) includes:
+
+### Jobs
+
+1. **Security Scan** - Vulnerability scanning with Trivy and TruffleHog
+2. **Lint & Type Check** - ESLint and TypeScript checking
+3. **Unit Tests** - Runs all test suites
+4. **Build Frontend Apps** - Builds web, creator-portal, admin
+5. **Build Backend Services** - Builds all 17 backend services
+6. **Build AI Services** - Builds all 6 AI services
+7. **Build Workers** - Builds all 4 worker services
+8. **Deployment Summary** - Creates summary of built images
+
+### Triggers
+
+- **Push to main** - Full build and push to registry
+- **Pull Request** - Lint, type check, and tests only
+- **Manual** - Can be triggered via workflow_dispatch
+
+## Container Images
+
+All images are pushed to GitHub Container Registry:
+
+```
+ghcr.io/oks-citadel/nexus-{service-name}:latest
+ghcr.io/oks-citadel/nexus-{service-name}:{commit-sha}
 ```
 
-### Step 3: Create Staging Environment (Optional)
-
-For deployment approval gates:
-
-1. Go to **Settings** → **Environments**
-2. Click **New environment**
-3. Name it `staging`
-4. Add required reviewers if desired
-
-### Step 4: Trigger the Workflow
-
-After adding the secret:
-
-1. Go to **Actions** tab
-2. Select "CI/CD Pipeline"
-3. Click **Run workflow** → **Run workflow**
-
-Or push any change to the `main` branch.
-
-## Current ACR Images (32 total)
-
-All images have been built and pushed to Azure Container Registry (`acrmktstagingravs.azurecr.io`):
-
-### Frontend Apps (4)
-- web
-- creator-portal
-- admin
-- brand-portal
+### Frontend Apps (3)
+- nexus-web
+- nexus-creator-portal
+- nexus-admin
 
 ### Backend Services (17)
-- api-gateway
-- auth-service
-- user-service
-- campaign-service
-- content-service
-- notification-service
-- rights-service
-- payout-service
-- asset-service
-- billing-service
-- commerce-service
-- marketplace-service
-- creator-service
-- compliance-service
-- workflow-service
-- integration-service
-- analytics-service
+- nexus-api-gateway
+- nexus-auth-service
+- nexus-user-service
+- nexus-campaign-service
+- nexus-content-service
+- nexus-notification-service
+- nexus-rights-service
+- nexus-payout-service
+- nexus-asset-service
+- nexus-billing-service
+- nexus-commerce-service
+- nexus-marketplace-service
+- nexus-creator-service
+- nexus-compliance-service
+- nexus-workflow-service
+- nexus-integration-service
+- nexus-analytics-service
 
-### AI Services (7)
-- ai-service
-- moderation-engine
-- recommendation-engine
-- performance-predictor
-- video-generator
-- customer-agent
-- marketing-agent
+### AI Services (6)
+- nexus-moderation-engine
+- nexus-recommendation-engine
+- nexus-performance-predictor
+- nexus-video-generator
+- nexus-customer-agent
+- nexus-marketing-agent
 
 ### Workers (4)
-- video-processor
-- social-publisher
-- analytics-aggregator
-- notification-dispatcher
+- nexus-video-processor
+- nexus-social-publisher
+- nexus-analytics-aggregator
+- nexus-notification-dispatcher
 
-## Service Principal Details
+## Manual Workflow Trigger
 
-- **Name:** github-actions-ugc-platform
-- **Client ID:** e44c83af-c15f-474e-9468-0d69c7ab7444
-- **Permissions:**
-  - Contributor on marketing-staging-rg resource group
-  - AcrPush on acrmktstagingravs container registry
+To manually trigger the workflow:
 
-## Unified CI/CD Pipeline
+1. Go to **Actions** tab
+2. Select **CI/CD Pipeline**
+3. Click **Run workflow** → **Run workflow**
 
-The repository has a single unified CI/CD pipeline (`.github/workflows/ci-cd.yml`) that:
+Or use GitHub CLI:
+```bash
+gh workflow run ci-cd.yml
+```
 
-1. **Lint & Type Check** - Runs on all PRs and pushes
-2. **Build Frontend** - Builds web, creator-portal, admin apps (on push to main)
-3. **Build Backend** - Builds all 17 backend services (on push to main)
-4. **Build AI Services** - Builds all 7 AI services (on push to main)
-5. **Build Workers** - Builds all 4 workers (on push to main)
-6. **Deploy to AKS** - Deploys to staging environment (on push to main)
+## Viewing Container Images
 
-All old/duplicate workflows have been removed.
+To see all published images:
+
+```bash
+gh api /orgs/oks-citadel/packages?package_type=container
+```
+
+Or visit: https://github.com/orgs/oks-citadel/packages
+
+## Deployment
+
+For deployment to Kubernetes:
+
+1. Create a `ghcr-secret` in your cluster:
+```bash
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USERNAME \
+  --docker-password=YOUR_GITHUB_PAT
+```
+
+2. Use Helm to deploy:
+```bash
+helm upgrade --install nexus ./infrastructure/helm/nexus-platform \
+  --set global.image.registry=ghcr.io \
+  --set global.image.tag=latest
+```
+
+## Dependabot
+
+Dependabot is configured to automatically create PRs for:
+- npm packages (weekly)
+- Python packages (weekly)
+- Docker base images (weekly)
+- GitHub Actions (weekly)
+- Terraform modules (weekly)
+
+See `.github/dependabot.yml` for configuration.

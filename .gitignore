@@ -119,3 +119,4 @@ build-logs.txt
 get-logs.ps1
 *.tfplan
 tfplan
+tmpclaude-*
