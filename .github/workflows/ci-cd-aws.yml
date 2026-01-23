@@ -118,7 +118,7 @@ jobs:
           fi
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./services/${{ matrix.service }}
           push: true
@@ -188,7 +188,7 @@ jobs:
           fi
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./ai/${{ matrix.service }}
           push: true
@@ -239,7 +239,7 @@ jobs:
           fi
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./apps/${{ matrix.app }}
           push: true
