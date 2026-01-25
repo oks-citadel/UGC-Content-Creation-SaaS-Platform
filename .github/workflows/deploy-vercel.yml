@@ -1,0 +1,307 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/web/**'
+      - 'apps/admin/**'
+      - 'apps/creator-portal/**'
+      - 'apps/brand-portal/**'
+      - 'packages/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/admin/**'
+      - 'apps/creator-portal/**'
+      - 'apps/brand-portal/**'
+      - 'packages/**'
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'App to deploy (web, admin, creator-portal, brand-portal, all)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - web
+          - admin
+          - creator-portal
+          - brand-portal
+      environment:
+        description: 'Environment (preview, production)'
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+jobs:
+  # =============================================================================
+  # Determine which apps to deploy
+  # =============================================================================
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.changes.outputs.web }}
+      admin: ${{ steps.changes.outputs.admin }}
+      creator-portal: ${{ steps.changes.outputs.creator-portal }}
+      brand-portal: ${{ steps.changes.outputs.brand-portal }}
+      packages: ${{ steps.changes.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+            admin:
+              - 'apps/admin/**'
+            creator-portal:
+              - 'apps/creator-portal/**'
+            brand-portal:
+              - 'apps/brand-portal/**'
+            packages:
+              - 'packages/**'
+
+  # =============================================================================
+  # Deploy Web App
+  # =============================================================================
+  deploy-web:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.web == 'true' ||
+       needs.detect-changes.outputs.packages == 'true' ||
+       github.event.inputs.app == 'web' ||
+       github.event.inputs.app == 'all')
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: |
+          cd apps/web
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project
+        run: |
+          cd apps/web
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          cd apps/web
+          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+      - name: Comment PR with Preview URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 **Web Preview Deployed!**\n\n${{ steps.deploy.outputs.url }}'
+            })
+
+  # =============================================================================
+  # Deploy Admin App
+  # =============================================================================
+  deploy-admin:
+    name: Deploy Admin
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.admin == 'true' ||
+       needs.detect-changes.outputs.packages == 'true' ||
+       github.event.inputs.app == 'admin' ||
+       github.event.inputs.app == 'all')
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}-admin
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: |
+          cd apps/admin
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project
+        run: |
+          cd apps/admin
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          cd apps/admin
+          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Deploy Creator Portal
+  # =============================================================================
+  deploy-creator-portal:
+    name: Deploy Creator Portal
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.creator-portal == 'true' ||
+       needs.detect-changes.outputs.packages == 'true' ||
+       github.event.inputs.app == 'creator-portal' ||
+       github.event.inputs.app == 'all')
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}-creator
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: |
+          cd apps/creator-portal
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project
+        run: |
+          cd apps/creator-portal
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          cd apps/creator-portal
+          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Deploy Brand Portal
+  # =============================================================================
+  deploy-brand-portal:
+    name: Deploy Brand Portal
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: |
+      (needs.detect-changes.outputs.brand-portal == 'true' ||
+       needs.detect-changes.outputs.packages == 'true' ||
+       github.event.inputs.app == 'brand-portal' ||
+       github.event.inputs.app == 'all')
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}-brand
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Pull Vercel Environment
+        run: |
+          cd apps/brand-portal
+          vercel pull --yes --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project
+        run: |
+          cd apps/brand-portal
+          vercel build ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to Vercel
+        id: deploy
+        run: |
+          cd apps/brand-portal
+          url=$(vercel deploy --prebuilt ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$url" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Deployment Summary
+  # =============================================================================
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy-web, deploy-admin, deploy-creator-portal, deploy-brand-portal]
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## Vercel Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| App | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Web | ${{ needs.deploy-web.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Admin | ${{ needs.deploy-admin.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Creator Portal | ${{ needs.deploy-creator-portal.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Brand Portal | ${{ needs.deploy-brand-portal.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

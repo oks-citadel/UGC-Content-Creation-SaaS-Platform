@@ -1,0 +1,54 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway builds
+
+# Frontend apps (deployed to Vercel)
+apps/web/
+apps/admin/
+apps/creator-portal/
+apps/brand-portal/
+apps/mobile/
+
+# Development
+.env.local
+.env.development
+.env*.local
+*.log
+logs/
+
+# Test files
+tests/
+test-results/
+playwright-report/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+__mocks__/
+
+# Documentation
+docs/
+*.md
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+
+# Large files
+*.tar.gz
+*.zip
+context.tar.gz
