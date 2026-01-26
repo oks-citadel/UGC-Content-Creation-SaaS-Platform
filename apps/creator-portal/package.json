@@ -12,7 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-query-devtools": "^5.17.19",
-    "next": "^14.1.0",
+    "next": "^16.1.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "zustand": "^4.4.7",
