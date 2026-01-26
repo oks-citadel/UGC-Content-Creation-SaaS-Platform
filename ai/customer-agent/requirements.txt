@@ -14,7 +14,7 @@ anthropic==0.18.0
 httpx==0.26.0
 
 # Environment variables
-python-dotenv==1.0.0
+python-dotenv==1.2.1
 
 # Redis for caching and conversation storage
 redis==5.0.1
